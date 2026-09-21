@@ -2,6 +2,8 @@
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#15151b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><title>Расписание</title><script>
 // Apply the saved theme before first paint. Storage may be unavailable in a WebView.
 (function () {
+  document.documentElement.classList.add('launch-motion');
+  window.setTimeout(function(){document.documentElement.classList.remove('launch-motion');},900);
   var preference = 'system';
   try { var saved = localStorage.getItem('sched_theme'); if (['dark','light','system'].indexOf(saved) !== -1) preference = saved; } catch (_) {}
   var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -293,6 +295,64 @@ body{-webkit-font-smoothing:antialiased}
 .theme-settings .theme-switch{flex-direction:row;top:52px;right:calc(100% + 9px);width:max-content;padding:3px;gap:0;border-radius:27px;transform-origin:right center}
 .theme-settings .theme-switch:not([hidden]){animation:theme-slide-left .2s cubic-bezier(.2,.8,.2,1) both}
 @keyframes theme-slide-left{from{opacity:0;transform:translateX(7px) scale(.97)}to{opacity:1;transform:translateX(0) scale(1)}}
+
+/* The trigger already displays the chosen theme; show only alternatives. */
+.theme-settings .theme-switch button[hidden]{display:none!important}
+/* Short entrance without a blocking splash or artificial loading state. */
+.launch-motion header{animation:launch-header .45s cubic-bezier(.2,.8,.2,1) both}
+.launch-motion .workspace{animation:launch-content .6s cubic-bezier(.2,.8,.2,1) .05s both}
+.launch-motion .brand-icon{animation:launch-mark .65s cubic-bezier(.2,.8,.2,1) both}
+@keyframes launch-header{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes launch-content{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes launch-mark{from{transform:scale(.92);box-shadow:0 0 0 #e8d4f000}55%{box-shadow:0 0 18px #e8d4f024}to{transform:scale(1);box-shadow:0 0 0 #e8d4f000}}
+@media(prefers-reduced-motion:reduce){.launch-motion header,.launch-motion .workspace,.launch-motion .brand-icon{animation:none!important}}
+
+/* One material system shared by surfaces, controls and popovers. */
+:root{
+ --liquid-fill:linear-gradient(135deg,rgba(255,246,238,.105),rgba(235,221,242,.045) 54%,rgba(220,248,236,.065));
+ --liquid-edge:rgba(243,230,246,.19);
+ --liquid-shadow:inset 0 1px 1px rgba(255,250,243,.30),inset 0 -1px 1px rgba(235,216,243,.065),0 7px 22px rgba(12,9,20,.12);
+ --liquid-filter:blur(30px) saturate(125%);
+ --liquid-selected:linear-gradient(135deg,rgba(255,246,239,.23),rgba(222,196,235,.14) 60%,rgba(213,243,229,.10));
+ --liquid-selected-edge:rgba(242,223,248,.34);
+ --liquid-selected-shadow:inset 0 1px 1px rgba(255,250,244,.48),inset 0 -1px 1px rgba(232,212,242,.10),0 4px 14px rgba(12,9,20,.10);
+ --liquid-solid:#343039;
+ --control-glass:var(--liquid-fill);--control-edge:var(--liquid-edge);--control-shadow:var(--liquid-shadow);
+}
+:root[data-theme=light]{
+ --liquid-fill:linear-gradient(135deg,rgba(255,255,255,.61),rgba(255,252,255,.36) 54%,rgba(245,255,248,.44));
+ --liquid-edge:rgba(255,255,255,.74);
+ --liquid-shadow:inset 0 1px 1px rgba(255,255,255,.92),inset 0 -1px 1px rgba(133,108,151,.055),0 7px 22px rgba(71,48,86,.06);
+ --liquid-selected:linear-gradient(135deg,rgba(255,255,255,.84),rgba(231,217,240,.48) 60%,rgba(226,244,233,.43));
+ --liquid-selected-edge:rgba(170,143,184,.24);
+ --liquid-selected-shadow:inset 0 1px 1px #fff,inset 0 -1px 1px rgba(147,112,163,.07),0 4px 14px rgba(71,48,86,.07);
+ --liquid-solid:#f4eff6;
+}
+:root :is(.glass,.lesson,.empty,.brand-icon,.segmented,.arrows button,.today-btn,.date-open,.date-month-nav button,.date-popover,.theme-toggle,.offline-status,.offline-hint,.theme-settings .theme-switch,.group-overlay .group-dialog,.dialog-head button,#groups button,.group-chevron,.group-action){
+ background:var(--liquid-fill);border:1px solid var(--liquid-edge);box-shadow:var(--liquid-shadow);backdrop-filter:var(--liquid-filter);-webkit-backdrop-filter:var(--liquid-filter);
+}
+:root :is(.day.selected,.segmented>span,.theme-settings .theme-switch button[aria-pressed=true],.date-grid button[aria-pressed=true],#groups button[aria-pressed=true]){
+ background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow);color:var(--text);
+}
+:root .theme-settings .theme-switch button:not([aria-pressed=true]){background:transparent;border:1px solid transparent;box-shadow:none;color:var(--muted)}
+:root .theme-settings .theme-switch button[hidden]{display:none!important}
+:root .offline-hint{color:var(--text);border-radius:16px;font-weight:450;line-height:1.55}
+:root .group-dialog p{color:var(--muted)}
+:root .lesson.current{border-color:var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow)}
+:root .lesson.past{background:var(--liquid-fill)}
+:root .group-overlay{background:rgba(17,12,24,.23);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+:root[data-theme=light] .group-overlay{background:rgba(67,45,75,.12)}
+@media(hover:hover){:root :is(.arrows button,.today-btn,.date-open,.date-month-nav button,.theme-toggle,.offline-status,.dialog-head button,#groups button):not(:disabled):hover{background:var(--liquid-selected)}}
+@supports not (backdrop-filter:blur(1px)){
+ :root :is(.glass,.lesson,.empty,.brand-icon,.segmented,.arrows button,.today-btn,.date-open,.date-month-nav button,.date-popover,.theme-toggle,.offline-status,.offline-hint,.theme-settings .theme-switch,.group-overlay .group-dialog,.dialog-head button,#groups button,.group-chevron,.group-action){background:var(--liquid-solid)}
+}
+
+/* Clear text metadata instead of the old location glyph. */
+.lesson .meta{gap:8px 0;margin-top:12px;padding-top:10px;border-top:1px solid var(--liquid-edge);font-size:13px;line-height:1.5}
+.lesson .meta:empty{display:none}
+.lesson .meta>span{display:block;padding-right:14px}
+.lesson .meta>span+span{padding-left:14px;border-left:1px solid var(--liquid-edge)}
+@media(max-width:360px){.lesson .meta{flex-direction:column;gap:4px}.lesson .meta>span+span{padding-left:0;border-left:0}}
 </style>
 <meta name="application-name" content="Расписание">
 <meta name="apple-mobile-web-app-title" content="Расписание">
@@ -308,9 +368,9 @@ body{-webkit-font-smoothing:antialiased}
 <script>
 (function(){
   const toggle=document.getElementById('themeToggle'),panel=document.getElementById('themeOptions');
-  function sync(){const active=panel.querySelector('[aria-pressed="true"]');if(active){toggle.innerHTML=active.innerHTML;toggle.setAttribute('aria-label','Выбрать тему. '+active.getAttribute('aria-label'));}}
+  function sync(){const active=panel.querySelector('[aria-pressed="true"]');panel.querySelectorAll('[data-theme-choice]').forEach(button=>{button.hidden=button===active;});if(active){toggle.innerHTML=active.innerHTML;toggle.setAttribute('aria-label','Выбрать тему. '+active.getAttribute('aria-label'));toggle.title=active.getAttribute('aria-label')+' · изменить';}}
   function close(restore){panel.hidden=true;toggle.setAttribute('aria-expanded','false');if(restore)toggle.focus();}
-  toggle.addEventListener('click',()=>{const open=panel.hidden;panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));if(open)(panel.querySelector('[aria-pressed="true"]')||panel.querySelector('button')).focus();});
+  toggle.addEventListener('click',()=>{const open=panel.hidden;sync();panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));if(open)panel.querySelector('button:not([hidden])').focus();});
   panel.querySelectorAll('[data-theme-choice]').forEach(button=>button.addEventListener('click',()=>{window.scheduleTheme.set(button.dataset.themeChoice);sync();close(true);}));
   document.addEventListener('click',event=>{if(!panel.hidden&&!panel.contains(event.target)&&!toggle.contains(event.target))close(false);});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){event.preventDefault();close(true);}});
@@ -362,7 +422,7 @@ function preferredDay(c=now){
 function selectAutomaticDay(){const date=preferredDay();state.week=monday(date);state.day=dayIdx(date);}
 function status(l,c=now){if(l.date<c.date)return'past';if(l.date>c.date)return'upcoming';if(l.end===null)return c.minute>=l.start?'started':'upcoming';return c.minute>=l.end?'past':c.minute>=l.start?'current':'upcoming'}
 function durationMinutes(total){const minutes=Math.max(0,Math.floor(total));const hours=Math.floor(minutes/60);return hours?`${hours} ч ${minutes%60} мин`:`${minutes} мин`}
-function card(l,i){const s=status(l),remaining=l.end-now.minute;return`<article class="lesson ${s}" style="--color:${COLORS[l.type]};--i:${i}"><div class="lesson-heading"><div class="time"><strong>${timeString(l.start)}${l.end===null?'':`<span class="time-dash">–</span>${timeString(l.end)}`}</strong><small>${l.type==='credit'?'Зачёт':l.num+' пара'}</small></div><span class="type">${TYPES[l.type]}</span></div><h3>${esc(l.subject)}</h3>${l.teachers.length?`<div class="teacher">${l.teachers.map(esc).join(' · ')}</div>`:''}<div class="meta">${l.theme?`<span>Тема ${esc(l.theme)}</span>`:''}${l.rooms.length?`<span>⌖ ${l.rooms.map(esc).join(' · ')}</span>`:''}</div>${s==='current'?`<div class="live"><span class="status"><i aria-hidden="true"></i>Сейчас идёт</span><span>Ещё ${durationMinutes(remaining)}</span><div class="track" role="progressbar" aria-label="Прошедшая часть занятия" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round((now.minute-l.start)/(l.end-l.start)*100)}"><span style="width:${Math.max(0,Math.min(100,(now.minute-l.start)/(l.end-l.start)*100))}%"></span></div></div>`:''}<div class="card-bottom">${s==='past'?'<span class="status">✓ Завершено</span>':s==='started'?'<span class="status">Началось · окончание не указано</span>':''}</div></article>`}
+function card(l,i){const s=status(l),remaining=l.end-now.minute;return`<article class="lesson ${s}" style="--color:${COLORS[l.type]};--i:${i}"><div class="lesson-heading"><div class="time"><strong>${timeString(l.start)}${l.end===null?'':`<span class="time-dash">–</span>${timeString(l.end)}`}</strong><small>${l.type==='credit'?'Зачёт':l.num+' пара'}</small></div><span class="type">${TYPES[l.type]}</span></div><h3>${esc(l.subject)}</h3>${l.teachers.length?`<div class="teacher">${l.teachers.map(esc).join(' · ')}</div>`:''}<div class="meta">${l.theme?`<span>Тема ${esc(l.theme)}</span>`:''}${l.rooms.length?`<span class="room-detail">${l.rooms.map(esc).join(' · ')}</span>`:''}</div>${s==='current'?`<div class="live"><span class="status"><i aria-hidden="true"></i>Сейчас идёт</span><span>Ещё ${durationMinutes(remaining)}</span><div class="track" role="progressbar" aria-label="Прошедшая часть занятия" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round((now.minute-l.start)/(l.end-l.start)*100)}"><span style="width:${Math.max(0,Math.min(100,(now.minute-l.start)/(l.end-l.start)*100))}%"></span></div></div>`:''}<div class="card-bottom">${s==='past'?'<span class="status">✓ Завершено</span>':s==='started'?'<span class="status">Началось · окончание не указано</span>':''}</div></article>`}
 function block(date){const list=lessons(date),available=SCHEDULE.weekDates.includes(monday(date));return`<section class="day-block"><div class="section-head"><h2>${DAYS[dayIdx(date)]}</h2><span>${fmt(date,{day:'numeric',month:'short'})}${date===now.date?' · Сегодня':''}</span><span class="count">${list.length?list.length+' занятий':''}</span></div>${list.length?`<div class="lesson-list">${list.map(card).join('')}</div>`:`<div class="empty"><h3>${available?'Занятий в расписании нет':'На эту неделю нет данных'}</h3>${available?'В выбранном дне нет записей.':'В файле есть недели с 31 августа 2026 по 7 февраля 2027.'}</div>`}</section>`}
 function summary(){if(!state.group){$('summary').innerHTML='<h3>Ваш учебный день</h3><p>Выберите группу, чтобы увидеть занятия.</p>';return}const list=lessons(now.date),live=list.find(l=>status(l)==='current'),next=list.find(l=>status(l)==='upcoming');$('summary').innerHTML=live?`<h3>Сейчас идёт пара</h3><p>${esc(live.subject)}</p><div class="sum-time">До ${timeString(live.end)} · ещё ${durationMinutes(live.end-now.minute)}</div>`:next?`<h3>Следующее занятие</h3><p>${esc(next.subject)}</p><div class="sum-time">${timeString(next.start)} · через ${durationMinutes(next.start-now.minute)}</div>`:list.length?'<h3>Занятия завершены</h3><p>На сегодня всё. Можно посмотреть, что будет завтра.</p>':`<h3>${SCHEDULE.weekDates.includes(monday(now.date))?'День без занятий':'Нет данных на сегодня'}</h3><p>${SCHEDULE.weekDates.includes(monday(now.date))?'В расписании на сегодня нет записей.':'Выберите неделю из загруженного расписания.'}</p>`}
 function render(animate=true){now=clock();if(state.autoDay)selectAutomaticDay();$('datePicker').value=add(state.week,state.day);$('dateDisplay').textContent=fmt($('datePicker').value,{day:'numeric',month:'short',year:'numeric'});$('dateOpen').setAttribute('aria-label','Перейти к дате. '+fmt($('datePicker').value,{day:'numeric',month:'long',year:'numeric'}));$('groupBtn').innerHTML=(state.group?'Группа '+state.group:'Выбрать группу')+' <span class="group-chevron"><svg class="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 10 4 4 4-4"/></svg></span>';$('todayLine').textContent=fmt(now.date,{weekday:'long',day:'numeric',month:'long'});$('weekLabel').textContent=fmt(state.week,{day:'numeric',month:'short'})+' — '+fmt(add(state.week,6),{day:'numeric',month:'short'});const index=SCHEDULE.weekDates.indexOf(state.week);$('weekSub').textContent=index>=0?`Учебная неделя ${index+1} · ${state.week.slice(0,4)}`:'Неделя вне загруженного расписания';$('segThumb').style.transform=state.mode==='week'?'translateX(100%)':'translateX(0)';for(const mode of['day','week'])$(mode+'Mode').setAttribute('aria-pressed',state.mode===mode);
