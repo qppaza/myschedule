@@ -156,9 +156,9 @@ button,a{touch-action:manipulation}
 </style>
 <meta name="application-name" content="Расписание">
 <meta name="apple-mobile-web-app-title" content="Расписание">
-<link rel="manifest" href="./manifest.webmanifest?v=3">
-<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png?v=3">
-<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=3">
+<link rel="manifest" href="./manifest.webmanifest?v=7">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png?v=7">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=7">
 </head>
 <body><div class="ambient" aria-hidden="true"></div><div class="shell"><header><a class="brand" href="./"><span class="brand-icon">А</span><span>АКАДЕМИЯ МВД<span class="brand-sub">РЕСПУБЛИКИ БЕЛАРУСЬ</span></span></a><span class="header-note">2026 / 2027 · 5 семестр</span><button class="group glass" id="groupBtn" aria-haspopup="dialog">Выбрать группу <span>⌄</span></button></header>
 
@@ -198,7 +198,7 @@ function clock(date=new Date()){
 }
 function add(iso,n){const d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 function dayIdx(iso){return(new Date(iso+'T12:00:00Z').getUTCDay()+6)%7}function monday(iso){return add(iso,-dayIdx(iso))}function fmt(iso,opt={day:'numeric',month:'long'}){return new Intl.DateTimeFormat('ru-RU',{...opt,timeZone:'UTC'}).format(new Date(iso+'T12:00:00Z'))}
-let now=clock();const remembered=get('sched_group');const state={group:SCHEDULE.groups.includes(remembered)?remembered:null,mode:get('sched_mode')==='week'?'week':'day',week:monday(now.date),day:dayIdx(now.date)};
+let now=clock();const remembered=get('sched_group');const state={group:SCHEDULE.groups.includes(remembered)?remembered:null,mode:get('sched_mode')==='week'?'week':'day',week:monday(now.date),day:dayIdx(now.date),autoDay:true};
 function matches(text,regex){const found=[];let match;while((match=regex.exec(text))!==null)found.push(match);return found}
 function normalize(m){let raw=[m.subject,...m.details].join(' ').replace(/\s+/g,' ').trim();const teachers=matches(raw,/(?:[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?)\s+[А-ЯЁ]\.\s*[А-ЯЁ]\./g).map(x=>x[0].replace(/([А-ЯЁ])\.\s*([А-ЯЁ])\./g,'$1. $2.'));
 const rooms=matches(raw,/(?:ауд\.?\s*|Л\/з\s*№?\s*)\d+(?:\s*-\s*\d+)?|с\/зал/gi).map(x=>x[0].replace(/^ауд\.?\s*/i,'Ауд. ').replace(/^Л\/з\s*№?\s*/i,'Л/з № ').replace('с/зал','Спортзал'));
@@ -208,12 +208,24 @@ let type=m.type;if(/информационный.*кураторский/i.test(
 const explicit=raw.match(/^([0-2]?\d)[.:]([0-5]\d)\s/);return{subject:subject||m.subject,type,teachers:[...new Set(teachers)],rooms:[...new Set(rooms)],theme,raw,explicit:explicit?+explicit[1]*60+(+explicit[2]):null}}
 const timeString=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
 function lessons(date){const w=SCHEDULE.weekDates.indexOf(monday(date)),d=dayIdx(date);if(w<0||d>5||!state.group)return[];return SCHEDULE.days[d].lessons.reduce((result,l)=>{const m=(l.groups[state.group]||[])[w];if(!m)return result;const n=normalize(m),t=l.time.split('-').map(x=>{const[h,m]=x.split(/[.:]/).map(Number);return h*60+m});const start=(n.explicit!==null?n.explicit:t[0]),end=n.explicit!==null?null:t[1];return result.concat([{...n,num:l.num,date,start,end}])},[]).sort((a,b)=>a.start-b.start)}
+function preferredDay(c=now){
+  if(!state.group)return c.date;
+  const current=lessons(c.date);
+  // An event without a known ending must not be treated as completed early.
+  if(current.some(l=>l.end===null||l.end>c.minute))return c.date;
+  const limit=add(SCHEDULE.weekDates[SCHEDULE.weekDates.length-1],6);
+  let date=add(c.date,1);
+  if(date<SCHEDULE.weekDates[0])date=SCHEDULE.weekDates[0];
+  for(;date<=limit;date=add(date,1))if(lessons(date).length)return date;
+  return c.date;
+}
+function selectAutomaticDay(){const date=preferredDay();state.week=monday(date);state.day=dayIdx(date);}
 function status(l,c=now){if(l.date<c.date)return'past';if(l.date>c.date)return'upcoming';if(l.end===null)return c.minute>=l.start?'started':'upcoming';return c.minute>=l.end?'past':c.minute>=l.start?'current':'upcoming'}
 function durationMinutes(total){const minutes=Math.max(0,Math.floor(total));const hours=Math.floor(minutes/60);return hours?`${hours} ч ${minutes%60} мин`:`${minutes} мин`}
 function card(l,i){const s=status(l),remaining=l.end-now.minute;return`<article class="lesson ${s}" style="--color:${COLORS[l.type]};--i:${i}"><div class="lesson-heading"><div class="time"><strong>${timeString(l.start)}${l.end===null?'':`<span class="time-dash">–</span>${timeString(l.end)}`}</strong><small>${l.type==='credit'?'Зачёт':l.num+' пара'}</small></div><span class="type">${TYPES[l.type]}</span></div><h3>${esc(l.subject)}</h3>${l.teachers.length?`<div class="teacher">${l.teachers.map(esc).join(' · ')}</div>`:''}<div class="meta">${l.theme?`<span>Тема ${esc(l.theme)}</span>`:''}${l.rooms.length?`<span>⌖ ${l.rooms.map(esc).join(' · ')}</span>`:''}</div>${s==='current'?`<div class="live"><span class="status"><i aria-hidden="true"></i>Сейчас идёт</span><span>Ещё ${durationMinutes(remaining)}</span><div class="track" role="progressbar" aria-label="Прошедшая часть занятия" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round((now.minute-l.start)/(l.end-l.start)*100)}"><span style="width:${Math.max(0,Math.min(100,(now.minute-l.start)/(l.end-l.start)*100))}%"></span></div></div>`:''}<div class="card-bottom">${s==='past'?'<span class="status">✓ Завершено</span>':s==='started'?'<span class="status">Началось · окончание не указано</span>':''}</div></article>`}
 function block(date){const list=lessons(date),available=SCHEDULE.weekDates.includes(monday(date));return`<section class="day-block"><div class="section-head"><h2>${DAYS[dayIdx(date)]}</h2><span>${fmt(date,{day:'numeric',month:'short'})}${date===now.date?' · Сегодня':''}</span><span class="count">${list.length?list.length+' занятий':''}</span></div>${list.length?`<div class="lesson-list">${list.map(card).join('')}</div>`:`<div class="empty"><h3>${available?'Занятий в расписании нет':'На эту неделю нет данных'}</h3>${available?'В выбранном дне нет записей.':'В файле есть недели с 31 августа 2026 по 7 февраля 2027.'}</div>`}</section>`}
 function summary(){if(!state.group){$('summary').innerHTML='<h3>Ваш учебный день</h3><p>Выберите группу, чтобы увидеть занятия.</p>';return}const list=lessons(now.date),live=list.find(l=>status(l)==='current'),next=list.find(l=>status(l)==='upcoming');$('summary').innerHTML=live?`<h3>Сейчас идёт пара</h3><p>${esc(live.subject)}</p><div class="sum-time">До ${timeString(live.end)} · ещё ${durationMinutes(live.end-now.minute)}</div>`:next?`<h3>Следующее занятие</h3><p>${esc(next.subject)}</p><div class="sum-time">${timeString(next.start)} · через ${durationMinutes(next.start-now.minute)}</div>`:list.length?'<h3>Занятия завершены</h3><p>На сегодня всё. Можно посмотреть, что будет завтра.</p>':`<h3>${SCHEDULE.weekDates.includes(monday(now.date))?'День без занятий':'Нет данных на сегодня'}</h3><p>${SCHEDULE.weekDates.includes(monday(now.date))?'В расписании на сегодня нет записей.':'Выберите неделю из загруженного расписания.'}</p>`}
-function render(animate=true){now=clock();$('datePicker').value=add(state.week,state.day);$('groupBtn').innerHTML=(state.group?'Группа '+state.group:'Выбрать группу')+' <span>⌄</span>';$('todayLine').textContent=fmt(now.date,{weekday:'long',day:'numeric',month:'long'});$('weekLabel').textContent=fmt(state.week,{day:'numeric',month:'short'})+' — '+fmt(add(state.week,6),{day:'numeric',month:'short'});const index=SCHEDULE.weekDates.indexOf(state.week);$('weekSub').textContent=index>=0?`Учебная неделя ${index+1} · ${state.week.slice(0,4)}`:'Неделя вне загруженного расписания';$('segThumb').style.transform=state.mode==='week'?'translateX(100%)':'translateX(0)';for(const mode of['day','week'])$(mode+'Mode').setAttribute('aria-pressed',state.mode===mode);
+function render(animate=true){now=clock();if(state.autoDay)selectAutomaticDay();$('datePicker').value=add(state.week,state.day);$('groupBtn').innerHTML=(state.group?'Группа '+state.group:'Выбрать группу')+' <span>⌄</span>';$('todayLine').textContent=fmt(now.date,{weekday:'long',day:'numeric',month:'long'});$('weekLabel').textContent=fmt(state.week,{day:'numeric',month:'short'})+' — '+fmt(add(state.week,6),{day:'numeric',month:'short'});const index=SCHEDULE.weekDates.indexOf(state.week);$('weekSub').textContent=index>=0?`Учебная неделя ${index+1} · ${state.week.slice(0,4)}`:'Неделя вне загруженного расписания';$('segThumb').style.transform=state.mode==='week'?'translateX(100%)':'translateX(0)';for(const mode of['day','week'])$(mode+'Mode').setAttribute('aria-pressed',state.mode===mode);
 $('days').innerHTML=SHORT.map((d,i)=>{const date=add(state.week,i);return`<button class="day ${state.mode==='day'&&i===state.day?'selected':''} ${date===now.date?'today':''}" data-day="${i}" aria-label="${DAYS[i]}, ${fmt(date)}" aria-pressed="${state.mode==='day'&&i===state.day}"><span class="dow">${d}</span><span class="date">${+date.slice(-2)}</span><span class="dot" style="opacity:${lessons(date).length||date===now.date?1:0}"></span></button>`}).join('');
 $('content').innerHTML=!state.group?'<div class="empty" style="margin-top:24px"><h3>С какой группой учимся?</h3>Выберите 4501, 4502 или 4503.<br>При следующем открытии группа сохранится.<br><button id="choose">Выбрать группу</button></div>':state.mode==='day'?block(add(state.week,state.day)):Array.from({length:7},(_,i)=>block(add(state.week,i))).join('');if(!animate){$('content').querySelectorAll('.lesson').forEach(e=>e.style.animation='none')}if($('choose'))$('choose').onclick=openGroups;summary()}
 let groupOpener=null;
@@ -248,11 +260,15 @@ document.addEventListener('keydown',e=>{
     else if(!e.shiftKey&&(document.activeElement===last||!$('groupDialog').contains(document.activeElement))){e.preventDefault();first.focus()}
   }
 });
-$('groups').onclick=e=>{const button=e.target.closest('[data-group]');if(!button)return;const g=button.dataset.group;if(!SCHEDULE.groups.includes(g))return;state.group=g;set('sched_group',g);closeGroups(false);render();$('groupBtn').focus()};
-$('days').onclick=e=>{const button=e.target.closest('[data-day]');const day=button?button.dataset.day:undefined;if(day===undefined)return;state.day=+day;state.mode='day';set('sched_mode','day');render()};for(const mode of['day','week'])$(mode+'Mode').onclick=()=>{state.mode=mode;set('sched_mode',mode);render()};$('prev').onclick=()=>{state.week=add(state.week,-7);render()};$('next').onclick=()=>{state.week=add(state.week,7);render()};
-function today(){now=clock();state.week=monday(now.date);state.day=dayIdx(now.date);render()}
-$('todayBtn').onclick=today;let hiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)hiddenAt=Date.now();else if(Date.now()-hiddenAt>60000||now.date!==clock().date)today();else render(false)});window.addEventListener('pageshow',e=>{if(e.persisted){closeGroups(false);today()}});function tick(){if(!document.hidden){const fresh=clock();if(now.date!==fresh.date)today();else if(now.minute!==fresh.minute)render(false)}setTimeout(tick,60000-Date.now()%60000+50)}tick();
-let touch; $('content').addEventListener('touchstart',e=>touch={x:e.touches[0].clientX,y:e.touches[0].clientY},{passive:true});$('content').addEventListener('touchend',e=>{if(!touch||state.mode!=='day')return;const dx=e.changedTouches[0].clientX-touch.x,dy=e.changedTouches[0].clientY-touch.y;touch=null;if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.7){const date=add(add(state.week,state.day),dx<0?1:-1);state.week=monday(date);state.day=dayIdx(date);render()}},{passive:true});render();
+$('groups').onclick=e=>{const button=e.target.closest('[data-group]');if(!button)return;const g=button.dataset.group;if(!SCHEDULE.groups.includes(g))return;state.group=g;state.autoDay=true;set('sched_group',g);closeGroups(false);render();$('groupBtn').focus()};
+$('days').onclick=e=>{const button=e.target.closest('[data-day]');const day=button?button.dataset.day:undefined;if(day===undefined)return;state.autoDay=false;state.day=+day;state.mode='day';set('sched_mode','day');render()};for(const mode of['day','week'])$(mode+'Mode').onclick=()=>{state.mode=mode;set('sched_mode',mode);render()};$('prev').onclick=()=>{state.autoDay=false;state.week=add(state.week,-7);render()};$('next').onclick=()=>{state.autoDay=false;state.week=add(state.week,7);render()};
+function today(){state.autoDay=false;now=clock();state.week=monday(now.date);state.day=dayIdx(now.date);render()}
+$('todayBtn').onclick=today;
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)render(false)});
+window.addEventListener('pageshow',e=>{if(e.persisted){closeGroups(false);render(false)}});
+function tick(){if(!document.hidden){const fresh=clock();if(now.date!==fresh.date||now.minute!==fresh.minute)render(false)}setTimeout(tick,60000-Date.now()%60000+50)}tick();
+
+let touch; $('content').addEventListener('touchstart',e=>touch={x:e.touches[0].clientX,y:e.touches[0].clientY},{passive:true});$('content').addEventListener('touchend',e=>{if(!touch||state.mode!=='day')return;const dx=e.changedTouches[0].clientX-touch.x,dy=e.changedTouches[0].clientY-touch.y;touch=null;if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.7){state.autoDay=false;const date=add(add(state.week,state.day),dx<0?1:-1);state.week=monday(date);state.day=dayIdx(date);render()}},{passive:true});render();
 
 // Native date picker uses the available timetable range.
 $('datePicker').min=SCHEDULE.weekDates[0];
@@ -260,7 +276,7 @@ $('datePicker').max=add(SCHEDULE.weekDates[SCHEDULE.weekDates.length-1],6);
 $('datePicker').addEventListener('change',()=>{
   const value=$('datePicker').value;
   if(!value||!$('datePicker').validity.valid)return;
-  state.week=monday(value);state.day=dayIdx(value);state.mode='day';
+  state.autoDay=false;state.week=monday(value);state.day=dayIdx(value);state.mode='day';
   set('sched_mode','day');render();
 });
 (function setupOffline(){

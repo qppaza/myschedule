@@ -1,10 +1,10 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v6';
+const VERSION = 'myschedule-offline-v7';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const ASSETS = ['manifest.webmanifest?v=3', 'icon-192.png?v=3', 'icon-512.png?v=3', 'apple-touch-icon.png?v=3'].map(path => new URL(path, BASE).href);
+const ASSETS = ['manifest.webmanifest?v=7', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href);
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
