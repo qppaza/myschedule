@@ -1,6 +1,6 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v7';
+const VERSION = 'myschedule-offline-v8';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
