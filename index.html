@@ -132,6 +132,12 @@ button,a{touch-action:manipulation}
 [data-theme=light] .offline-status[data-state=error]{color:#965324}
 [data-theme=light] .offline-hint{background:#faf7ff}
 @supports not (backdrop-filter:blur(1px)){.theme-switch,.offline-status{background:#302a3b}[data-theme=light] .theme-switch,[data-theme=light] .offline-status{background:#eee7f5}}
+
+/* Vertical appearance controls beneath the offline indicator. */
+.theme-settings{flex-direction:column;align-items:flex-end;gap:8px}
+.theme-settings .offline-status{order:-1;margin-right:4px}
+.theme-switch{flex-direction:column;border-radius:28px}
+.offline-hint{top:0;right:calc(100% + 12px);max-width:min(260px,calc(100vw - 86px))}
 </style>
 <meta name="application-name" content="Расписание">
 <meta name="apple-mobile-web-app-title" content="Расписание">
