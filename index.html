@@ -17,6 +17,7 @@
     document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#15151b' : '#f5f3f8';
     document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = theme === 'dark' ? 'black-translucent' : 'default';
     document.querySelectorAll('[data-theme-choice]').forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.themeChoice === preference)); });
+    document.dispatchEvent(new Event('schedule-theme-change'));
   }
   window.scheduleTheme = { apply: apply, set: function (value) {
     if (['dark','light','system'].indexOf(value) === -1) return;
@@ -483,6 +484,151 @@ body{-webkit-font-smoothing:antialiased}
 .theme-drag-thumb[hidden]{display:none}
 :root .theme-dragging #themeOptions{animation:none}
 @media(prefers-reduced-motion:reduce){.theme-drag-thumb{transition:none}}
+
+/* Final layout: shared spacing, readable rhythm and a compact live overview. */
+:root{--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px}
+:root .shell{max-width:1240px;padding:0 40px}
+:root header{height:96px;gap:20px}
+:root .workspace{grid-template-columns:320px minmax(0,1fr);gap:32px;padding-top:28px}
+:root aside{top:24px}
+:root .intro{padding-right:60px;min-height:104px}
+:root .intro h1{padding:0;font-size:32px;line-height:1.15;letter-spacing:-1.1px;margin:10px 0 8px}
+:root .intro .eyebrow{font-size:11px;line-height:1.5;letter-spacing:.65px}
+:root .intro p{font-size:13px;line-height:1.5;margin:0}
+:root .summary{padding:18px;border-radius:24px;margin:20px 0}
+:root .summary-layout{display:grid;grid-template-columns:minmax(0,1fr) 106px;gap:14px;align-items:center}
+:root #summaryLabel{display:block;font-size:11px;font-weight:600;line-height:1.4;letter-spacing:.9px;color:var(--muted)}
+:root .summary-copy h3{font-size:19px;line-height:1.25;font-weight:600;letter-spacing:-.35px;color:var(--text);margin:7px 0 12px;text-wrap:pretty}
+:root .summary-copy p{font-size:14px;line-height:1.45;margin:0;overflow-wrap:break-word}
+:root .summary-lesson{display:flex;align-items:flex-start;flex-direction:column;gap:6px}
+:root .summary-lesson-compact{flex-direction:row;align-items:center;flex-wrap:wrap;gap:6px 8px}
+:root .summary-next-label{font-size:12px;line-height:1.4;margin:0;color:var(--muted)}
+:root .summary .sum-time{margin:12px 0 0;color:var(--text);font-size:13px;line-height:1.5}
+:root .countdown-label{display:block;font-size:12px;color:var(--muted);line-height:1.5}
+:root .countdown-value{display:block;font-size:15px;line-height:1.5;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+:root .summary-clock{width:106px;align-self:center;justify-self:end}
+:root .summary-clock svg{width:106px;height:106px}
+:root .summary-clock>span{font-size:12px;line-height:1.5;margin-top:4px;letter-spacing:-.2px}
+:root .summary-clock>small{font-size:11px;line-height:1.4;margin-top:2px}
+:root .summary .summary-track{height:4px;margin-top:14px;background:var(--liquid-edge)}
+:root .summary-break-preview{font-size:12px;line-height:1.5;color:var(--muted);margin-top:10px}
+:root .legend{margin-top:20px;gap:9px 12px;line-height:1.5}
+:root .source-note{margin:20px 0 0;line-height:1.6}
+:root .toolbar{gap:12px;margin:0 0 16px}
+:root .segmented{flex:0 1 228px;width:228px;min-width:0}
+:root .segmented button{min-height:38px;font-size:14px}
+:root .today-btn{flex-shrink:0;min-height:46px;padding:0 15px;gap:8px;font-size:14px}
+:root .calendar{padding:16px 16px 12px;border-radius:24px}
+:root .week-nav{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;margin:0;padding:0}
+:root .week-nav>div:first-child{min-width:0}
+:root .week-nav .date-open{min-height:44px;border-radius:22px;padding:0 10px;font-size:13px;gap:6px}
+:root #weekLabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:inherit}
+:root .arrows{gap:6px}
+:root .arrows button{width:44px;height:44px;min-height:44px}
+:root #weekSub.week-caption{margin:10px 2px;font-size:12px;line-height:1.5;text-wrap:pretty}
+:root .days{gap:4px}
+:root .day{gap:7px;padding:9px 0 8px;min-height:70px;border:1px solid transparent}
+:root .day.selected{padding:9px 0 8px}
+:root .day .date{font-size:22px;line-height:1.1}
+:root .section-head{margin:22px 2px 12px;gap:6px 10px;flex-wrap:wrap}
+:root .section-head h2{font-size:19px;line-height:1.3}
+:root .section-head .count{margin-left:auto}
+:root .lesson-list{gap:12px}
+:root .lesson{padding:18px;border-radius:22px}
+:root .lesson-heading{gap:8px 12px;margin-bottom:10px}
+:root .lesson h3{font-size:19px;line-height:1.35;margin-bottom:7px}
+:root .teacher{font-size:15px;line-height:1.5}
+:root .meta{margin-top:12px;padding-top:10px;line-height:1.5}
+:root .meta:empty,:root .card-bottom:empty{display:none}
+:root .card-bottom{margin-top:10px}
+:root .upcoming-countdown{margin-top:12px;font-size:13px;line-height:1.5}
+:root .refresh-status{margin:0 2px 12px}
+:root footer{margin-top:24px;padding:20px 2px calc(24px + env(safe-area-inset-bottom))}
+:root .footer-top{gap:4px 16px}
+:root footer p{margin-top:8px;line-height:1.6}
+:root .group-dialog{padding:18px 24px 24px}
+:root .group-dialog .handle{margin-bottom:16px}
+:root .group-dialog p{margin:12px 0 0;line-height:1.6}
+:root #groups{margin-top:20px;gap:10px}
+:root #groups button{min-height:58px;padding:12px 14px}
+:root #datePopover.date-popover{max-width:calc(100vw - 24px)}
+:root .date-grid{gap:4px}
+:root .date-grid button{min-height:40px;height:40px}
+:root .date-popover-footer{margin-top:12px;padding-top:12px;gap:10px}
+:root .date-calendar-note{font-size:11px;margin-top:10px;line-height:1.5}
+:root .theme-switch button:focus-visible{outline-offset:-3px}
+@media (min-width:701px) and (max-width:1099px){
+ :root .shell{padding:0 28px}
+ :root .workspace{display:block;padding-top:24px}
+ :root aside{position:static;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start;margin-bottom:24px}
+ :root .summary{margin:0;grid-column:2;grid-row:1 / span 2}
+ :root aside{row-gap:16px}
+ :root .legend{display:flex;margin:0;grid-column:1;grid-row:2}
+ :root .source-note{display:none}
+ :root .intro{margin:0}
+}
+@media (max-width:700px){
+ :root .shell{padding:0 16px}
+ :root header{height:84px;gap:12px}
+ :root .brand{gap:8px;font-size:10px;letter-spacing:.9px}
+ :root .brand-sub{font-size:8px;letter-spacing:.75px;margin-top:5px}
+ :root .brand-icon{width:34px}
+ :root .group{padding:0 12px;gap:8px;font-size:13px;white-space:nowrap}
+ :root .workspace{display:block;padding-top:20px}
+ :root aside{position:static}
+ :root .intro{min-height:96px}
+ :root .intro h1{font-size:33px;margin:9px 0 7px}
+ :root .summary{margin:16px 0 20px;padding:16px}
+ :root .summary-layout{grid-template-columns:minmax(0,1fr) 106px;gap:12px}
+ :root .summary-copy h3{font-size:18px;margin-bottom:10px}
+ :root .toolbar{margin:0 0 14px}
+ :root .calendar{padding:14px 12px 12px}
+ :root .section-head{margin-top:20px;margin-bottom:11px;gap:6px 8px}
+ :root .section-head h2{font-size:18px}
+ :root .lesson{padding:16px}
+ :root .lesson h3{font-size:18px}
+ :root .time{gap:7px}
+ :root .time strong{font-size:17px}
+ :root .time-dash{padding:0 3px}
+ :root .group-dialog{padding:16px 22px calc(24px + env(safe-area-inset-bottom))}
+}
+@media (max-width:360px){
+ :root .shell{padding:0 12px}
+ :root header{gap:8px}
+ :root .brand{font-size:9px;letter-spacing:.6px;gap:7px}
+ :root .brand-sub{font-size:7px;letter-spacing:.55px}
+ :root .brand-icon{width:30px}
+ :root .group{padding:0 10px;font-size:12px;gap:6px}
+ :root .group-chevron{width:22px;height:22px}
+ :root .intro h1{font-size:30px}
+ :root .summary{padding:14px}
+ :root .summary-layout{grid-template-columns:minmax(0,1fr) 100px;gap:10px}
+ :root .summary-clock,:root .summary-clock svg{width:100px}
+ :root .summary-clock svg{height:100px}
+ :root .summary-clock>span{font-size:11px}
+ :root .summary-copy h3{font-size:17px}
+ :root .summary-copy p{font-size:13px}
+ :root .countdown-value{font-size:14px}
+ :root .today-btn{padding:0 12px}
+ :root .calendar{padding:12px 10px 10px}
+ :root .week-nav{gap:6px}
+ :root .arrows{gap:4px}
+ :root .week-nav .date-open{font-size:12px;padding:0 8px;gap:4px}
+ :root .day{min-height:66px;gap:6px}
+ :root .day .date{font-size:20px}
+ :root .section-head{gap:5px 8px}
+ :root .section-head .count{flex-basis:100%;margin:0}
+ :root .lesson{padding:14px}
+ :root .lesson h3{font-size:17px}
+}
+
+
+/* Give the two theme choices their own space while the rail is expanded. */
+:root .intro{transition:min-height .2s ease}
+:root .intro.theme-open{min-height:112px}
+:root .intro.theme-open #todayLine{max-width:calc(100% - 110px)}
+:root .intro.theme-open #themeToggle{margin-top:16px}
+:root .intro.theme-open #themeOptions{top:68px}
 </style>
 <meta name="application-name" content="Расписание">
 <meta name="apple-mobile-web-app-title" content="Расписание">
@@ -492,25 +638,27 @@ body{-webkit-font-smoothing:antialiased}
 </head>
 <body><div class="ambient" aria-hidden="true"></div><div class="shell"><header><a class="brand" href="./"><span class="brand-icon"><img class="logo-dark" src="icon-192.png?v=7" width="48" height="48" alt="" decoding="async"><img class="logo-light" src="icon-light.png?v=23" width="48" height="48" alt="" decoding="async"></span><span>АКАДЕМИЯ МВД<span class="brand-sub">РЕСПУБЛИКИ БЕЛАРУСЬ</span></span></a><span class="header-note">2026 / 2027 · 5 семестр</span><button class="group glass" id="groupBtn" aria-haspopup="dialog">Выбрать группу <span class="group-chevron"><svg class="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 10 4 4 4-4"/></svg></span></button></header>
 
-<div class="workspace"><aside><div class="intro"><div class="theme-settings"><button type="button" class="theme-toggle" id="themeToggle" aria-label="Выбрать тему" title="Выбрать тему" aria-expanded="false" aria-controls="themeOptions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8m-4-4v4M12 4v13"/><path d="M12 5h5a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-5Z" fill="currentColor" stroke="none" opacity=".4"/></svg></button><div class="theme-switch" id="themeOptions" hidden role="group" aria-label="Тема оформления"><button type="button" data-theme-choice="light" aria-pressed="false" aria-label="Светлая тема" title="Светлая тема"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg></button><button type="button" data-theme-choice="dark" aria-pressed="false" aria-label="Тёмная тема" title="Тёмная тема"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 13.2A9 9 0 0 1 10.8 3.2 9 9 0 1 0 20.8 13.2Z"/></svg></button><button type="button" data-theme-choice="system" aria-pressed="false" aria-label="Как в системе" title="Как в системе"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8m-4-4v4M12 4v13"/><path d="M12 5h5a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-5Z" fill="currentColor" stroke="none" opacity=".4"/></svg></button></div><span class="offline-status" id="offlineStatus" role="img" aria-label="Проверяем офлайн-доступ"><span class="offline-icon" aria-hidden="true"></span></span></div><span class="eyebrow">ФАКУЛЬТЕТ ПРАВА · 3 КУРС</span><h1>Расписание</h1><p id="todayLine"></p></div><div class="glass summary"><span class="eyebrow" id="summaryLabel">СЕГОДНЯ</span><div id="summary"></div></div><div class="legend" id="typeLegend"></div><div class="source-note">По данным загруженного расписания<br><span>Время занятий — Минск (UTC+3)</span></div></aside>
+<div class="workspace"><aside><div class="intro"><div class="theme-settings"><button type="button" class="theme-toggle" id="themeToggle" aria-label="Выбрать тему" title="Выбрать тему" aria-expanded="false" aria-controls="themeOptions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8m-4-4v4M12 4v13"/><path d="M12 5h5a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-5Z" fill="currentColor" stroke="none" opacity=".4"/></svg></button><div class="theme-switch" id="themeOptions" hidden role="group" aria-label="Тема оформления"><button type="button" data-theme-choice="light" aria-pressed="false" aria-label="Светлая тема" title="Светлая тема"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg></button><button type="button" data-theme-choice="dark" aria-pressed="false" aria-label="Тёмная тема" title="Тёмная тема"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 13.2A9 9 0 0 1 10.8 3.2 9 9 0 1 0 20.8 13.2Z"/></svg></button><button type="button" data-theme-choice="system" aria-pressed="false" aria-label="Как в системе" title="Как в системе"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8m-4-4v4M12 4v13"/><path d="M12 5h5a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-5Z" fill="currentColor" stroke="none" opacity=".4"/></svg></button></div><span class="offline-status" id="offlineStatus" role="img" aria-label="Проверяем офлайн-доступ"><span class="offline-icon" aria-hidden="true"></span></span></div><span class="eyebrow">ФАКУЛЬТЕТ ПРАВА · 3 КУРС</span><h1>Расписание</h1><p id="todayLine"></p></div><div class="glass summary"><div id="summary"></div></div><div class="legend" id="typeLegend"></div><div class="source-note">По данным загруженного расписания<br><span>Время занятий — Минск (UTC+3)</span></div></aside>
 <main><div class="toolbar"><div class="segmented" role="group" aria-label="Вид расписания"><span id="segThumb"></span><button id="dayMode">День</button><button id="weekMode">Неделя</button></div><button id="todayBtn" class="today-btn" type="button" title="Обновить расписание" aria-label="Обновить расписание"><svg class="ui-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 8a8 8 0 1 0 .1 7M20 3v5h-5"/></svg><span>Обновить</span></button></div><p id="refreshStatus" class="refresh-status" role="status" aria-live="polite" hidden></p><section class="calendar glass"><div class="week-nav"><div><div class="date-picker"><button type="button" id="dateOpen" class="date-open" aria-expanded="false" aria-controls="datePopover" aria-haspopup="dialog" title="Перейти к дате"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v4m8-4v4M4 10h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg><span id="weekLabel"></span><span id="dateDisplay" hidden></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg></button><input type="date" id="datePicker" hidden aria-label="Дата занятия"><section id="datePopover" class="date-popover" role="dialog" aria-labelledby="dateMonth" hidden><div class="date-month-nav"><button type="button" id="datePrev" aria-label="Предыдущий месяц"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><h3 id="dateMonth"></h3><button type="button" id="dateNext" aria-label="Следующий месяц"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div><div class="date-weekdays" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div id="dateGrid" class="date-grid"></div><p class="date-calendar-note"><span>Розовым</span> — воскресенья и нерабочие праздники</p><div class="date-popover-footer"><button type="button" id="dateNow">Сегодня</button><button type="button" id="dateClose">Закрыть</button></div></section></div></div><div class="arrows"><button id="prev" aria-label="Предыдущая неделя"><svg class="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6"/></svg></button><button id="next" aria-label="Следующая неделя"><svg class="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m10 6 6 6-6 6"/></svg></button></div></div><p id="weekSub" class="week-caption"></p><div id="days" class="days"></div></section><div id="content"></div><footer><div class="footer-top"><span>AMIA · Неофициальное расписание</span><a href="https://t.me/evxnescencee" target="_blank" rel="noopener noreferrer">Автор · @evxnescencee <svg class="ui-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7M7 7h10v10"/></svg></a></div><p>Расписание может изменяться деканатом. Пожалуйста, сверяйтесь с оригиналом расписания Академии. Этот сервис не является официальным.</p></footer></main></div></div>
 <div class="group-overlay" id="groupOverlay" hidden><section class="group-dialog" id="groupDialog" role="dialog" aria-modal="true" aria-labelledby="groupTitle" tabindex="-1"><div class="handle"></div><div class="dialog-head"><h2 id="groupTitle">Ваша группа</h2><button id="closeDialog" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div><p>Факультет права · 3 курс<br>Выбор сохранится на этом устройстве.</p><div id="groups"></div></section></div>
 <script>
 (function(){
   const toggle=document.getElementById('themeToggle'),panel=document.getElementById('themeOptions');
   function sync(){const active=panel.querySelector('[aria-pressed="true"]');panel.querySelectorAll('[data-theme-choice]').forEach(button=>{button.hidden=button===active;});if(active){if(toggle.innerHTML!==active.innerHTML)toggle.innerHTML=active.innerHTML;toggle.setAttribute('aria-label','Выбрать тему. '+active.getAttribute('aria-label'));toggle.title=active.getAttribute('aria-label')+' · изменить';}}
-  function close(restore){panel.hidden=true;toggle.setAttribute('aria-expanded','false');if(restore)toggle.focus();}
-  toggle.addEventListener('click',event=>{event.stopPropagation();const open=panel.hidden;panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));if(open)panel.querySelector('button:not([hidden])').focus();});
+  function setOpen(open){panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));toggle.closest('.intro').classList.toggle('theme-open',open);}
+  function close(restore){setOpen(false);if(restore)toggle.focus();}
+  toggle.addEventListener('click',event=>{event.stopPropagation();const open=panel.hidden;setOpen(open);if(open)panel.querySelector('button:not([hidden])').focus();});
   panel.querySelectorAll('[data-theme-choice]').forEach(button=>button.addEventListener('click',()=>{close(true);window.scheduleTheme.set(button.dataset.themeChoice);sync();}));
   document.addEventListener('click',event=>{if(!panel.hidden&&!panel.contains(event.target)&&!toggle.contains(event.target))close(false);});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){event.preventDefault();close(true);}});
   document.addEventListener('focusin',event=>{if(!panel.hidden&&!panel.contains(event.target)&&event.target!==toggle)close(false);});
   window.addEventListener('storage',sync);
+  document.addEventListener('schedule-theme-change',sync);
 
   const themeRail=toggle.parentElement;let themeDrag=null,themeClickUntil=0;
   const themeThumb=document.createElement('span');themeThumb.className='theme-drag-thumb';themeThumb.hidden=true;themeThumb.setAttribute('aria-hidden','true');themeRail.appendChild(themeThumb);
   themeRail.addEventListener('pointerdown',e=>{if(!e.isPrimary||e.button!==0||(!toggle.contains(e.target)&&!panel.contains(e.target)))return;themeDrag={id:e.pointerId,x:e.clientX,y:e.clientY,active:false,value:null,wasOpen:!panel.hidden};});
-  themeRail.addEventListener('pointermove',e=>{if(!themeDrag||e.pointerId!==themeDrag.id)return;const dx=e.clientX-themeDrag.x,dy=e.clientY-themeDrag.y;if(!themeDrag.active){if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>8){themeDrag=null;return;}if(Math.abs(dx)<5)return;themeDrag.active=true;themeRail.setPointerCapture(e.pointerId);sync();panel.hidden=false;toggle.setAttribute('aria-expanded','true');themeRail.classList.add('theme-dragging');}
+  themeRail.addEventListener('pointermove',e=>{if(!themeDrag||e.pointerId!==themeDrag.id)return;const dx=e.clientX-themeDrag.x,dy=e.clientY-themeDrag.y;if(!themeDrag.active){if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>8){themeDrag=null;return;}if(Math.abs(dx)<5)return;themeDrag.active=true;themeRail.setPointerCapture(e.pointerId);sync();setOpen(true);themeRail.classList.add('theme-dragging');}
    const active=panel.querySelector('[aria-pressed="true"]');const targets=[...panel.querySelectorAll('button:not([hidden])'),toggle];let nearest=null,distance=Infinity;for(const button of targets){const r=button.getBoundingClientRect(),d=Math.abs(e.clientX-r.left-r.width/2);if(d<distance){distance=d;nearest=button;}}
    themeDrag.value=nearest===toggle?active.dataset.themeChoice:nearest.dataset.themeChoice;const r=themeRail.getBoundingClientRect(),rect=nearest.getBoundingClientRect();themeThumb.hidden=false;themeThumb.style.transform=`translate(${rect.left-r.left}px,${rect.top-r.top}px)`;e.preventDefault();
   });
@@ -527,9 +675,10 @@ const get=k=>{try{return localStorage.getItem(k)}catch{return null}},set=(k,v)=>
 const DAYS=['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'],SHORT=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const TYPES={lecture:'Лекция',seminar:'Семинар',practice:'Практическое',info:'Инфчас.',curator:'Куратчас.',combined:'Инфчас. / Куратчас.',credit:'Зачёт',other:'Занятие'};
 const COLORS={lecture:'#85adff',seminar:'#c2a0ff',practice:'#6cdbc2',info:'#ed9cc5',curator:'#ed9cc5',combined:'#ed9cc5',credit:'#efb77d',other:'#b0bed8'};
+const minskFormatter=(()=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Minsk',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});}catch{return null;}})();
 function clock(date=new Date()){
   try{
-    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Minsk',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+    const parts=minskFormatter.formatToParts(date);
     const p={};parts.forEach(x=>{p[x.type]=x.value});
     if(p.year&&p.month&&p.day&&p.hour!==undefined&&p.minute!==undefined)return{date:`${p.year}-${p.month}-${p.day}`,minute:(+p.hour%24)*60+(+p.minute)};
   }catch(error){/* Some WebViews lack formatToParts or timezone data. */}
@@ -570,7 +719,7 @@ const FIXED_HOLIDAYS={'01-01':'Новый год','01-02':'Новый год','0
 const MOVABLE_HOLIDAYS={'2026-04-21':'Радуница'};
 function holidayName(date){return MOVABLE_HOLIDAYS[date]||FIXED_HOLIDAYS[date.slice(5)]||'';}
 function offdayLabel(date){return holidayName(date)||(dayIdx(date)===6?'Воскресенье — выходной':'');}
-function block(date){const list=lessons(date),available=SCHEDULE.weekDates.includes(monday(date));return`<section class="day-block"><div class="section-head"><h2>${DAYS[dayIdx(date)]}</h2><span>${fmt(date,{day:'numeric',month:'short'})}${date===now.date?' · Сегодня':''}</span><span class="count">${list.length?list.length+' занятий':''}</span></div>${list.length?`<div class="lesson-list">${list.map(card).join('')}</div>`:`<div class="empty"><h3>${available?'Занятий в расписании нет':'На эту неделю нет данных'}</h3>${available?'В выбранном дне нет записей.':'В файле есть недели с 31 августа 2026 по 7 февраля 2027.'}</div>`}</section>`}
+function block(date){const list=lessons(date),available=SCHEDULE.weekDates.includes(monday(date));return`<section class="day-block"><div class="section-head"><h2>${DAYS[dayIdx(date)]}</h2><span>${fmt(date,{day:'numeric',month:'short'})}${date===now.date?' · Сегодня':''}</span><span class="count">${list.length?list.length+' '+(list.length===1?'занятие':list.length<5?'занятия':'занятий'):''}</span></div>${list.length?`<div class="lesson-list">${list.map(card).join('')}</div>`:`<div class="empty"><h3>${available?'Занятий в расписании нет':'На эту неделю нет данных'}</h3>${available?'В выбранном дне нет записей.':'В файле есть недели с 31 августа 2026 по 7 февраля 2027.'}</div>`}</section>`}
 $('typeLegend').innerHTML=Object.keys(TYPES).map(type=>`<span><i style="background:${COLORS[type]}"></i>${TYPES[type]}</span>`).join('')+'<span><i style="background:var(--break-color)"></i>Перерыв</span>';
 function nextScheduledLesson(){
  const today=lessons(now.date).find(l=>l.start>now.minute);if(today)return today;
@@ -579,12 +728,18 @@ function nextScheduledLesson(){
  for(;date<=limit;date=add(date,1)){const first=lessons(date)[0];if(first)return first;}
  return null;
 }
+let clockHands=null,clockMinuteKey=-1,clockMinute=0;
 function updateClockHands(){
- const svg=$('summary').querySelector('.summary-clock svg');if(!svg)return;
- const instant=new Date(),c=clock(instant),seconds=instant.getUTCSeconds()+instant.getUTCMilliseconds()/1000,minutes=c.minute+seconds/60;
- svg.querySelector('.clock-hour').setAttribute('transform',`rotate(${minutes%720/2} 50 50)`);
- svg.querySelector('.clock-minute').setAttribute('transform',`rotate(${minutes%60*6} 50 50)`);
- svg.querySelector('.clock-second').setAttribute('transform',`rotate(${seconds*6} 50 50)`);
+ if(!clockHands||!clockHands.svg.isConnected){
+  const svg=$('summary').querySelector('.summary-clock svg');if(!svg){clockHands=null;return;}
+  clockHands={svg,hour:svg.querySelector('.clock-hour'),minute:svg.querySelector('.clock-minute'),second:svg.querySelector('.clock-second')};
+ }
+ const instant=new Date(),minuteKey=Math.floor(instant.getTime()/60000);
+ if(minuteKey!==clockMinuteKey){clockMinute=clock(instant).minute;clockMinuteKey=minuteKey;}
+ const seconds=instant.getUTCSeconds()+instant.getUTCMilliseconds()/1000,minutes=clockMinute+seconds/60;
+ clockHands.hour.setAttribute('transform',`rotate(${minutes%720/2} 50 50)`);
+ clockHands.minute.setAttribute('transform',`rotate(${minutes%60*6} 50 50)`);
+ clockHands.second.setAttribute('transform',`rotate(${seconds*6} 50 50)`);
 }
 function summaryClock(target){
  const start=target.start,end=target.end,span=end===null?0:Math.min(720,end-start),angle=start%720/2;
@@ -594,30 +749,55 @@ function summaryClock(target){
 }
 function epoch(date,minute){return new Date(date+'T00:00:00+03:00').getTime()+minute*60000;}
 function countdownText(seconds,long=false){seconds=Math.max(0,Math.ceil(seconds));if(long||seconds>=3600){const m=Math.ceil(seconds/60);return durationMinutes(m);}return `${Math.floor(seconds/60)} мин ${String(seconds%60).padStart(2,'0')} с`;}
-function updateCountdowns(){const ms=Date.now();document.querySelectorAll('[data-countdown-end]').forEach(e=>{e.textContent=countdownText((+e.dataset.countdownEnd-ms)/1000,e.dataset.long==='true');});document.querySelectorAll('[data-progress-start]').forEach(e=>{const value=Math.max(0,Math.min(100,(ms-Number(e.dataset.progressStart))/(Number(e.dataset.progressEnd)-Number(e.dataset.progressStart))*100));e.setAttribute('aria-valuenow',String(Math.round(value)));e.querySelector('span').style.width=value+'%';});}
+function updateCountdowns(){const ms=Date.now();document.querySelectorAll('[data-countdown-end]').forEach(e=>{const text=countdownText((+e.dataset.countdownEnd-ms)/1000,e.dataset.long==='true');if(e.textContent!==text)e.textContent=text;});document.querySelectorAll('[data-progress-start]').forEach(e=>{const value=Math.max(0,Math.min(100,(ms-Number(e.dataset.progressStart))/(Number(e.dataset.progressEnd)-Number(e.dataset.progressStart))*100));e.setAttribute('aria-valuenow',String(Math.round(value)));e.querySelector('span').style.width=value+'%';});}
 function summary(){
- const label=$('summaryLabel');label.textContent='СЕГОДНЯ';
- if(!state.group){$('summary').innerHTML='<h3>Ваш учебный день</h3><p>Выберите группу, чтобы увидеть занятия.</p>';return;}
- const list=lessons(now.date),live=list.find(l=>status(l)==='current'),started=list.find(l=>status(l)==='started'),next=list.find(l=>status(l)==='upcoming'),target=nextScheduledLesson();
+ let label='СЕГОДНЯ';
+ const empty=(title,message)=>{$('summary').innerHTML=`<div class="summary-copy"><span class="eyebrow" id="summaryLabel">${label}</span><h3>${title}</h3><p>${message}</p></div>`;};
+ if(!state.group){empty('Ваш учебный день','Выберите группу, чтобы увидеть занятия.');return;}
+ const list=lessons(now.date),live=list.find(l=>status(l)==='current'),started=list.find(l=>status(l)==='started'),next=list.find(l=>status(l)==='upcoming');
  let lesson=live||started||next,title='',timing='',progress=null,progressLabel='',isBreak=false,detail='',intervalStart=null,intervalEnd=null,bigBreak=false;
- if(live){intervalStart=live.start;intervalEnd=live.end;title='Сейчас идёт пара';timing=`До ${timeString(live.end)} · ещё ${durationMinutes(live.end-now.minute)}`;progress=(now.minute-live.start)/(live.end-live.start)*100;progressLabel='Прошедшая часть занятия';if(next&&next.start>live.end)detail=`Перерыв ${timeString(live.end)}–${timeString(next.start)}`;}
- else if(started){title='Занятие началось';timing='Окончание не указано';}
- else if(next){const previous=list.filter(l=>l.end!==null&&l.end<=now.minute).sort((a,b)=>a.end-b.end).at(-1);const from=previous?previous.end:0;isBreak=!!previous;intervalStart=from;intervalEnd=next.start;bigBreak=isBreak&&from===770&&next.start===860;title=isBreak?(bigBreak?'Большой перерыв':'Сейчас перерыв'):'Следующее занятие';timing=isBreak?`${timeString(from)}–${timeString(next.start)} · ещё ${durationMinutes(next.start-now.minute)}`:`${timeString(next.start)} · через ${durationMinutes(next.start-now.minute)}`;progress=(now.minute-from)/Math.max(1,next.start-from)*100;progressLabel=isBreak?'Прошедшая часть перерыва':'Ожидание начала занятия';}
- else if(target){lesson=target;const tomorrow=target.date===add(now.date,1);label.textContent=list.length?'НА СЕГОДНЯ ВСЁ':'БЛИЖАЙШЕЕ ЗАНЯТИЕ';title=tomorrow?`Завтра к ${timeString(lesson.start)}`:`${fmt(target.date,{day:'numeric',month:'long'})} к ${timeString(lesson.start)}`;timing=tomorrow?'':fmt(target.date,{weekday:'long'});}
- if(!lesson){$('summary').innerHTML=`<h3>${list.length?'Занятия завершены':'День без занятий'}</h3><p>Следующих занятий в загруженном расписании нет.</p>`;return;}
+ if(live){
+  intervalStart=live.start;intervalEnd=live.end;title='Сейчас идёт пара';progress=(now.minute-live.start)/(live.end-live.start)*100;progressLabel='Прошедшая часть занятия';
+  if(next&&next.start>live.end)detail=`Перерыв ${timeString(live.end)}–${timeString(next.start)}`;
+ }else if(started){title='Занятие началось';timing='Окончание не указано';}
+ else if(next){
+  const previous=list.filter(l=>l.end!==null&&l.end<=now.minute).sort((a,b)=>a.end-b.end).at(-1);
+  intervalStart=previous?previous.end:0;intervalEnd=next.start;isBreak=!!previous;bigBreak=isBreak&&intervalStart===770&&next.start===860;
+  title=isBreak?(bigBreak?'Большой перерыв':'Сейчас перерыв'):'Следующее занятие';
+  progress=(now.minute-intervalStart)/Math.max(1,next.start-intervalStart)*100;progressLabel=isBreak?'Прошедшая часть перерыва':'Ожидание начала занятия';
+ }else{
+  const target=nextScheduledLesson();
+  if(target){lesson=target;const tomorrow=target.date===add(now.date,1);label=list.length?'НА СЕГОДНЯ ВСЁ':'БЛИЖАЙШЕЕ ЗАНЯТИЕ';title=tomorrow?`Завтра к ${timeString(lesson.start)}`:`${fmt(target.date,{day:'numeric',month:'long'})} к ${timeString(lesson.start)}`;}
+ }
+ if(!lesson){empty(list.length?'Занятия завершены':'День без занятий','Следующих занятий в загруженном расписании нет.');return;}
  const lessonColor=COLORS[lesson.type]||COLORS.other;
  $('summary').style.setProperty('--summary-accent',isBreak?'var(--break-color)':lessonColor);
  const percent=Math.round(Math.max(0,Math.min(100,progress||0)));
  const displayTarget=isBreak?{date:now.date,start:intervalStart,end:intervalEnd,color:'var(--break-color)'}:{...lesson,color:lessonColor};
- if(intervalEnd!==null){const prefix=isBreak?'До конца перерыва ещё':live?'До конца пары ещё':'До пары осталось ещё';timing=`${prefix} <span data-countdown-end="${epoch(now.date,intervalEnd)}" data-long="${bigBreak}"></span>`;}
-
- $('summary').innerHTML=`<div class="summary-layout"><div class="summary-copy"><h3 class="${live||isBreak?'summary-active':''}">${esc(title)}</h3>${isBreak?'<small class="summary-next-label">Далее</small>':''}${lesson.subject===TYPES[lesson.type]?'':`<p>${esc(lesson.subject)}</p>`}<span class="type summary-kind" style="--color:${lessonColor}">${esc(TYPES[lesson.type]||'Занятие')}</span></div>${summaryClock(displayTarget)}</div>${timing?`<div class="sum-time">${timing}</div>`:''}${progress!==null?`<div class="track summary-track" role="progressbar" data-progress-start="${epoch(now.date,intervalStart)}" data-progress-end="${epoch(now.date,intervalEnd)}" aria-label="${progressLabel}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" ><span style="width:${percent}%"></span></div>`:''}${detail?`<div class="summary-break-preview">${detail}</div>`:''}`;
+ if(intervalEnd!==null){
+  const prefix=isBreak?'До конца перерыва':live?'До конца пары':'До пары осталось';
+  timing=`<span class="countdown-label">${prefix}</span> <span class="countdown-value">ещё <span data-countdown-end="${epoch(now.date,intervalEnd)}" data-long="${bigBreak}"></span></span>`;
+ }
+ const type=TYPES[lesson.type]||'Занятие',subject=lesson.subject===type?'':lesson.subject;
+ const info=`<div class="summary-lesson ${subject?'':'summary-lesson-compact'}">${isBreak?'<span class="summary-next-label">Далее</span>':''}${subject?`<p>${esc(subject)}</p>`:''}<span class="type summary-kind" style="--color:${lessonColor}">${esc(type)}</span></div>`;
+ $('summary').innerHTML=`<div class="summary-layout"><div class="summary-copy"><span class="eyebrow" id="summaryLabel">${label}</span><h3>${esc(title)}</h3>${info}${timing?`<div class="sum-time">${timing}</div>`:''}</div>${summaryClock(displayTarget)}</div>${progress!==null?`<div class="track summary-track" role="progressbar" data-progress-start="${epoch(now.date,intervalStart)}" data-progress-end="${epoch(now.date,intervalEnd)}" aria-label="${progressLabel}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></div>`:''}${detail?`<div class="summary-break-preview">${detail}</div>`:''}`;
  updateClockHands();updateCountdowns();
 }
 function positionDayThumb(){if($('days').classList.contains('is-dragging'))return;const thumb=$('days').querySelector('.day-thumb'),selected=$('days').querySelector('.selected');if(!thumb)return;thumb.style.opacity=selected?'1':'0';if(selected){thumb.style.width=selected.offsetWidth+'px';thumb.style.height=selected.offsetHeight+'px';thumb.style.transform=`translateX(${selected.offsetLeft}px)`;}}
 window.addEventListener('resize',positionDayThumb);
 function render(animate=true){now=clock();if(state.autoDay)selectAutomaticDay();$('datePicker').value=add(state.week,state.day);$('dateDisplay').textContent=fmt($('datePicker').value,{day:'numeric',month:'short',year:'numeric'});$('dateOpen').setAttribute('aria-label','Перейти к дате. '+fmt($('datePicker').value,{day:'numeric',month:'long',year:'numeric'}));$('groupBtn').innerHTML=(state.group?'Группа '+state.group:'Выбрать группу')+' <span class="group-chevron"><svg class="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 10 4 4 4-4"/></svg></span>';$('todayLine').textContent=fmt(now.date,{weekday:'long',day:'numeric',month:'long'});$('weekLabel').textContent=fmt(state.week,{day:'numeric',month:'short'})+' — '+fmt(add(state.week,6),{day:'numeric',month:'short'});const index=SCHEDULE.weekDates.indexOf(state.week);$('weekSub').textContent=(index>=0?`Учебная неделя ${index+1} • ${state.week.slice(0,4)}`:'Неделя вне загруженного расписания')+(state.week===monday(now.date)?' • Текущая неделя':'');$('segThumb').style.transform=state.mode==='week'?'translateX(100%)':'translateX(0)';for(const mode of['day','week'])$(mode+'Mode').setAttribute('aria-pressed',state.mode===mode);
-let dayThumb=$('days').querySelector('.day-thumb');if(!dayThumb){dayThumb=document.createElement('span');dayThumb.className='day-thumb';dayThumb.setAttribute('aria-hidden','true');$('days').prepend(dayThumb);} $('days').querySelectorAll('button').forEach(b=>b.remove());$('days').insertAdjacentHTML('beforeend',SHORT.map((d,i)=>{const date=add(state.week,i);return`<button class="day ${state.mode==='day'&&i===state.day?'selected':''} ${date===now.date?'today':''}" data-day="${i}" data-offday="${!!offdayLabel(date)}" title="${esc(offdayLabel(date))}" aria-label="${DAYS[i]}, ${fmt(date)}${offdayLabel(date)?', '+esc(offdayLabel(date)):''}" aria-pressed="${state.mode==='day'&&i===state.day}"><span class="dow">${d}</span><span class="date">${+date.slice(-2)}</span><span class="dot" style="opacity:${lessons(date).length||date===now.date?1:0}"></span></button>`}).join(''));requestAnimationFrame(positionDayThumb);
+let dayThumb=$('days').querySelector('.day-thumb');
+if(!dayThumb){dayThumb=document.createElement('span');dayThumb.className='day-thumb';dayThumb.setAttribute('aria-hidden','true');$('days').prepend(dayThumb);}
+SHORT.forEach((d,i)=>{
+ const date=add(state.week,i),selected=state.mode==='day'&&i===state.day;
+ let button=$('days').querySelector(`[data-day="${i}"]`);
+ if(!button){button=document.createElement('button');button.type='button';button.dataset.day=i;button.innerHTML='<span class="dow"></span><span class="date"></span><span class="dot"></span>';$('days').append(button);}
+ button.className=`day${selected?' selected':''}${date===now.date?' today':''}`;
+ button.dataset.offday=String(!!offdayLabel(date));button.title=offdayLabel(date);
+ button.setAttribute('aria-label',`${DAYS[i]}, ${fmt(date)}${offdayLabel(date)?', '+offdayLabel(date):''}`);button.setAttribute('aria-pressed',String(selected));
+ if(date===now.date)button.setAttribute('aria-current','date');else button.removeAttribute('aria-current');
+ button.querySelector('.dow').textContent=d;button.querySelector('.date').textContent=+date.slice(-2);button.querySelector('.dot').style.opacity=lessons(date).length||date===now.date?'1':'0';
+});requestAnimationFrame(positionDayThumb);
 $('content').innerHTML=!state.group?'<div class="empty" style="margin-top:24px"><h3>С какой группой учимся?</h3>Выберите 4501, 4502 или 4503.<br>При следующем открытии группа сохранится.<br><button id="choose">Выбрать группу</button></div>':state.mode==='day'?block(add(state.week,state.day)):Array.from({length:7},(_,i)=>block(add(state.week,i))).join('');if(!animate){$('content').querySelectorAll('.lesson').forEach(e=>e.style.animation='none')}if($('choose'))$('choose').onclick=openGroups;summary()}
 let groupOpener=null;
 function closeGroups(restoreFocus=true){
@@ -625,7 +805,7 @@ function closeGroups(restoreFocus=true){
   $('groupOverlay').hidden=true;
   $('groupDialog').classList.remove('is-open');
   document.body.classList.remove('group-open');
-  document.querySelector('.shell').removeAttribute('aria-hidden');
+  document.querySelector('.shell').removeAttribute('aria-hidden');document.querySelector('.shell').inert=false;
   if(restoreFocus&&groupOpener&&document.contains(groupOpener))groupOpener.focus();
   groupOpener=null;
 }
@@ -635,8 +815,8 @@ function openGroups(){
   $('groupOverlay').hidden=false;
   $('groupDialog').classList.add('is-open');
   document.body.classList.add('group-open');
-  document.querySelector('.shell').setAttribute('aria-hidden','true');
   ($('groups').querySelector('[aria-pressed="true"]')||$('groups').querySelector('button')).focus();
+  document.querySelector('.shell').setAttribute('aria-hidden','true');document.querySelector('.shell').inert=true;
 }
 $('groupBtn').onclick=openGroups;
 $('closeDialog').onclick=()=>closeGroups();
@@ -699,10 +879,20 @@ async function refreshSchedule(){
 $('todayBtn').onclick=refreshSchedule;
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){render(false);updateClockHands();}});
 window.addEventListener('pageshow',e=>{if(e.persisted){closeGroups(false);render(false)}});
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
 let clockFrame=0,lastCountdownSecond=-1;
-function clockAnimation(){if(document.hidden){clockFrame=0;return;}const second=Math.floor(Date.now()/1000);if(!matchMedia('(prefers-reduced-motion: reduce)').matches||second!==lastCountdownSecond)updateClockHands();if(second!==lastCountdownSecond){updateCountdowns();lastCountdownSecond=second;}clockFrame=requestAnimationFrame(clockAnimation);}
+function clockAnimation(){if(document.hidden){clockFrame=0;return;}const second=Math.floor(Date.now()/1000);if(!reducedMotion.matches||second!==lastCountdownSecond)updateClockHands();if(second!==lastCountdownSecond){updateCountdowns();lastCountdownSecond=second;}clockFrame=requestAnimationFrame(clockAnimation);}
 document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(clockFrame);clockFrame=0;}else if(!clockFrame)clockAnimation();});clockAnimation();
-function tick(){if(!document.hidden){const fresh=clock();if(now.date!==fresh.date||now.minute!==fresh.minute)render(false)}setTimeout(tick,60000-Date.now()%60000+50)}tick();
+// Do not interrupt a held selector or a drag when the minute changes.
+const navigationPointers=new Set();
+document.addEventListener('pointerdown',e=>{if(e.target.closest('.days,.segmented,.theme-settings,#dateGrid'))navigationPointers.add(e.pointerId);},{capture:true,passive:true});
+for(const event of ['pointerup','pointercancel'])document.addEventListener(event,e=>navigationPointers.delete(e.pointerId),{capture:true,passive:true});
+window.addEventListener('blur',()=>navigationPointers.clear());
+function tick(){
+ if(navigationPointers.size){setTimeout(tick,250);return;}
+ if(!document.hidden){const fresh=clock();if(now.date!==fresh.date||now.minute!==fresh.minute)render(false);}
+ setTimeout(tick,60000-Date.now()%60000+50);
+}tick();
 
 function swipeNavigation(el,onSwipe){let touch=null,suppressUntil=0;el.addEventListener('touchstart',e=>{touch=e.touches.length===1?{x:e.touches[0].clientX,y:e.touches[0].clientY}:null;},{passive:true});el.addEventListener('touchcancel',()=>touch=null,{passive:true});el.addEventListener('touchend',e=>{if(!touch)return;const dx=e.changedTouches[0].clientX-touch.x,dy=e.changedTouches[0].clientY-touch.y;touch=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.7){suppressUntil=Date.now()+400;onSwipe(dx<0?1:-1);}},{passive:true});el.addEventListener('click',e=>{if(Date.now()<suppressUntil){e.preventDefault();e.stopImmediatePropagation();}},true);}
 swipeNavigation($('content'),direction=>{state.autoDay=false;if(state.mode==='week')state.week=add(state.week,direction*7);else{const date=add(add(state.week,state.day),direction);state.week=monday(date);state.day=dayIdx(date);}render();});render();
