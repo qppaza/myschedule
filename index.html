@@ -467,6 +467,22 @@ body{-webkit-font-smoothing:antialiased}
 :root .legend{margin-top:20px;gap:8px 12px}
 @media(max-width:700px){.workspace{padding-top:16px}:root .summary{padding:13px 15px;margin-top:14px;margin-bottom:14px}:root .calendar{padding:13px 12px 10px}:root .toolbar{margin-top:12px;margin-bottom:11px}:root .lesson-list{gap:9px}}
 :root #days .day.selected{background:transparent;border-color:transparent;box-shadow:none}
+
+:root #dateGrid{touch-action:none;user-select:none;-webkit-user-select:none}
+:root #dateGrid button{cursor:grab}
+:root #dateGrid.date-dragging,:root #dateGrid.date-dragging button{cursor:grabbing}
+:root #dateGrid button:active{transform:none}
+.date-month-nav{touch-action:pan-y}
+
+:root .date-popover-footer{gap:8px;margin-top:10px;padding-top:10px}
+:root .date-calendar-note{margin-top:7px}
+@media(max-width:700px){header{height:80px}.workspace{padding-top:14px}:root .summary{margin-top:12px;margin-bottom:12px;padding:12px 14px}:root .toolbar{margin-top:10px;margin-bottom:10px}:root .calendar{padding:12px 11px 9px}:root .section-head{margin-top:16px;margin-bottom:9px}:root .summary-layout{gap:8px}:root #weekSub.week-caption{margin:7px 2px}}
+
+:root :is(#themeToggle,#themeOptions){touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.theme-drag-thumb{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;pointer-events:none;z-index:25;background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow);transition:transform .12s ease}
+.theme-drag-thumb[hidden]{display:none}
+:root .theme-dragging #themeOptions{animation:none}
+@media(prefers-reduced-motion:reduce){.theme-drag-thumb{transition:none}}
 </style>
 <meta name="application-name" content="Расписание">
 <meta name="apple-mobile-web-app-title" content="Расписание">
@@ -490,6 +506,17 @@ body{-webkit-font-smoothing:antialiased}
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){event.preventDefault();close(true);}});
   document.addEventListener('focusin',event=>{if(!panel.hidden&&!panel.contains(event.target)&&event.target!==toggle)close(false);});
   window.addEventListener('storage',sync);
+
+  const themeRail=toggle.parentElement;let themeDrag=null,themeClickUntil=0;
+  const themeThumb=document.createElement('span');themeThumb.className='theme-drag-thumb';themeThumb.hidden=true;themeThumb.setAttribute('aria-hidden','true');themeRail.appendChild(themeThumb);
+  themeRail.addEventListener('pointerdown',e=>{if(!e.isPrimary||e.button!==0||(!toggle.contains(e.target)&&!panel.contains(e.target)))return;themeDrag={id:e.pointerId,x:e.clientX,y:e.clientY,active:false,value:null,wasOpen:!panel.hidden};});
+  themeRail.addEventListener('pointermove',e=>{if(!themeDrag||e.pointerId!==themeDrag.id)return;const dx=e.clientX-themeDrag.x,dy=e.clientY-themeDrag.y;if(!themeDrag.active){if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>8){themeDrag=null;return;}if(Math.abs(dx)<5)return;themeDrag.active=true;themeRail.setPointerCapture(e.pointerId);sync();panel.hidden=false;toggle.setAttribute('aria-expanded','true');themeRail.classList.add('theme-dragging');}
+   const active=panel.querySelector('[aria-pressed="true"]');const targets=[...panel.querySelectorAll('button:not([hidden])'),toggle];let nearest=null,distance=Infinity;for(const button of targets){const r=button.getBoundingClientRect(),d=Math.abs(e.clientX-r.left-r.width/2);if(d<distance){distance=d;nearest=button;}}
+   themeDrag.value=nearest===toggle?active.dataset.themeChoice:nearest.dataset.themeChoice;const r=themeRail.getBoundingClientRect(),rect=nearest.getBoundingClientRect();themeThumb.hidden=false;themeThumb.style.transform=`translate(${rect.left-r.left}px,${rect.top-r.top}px)`;e.preventDefault();
+  });
+  function endThemeDrag(e,cancel=false){if(!themeDrag||e.pointerId!==themeDrag.id)return;const drag=themeDrag;themeDrag=null;if(!drag.active)return;themeClickUntil=Date.now()+450;if(themeRail.hasPointerCapture(e.pointerId))themeRail.releasePointerCapture(e.pointerId);themeThumb.hidden=true;themeRail.classList.remove('theme-dragging');if(!cancel&&drag.value){close(true);window.scheduleTheme.set(drag.value);sync();}else if(!drag.wasOpen)close(false);}
+  themeRail.addEventListener('pointerup',e=>endThemeDrag(e));themeRail.addEventListener('pointercancel',e=>endThemeDrag(e,true));themeRail.addEventListener('lostpointercapture',e=>{if(e.target===themeRail)endThemeDrag(e,true);});
+  themeRail.addEventListener('click',e=>{if(Date.now()<themeClickUntil){e.preventDefault();e.stopImmediatePropagation();}},true);
   window.scheduleTheme.apply();sync();
 })();
 </script>
@@ -755,7 +782,20 @@ $('datePicker').addEventListener('change',()=>{
  opener.addEventListener('click',()=>{if(!popover.hidden){close();return;}const date=input.value<input.min?input.min:input.value>input.max?input.max:input.value;month=date.slice(0,7)+'-01';popover.hidden=false;opener.setAttribute('aria-expanded','true');draw(date);});
  $('datePrev').onclick=()=>{month=shift(month,-1);draw();if($('datePrev').disabled)$('dateGrid').querySelector('button:not(:disabled)').focus();};
  $('dateNext').onclick=()=>{month=shift(month,1);draw();if($('dateNext').disabled)$('dateGrid').querySelector('button:not(:disabled)').focus();};
- swipeNavigation($('dateGrid'),direction=>{const candidate=shift(month,direction);if(candidate.slice(0,7)<input.min.slice(0,7)||candidate.slice(0,7)>input.max.slice(0,7))return;month=candidate;draw();});
+ swipeNavigation(popover.querySelector('.date-month-nav'),direction=>{const candidate=shift(month,direction);if(candidate.slice(0,7)<input.min.slice(0,7)||candidate.slice(0,7)>input.max.slice(0,7))return;month=candidate;draw();});
+
+ // The date grid handles two-dimensional dragging; the month heading retains month swipes.
+ const grid=$('dateGrid');let dateDrag=null,dateClickUntil=0;
+ function restoreDateSelection(){grid.querySelectorAll('[data-date]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.date===input.value)));grid.classList.remove('date-dragging');}
+ grid.addEventListener('pointerdown',e=>{if(!e.isPrimary||e.button!==0)return;const b=e.target.closest('[data-date]');if(!b||b.disabled)return;dateDrag={id:e.pointerId,x:e.clientX,y:e.clientY,date:b.dataset.date,active:false};});
+ grid.addEventListener('pointermove',e=>{if(!dateDrag||e.pointerId!==dateDrag.id)return;if(!dateDrag.active){if(Math.hypot(e.clientX-dateDrag.x,e.clientY-dateDrag.y)<5)return;dateDrag.active=true;grid.classList.add('date-dragging');grid.setPointerCapture(e.pointerId);}
+ e.preventDefault();const rect=grid.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom){dateDrag.date=null;return;}
+ const buttons=[...grid.querySelectorAll('[data-date]:not(:disabled)')];let distance=Infinity,candidate=null;for(const b of buttons){const r=b.getBoundingClientRect(),d=Math.hypot(e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2);if(d<distance&&d<=Math.max(r.width,r.height)*.75){distance=d;candidate=b;}}
+ dateDrag.date=candidate?candidate.dataset.date:null;grid.querySelectorAll('[data-date]').forEach(b=>b.setAttribute('aria-pressed',String(b===candidate)));
+ });
+ function endDateDrag(e,cancel=false){if(!dateDrag||e.pointerId!==dateDrag.id)return;const drag=dateDrag;dateDrag=null;if(!drag.active)return;dateClickUntil=Date.now()+450;if(grid.hasPointerCapture(e.pointerId))grid.releasePointerCapture(e.pointerId);restoreDateSelection();if(!cancel&&drag.date)choose(drag.date);}
+ grid.addEventListener('pointerup',e=>endDateDrag(e));grid.addEventListener('pointercancel',e=>endDateDrag(e,true));grid.addEventListener('lostpointercapture',e=>{if(e.target===grid)endDateDrag(e,true);});
+ document.addEventListener('click',e=>{if(Date.now()<dateClickUntil){e.preventDefault();e.stopImmediatePropagation();}},true);
  $('dateGrid').onclick=e=>{const b=e.target.closest('[data-date]');if(b&&!b.disabled)choose(b.dataset.date);};
  $('dateNow').onclick=()=>choose(clock().date);$('dateClose').onclick=()=>close(true);
  document.addEventListener('click',e=>{if(!popover.hidden&&!popover.contains(e.target)&&!opener.contains(e.target))close();});
