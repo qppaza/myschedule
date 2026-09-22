@@ -374,18 +374,18 @@ body{-webkit-font-smoothing:antialiased}
 /* Portal avoids nested backdrop-filter roots and clips on small screens. */
 :root #datePopover.date-popover{position:fixed;inset:auto;z-index:50;width:min(340px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain}
 
-.summary-layout{display:grid;grid-template-columns:minmax(0,1fr) 76px;align-items:center;gap:12px}
+.summary-layout{display:grid;grid-template-columns:minmax(0,1fr) 88px;align-items:center;gap:12px}
 .summary-copy{min-width:0}.summary-copy h3{line-height:1.22}.summary-copy p{overflow-wrap:anywhere;margin-bottom:7px}
 .summary-kind{display:inline-flex;padding:3px 8px;border:1px solid var(--liquid-edge);border-radius:20px;background:var(--liquid-fill);font-size:11px;line-height:1.4;color:var(--muted)}
-.summary-clock{width:76px;text-align:center;color:var(--text);align-self:center}
-.summary-clock svg{display:block;width:76px;height:76px;overflow:visible;filter:drop-shadow(0 2px 3px #0002)}
+.summary-clock{width:88px;text-align:center;color:var(--text);align-self:center}
+.summary-clock svg{display:block;width:88px;height:88px;overflow:visible;filter:drop-shadow(0 2px 3px #0002)}
 .clock-ticks{stroke:var(--muted);stroke-width:1.6;stroke-linecap:round;opacity:.7}
-.clock-hands{stroke:var(--offday);stroke-width:2.8;stroke-linecap:round}
-.summary-clock>span{display:block;font-size:11px;font-weight:550;color:var(--offday);margin-top:1px;font-variant-numeric:tabular-nums}
+.clock-hands{stroke:var(--summary-accent);stroke-width:2.8;stroke-linecap:round}
+.summary-clock>span{display:block;font-size:11px;font-weight:550;color:var(--summary-accent);margin-top:1px;font-variant-numeric:tabular-nums}
 .summary .sum-time{margin-top:11px;font-variant-numeric:tabular-nums}
 .summary .summary-track{display:block;height:4px;margin-top:12px;border-radius:10px;background:var(--liquid-edge);overflow:hidden}
-.summary .summary-track span{display:block;height:100%;border-radius:inherit;background:var(--offday);transition:width .4s ease}
-@media(min-width:701px) and (max-width:1100px){.summary-layout{grid-template-columns:minmax(0,1fr) 60px;gap:6px}.summary-clock,.summary-clock svg{width:60px}.summary-clock svg{height:60px}}
+.summary .summary-track span{display:block;height:100%;border-radius:inherit;background:var(--summary-accent);transition:width .4s ease}
+@media(min-width:701px) and (max-width:1100px){.summary-layout{grid-template-columns:minmax(0,1fr) 68px;gap:6px}.summary-clock,.summary-clock svg{width:68px}.summary-clock svg{height:68px}}
 @media(prefers-reduced-motion:reduce){.summary .summary-track span{transition:none}}
 </style>
 <meta name="application-name" content="Расписание">
@@ -466,7 +466,7 @@ function offdayLabel(date){return holidayName(date)||(dayIdx(date)===6?'Воск
 function block(date){const list=lessons(date),available=SCHEDULE.weekDates.includes(monday(date));return`<section class="day-block"><div class="section-head"><h2>${DAYS[dayIdx(date)]}</h2><span>${fmt(date,{day:'numeric',month:'short'})}${date===now.date?' · Сегодня':''}</span><span class="count">${list.length?list.length+' занятий':''}</span></div>${list.length?`<div class="lesson-list">${list.map(card).join('')}</div>`:`<div class="empty"><h3>${available?'Занятий в расписании нет':'На эту неделю нет данных'}</h3>${available?'В выбранном дне нет записей.':'В файле есть недели с 31 августа 2026 по 7 февраля 2027.'}</div>`}</section>`}
 function summaryClock(minutes){
  const ticks=Array.from({length:12},(_,i)=>`<line x1="50" y1="${i%3===0?9:11}" x2="50" y2="${i%3===0?17:15}" transform="rotate(${i*30} 50 50)"/>`).join('');
- return `<div class="summary-clock" aria-hidden="true"><svg viewBox="0 0 100 100"><g class="clock-ticks">${ticks}</g><g class="clock-hands"><line x1="50" y1="52" x2="50" y2="29" transform="rotate(${minutes%720/2} 50 50)"/><line x1="50" y1="54" x2="50" y2="20" transform="rotate(${minutes%60*6} 50 50)"/></g><circle cx="50" cy="50" r="3" fill="currentColor"/><circle cx="50" cy="10" r="2.4" fill="var(--offday)" transform="rotate(${minutes%60*6} 50 50)"/></svg><span>к ${timeString(minutes)}</span></div>`;
+ return `<div class="summary-clock" aria-hidden="true"><svg viewBox="0 0 100 100"><g class="clock-ticks">${ticks}</g><g class="clock-hands"><line x1="50" y1="52" x2="50" y2="29" transform="rotate(${minutes%720/2} 50 50)"/><line x1="50" y1="54" x2="50" y2="20" transform="rotate(${minutes%60*6} 50 50)"/></g><circle cx="50" cy="50" r="3" fill="currentColor"/><circle cx="50" cy="10" r="2.4" fill="var(--summary-accent)" transform="rotate(${minutes%60*6} 50 50)"/></svg><span>к ${timeString(minutes)}</span></div>`;
 }
 function summary(){
  const label=$('summaryLabel');label.textContent='СЕГОДНЯ';
@@ -478,6 +478,7 @@ function summary(){
  else if(next){title='Следующее занятие';timing=`${timeString(next.start)} · через ${durationMinutes(next.start-now.minute)}`;const previous=list.filter(l=>l.end!==null&&l.end<=now.minute).at(-1);const from=previous?previous.end:0;progress=(now.minute-from)/Math.max(1,next.start-from)*100;progressLabel='Ожидание начала занятия';}
  else {const date=preferredDay();if(date>now.date){lesson=lessons(date)[0];const tomorrow=date===add(now.date,1);label.textContent=list.length?'НА СЕГОДНЯ ВСЁ':'БЛИЖАЙШЕЕ ЗАНЯТИЕ';title=tomorrow?`Завтра к ${timeString(lesson.start)}`:`${fmt(date,{day:'numeric',month:'long'})} к ${timeString(lesson.start)}`;timing=tomorrow?'':fmt(date,{weekday:'long'});}}
  if(!lesson){$('summary').innerHTML=`<h3>${list.length?'Занятия завершены':'День без занятий'}</h3><p>Следующих занятий в загруженном расписании нет.</p>`;return;}
+ $('summary').style.setProperty('--summary-accent',COLORS[lesson.type]||COLORS.other);
  const percent=Math.round(Math.max(0,Math.min(100,progress||0)));
  $('summary').innerHTML=`<div class="summary-layout"><div class="summary-copy"><h3>${esc(title)}</h3><p>${esc(lesson.subject)}</p><span class="summary-kind">${esc(TYPES[lesson.type]||'Занятие')}</span></div>${summaryClock(lesson.start)}</div>${timing?`<div class="sum-time">${esc(timing)}</div>`:''}${progress!==null?`<div class="track summary-track" role="progressbar" aria-label="${progressLabel}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-valuetext="${esc(timing)}"><span style="width:${percent}%"></span></div>`:''}`;
 }
