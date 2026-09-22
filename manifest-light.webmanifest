@@ -1,0 +1,19 @@
+{
+  "id": "/myschedule/",
+  "name": "Расписание",
+  "short_name": "Расписание",
+  "lang": "ru",
+  "start_url": "/myschedule/",
+  "scope": "/myschedule/",
+  "display": "standalone",
+  "background_color": "#f5f3f8",
+  "theme_color": "#f5f3f8",
+  "icons": [
+    {
+      "src": "./icon-light.png?v=23",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
