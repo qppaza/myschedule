@@ -1,6 +1,6 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v28-scroll-titles';
+const VERSION = 'myschedule-offline-v29-backdrop-cascade';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;

@@ -630,8 +630,11 @@ body{-webkit-font-smoothing:antialiased}
 :root .intro.theme-open #themeToggle{margin-top:16px}
 :root .intro.theme-open #themeOptions{top:68px}
 
-/* Scroll stability: retain translucent fills; reserve live background blur for overlays. */
-:root :is(.lesson,.summary,.calendar,.segmented,.arrows button,.date-open,.today-btn,.brand-icon,.group.glass,.group-chevron,.group-action){backdrop-filter:none;-webkit-backdrop-filter:none}
+/* Scroll stability v29: the shared material selector contains #groups,
+   so :is() gives every matched surface ID-level specificity. Explicitly
+   override its backdrop declarations; retain translucent fills and shadows.
+   Popovers/dialogs keep their background blur. */
+:root :is(.lesson,.summary,.calendar,.empty,.segmented,.arrows button,.date-open,.today-btn,.brand-icon,.group.glass,.group-chevron,.group-action){backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 :root .lesson{animation:none}
 :root .launch-motion .workspace{animation:none;transform:none}
 </style>
