@@ -1,0 +1,4 @@
+PASS: calculation module byte-identical to book-based source; corrected release label substitution artifacts.
+PASS: saved 8.1 recipes and versions, custom recipe, new recipe, raw material, target solver, theme, source panel, two-row print header, table output, volume units, print errors, missing solids.
+UI tested in jsdom; no real browser rendering / Android visual verification.
+PASS: 1022 numerical comparisons, table boundaries, mixed ingredients, stage isolation, inversion, target solver, missing data, script syntax.
