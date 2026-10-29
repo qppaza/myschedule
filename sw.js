@@ -1,10 +1,10 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v29-backdrop-cascade';
+const VERSION = 'myschedule-offline-v30-theme-today-launch';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const ASSETS = ['icon-light.png?v=23', 'manifest-light.webmanifest?v=23', 'manifest.webmanifest?v=7', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href);
+const ASSETS = ['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href);
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
@@ -38,8 +38,10 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   const isPage = request.mode === 'navigate' && (url.origin + url.pathname === BASE || url.origin + url.pathname === INDEX);
   if (isPage) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE);
+    const cachePromise = caches.open(CACHE);
+    // Prefer the latest page on a fast connection. A saved schedule can open
+    // after 300 ms on a slow connection while its next copy updates in background.
+    const network = cachePromise.then(async cache => {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 4500);
       try {
@@ -47,9 +49,25 @@ self.addEventListener('fetch', event => {
         if (!response.ok) throw new Error('Page unavailable');
         try { await cache.put(INDEX, response.clone()); } catch (_) {}
         return response;
-      } catch (_) {
-        return await cache.match(INDEX) || new Response('Откройте расписание с интернетом, чтобы сохранить его на устройстве.', {status: 503, headers: {'Content-Type': 'text/plain; charset=utf-8'}});
       } finally { clearTimeout(timer); }
+    });
+    event.waitUntil(network.then(() => {}, () => {}));
+    event.respondWith((async () => {
+      const cached = await (await cachePromise).match(INDEX);
+      if (cached) {
+        let timer;
+        try {
+          const fresh = await Promise.race([
+            network.catch(() => null),
+            new Promise(resolve => { timer = setTimeout(() => resolve(null), 300); })
+          ]);
+          return fresh || cached;
+        } finally { clearTimeout(timer); }
+      }
+      try { return await network; }
+      catch (_) {
+        return new Response('Откройте расписание с интернетом, чтобы сохранить его на устройстве.', {status: 503, headers: {'Content-Type': 'text/plain; charset=utf-8'}});
+      }
     })());
   } else if (ASSETS.includes(url.href)) {
     event.respondWith((async () => {

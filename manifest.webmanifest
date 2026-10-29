@@ -6,8 +6,8 @@
   "start_url": "/myschedule/",
   "scope": "/myschedule/",
   "display": "standalone",
-  "background_color": "#1b1823",
-  "theme_color": "#1b1823",
+  "background_color": "#15151b",
+  "theme_color": "#15151b",
   "icons": [
     {
       "src": "./icon-192.png?v=7",
