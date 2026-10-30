@@ -2,23 +2,6 @@
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#15151b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><title>Расписание</title><script>
 // Apply the saved theme before first paint. Storage may be unavailable in a WebView.
 (function () {
-  document.documentElement.classList.add('launch-pending');
-  var launchDone = false;
-  window.scheduleLaunch = {finish: function () {
-    if (launchDone) return;
-    launchDone = true;
-    document.documentElement.classList.remove('launch-pending');
-    document.documentElement.classList.add('launch-exit');
-    window.setTimeout(function () {
-      document.documentElement.classList.remove('launch-exit');
-      var screen = document.getElementById('launchScreen');
-      if (screen) screen.remove();
-    }, 420);
-  }};
-  window.setTimeout(window.scheduleLaunch.finish, 5000);
-  window.addEventListener('pageshow', function (event) {
-    if (event.persisted) window.scheduleLaunch.finish();
-  });
   var preference = 'system';
   try { var saved = localStorage.getItem('sched_theme'); if (['dark','light','system'].indexOf(saved) !== -1) preference = saved; } catch (_) {}
   var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -313,15 +296,6 @@ body{-webkit-font-smoothing:antialiased}
 
 /* The trigger already displays the chosen theme; show only alternatives. */
 .theme-settings .theme-switch button[hidden]{display:none!important}
-/* Short entrance without a blocking splash or artificial loading state. */
-.launch-motion header{animation:launch-header .45s cubic-bezier(.2,.8,.2,1) both}
-.launch-motion .workspace{animation:launch-content .6s cubic-bezier(.2,.8,.2,1) .05s both}
-.launch-motion .brand-icon{animation:launch-mark .65s cubic-bezier(.2,.8,.2,1) both}
-@keyframes launch-header{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-@keyframes launch-content{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-@keyframes launch-mark{from{transform:scale(.92);box-shadow:0 0 0 #e8d4f000}55%{box-shadow:0 0 18px #e8d4f024}to{transform:scale(1);box-shadow:0 0 0 #e8d4f000}}
-@media(prefers-reduced-motion:reduce){.launch-motion header,.launch-motion .workspace,.launch-motion .brand-icon{animation:none!important}}
-
 /* One material system shared by surfaces, controls and popovers. */
 :root{
  --liquid-fill:linear-gradient(135deg,rgba(255,246,238,.105),rgba(235,221,242,.045) 54%,rgba(220,248,236,.065));
@@ -637,23 +611,22 @@ body{-webkit-font-smoothing:antialiased}
    Popovers/dialogs keep their background blur. */
 :root :is(.lesson,.summary,.calendar,.empty,.segmented,.arrows button,.date-open,.today-btn,.brand-icon,.group.glass,.group-chevron,.group-action){backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 :root .lesson{animation:none}
-:root .launch-motion .workspace{animation:none;transform:none}
 
-/* v30: a single theme cycle with an SVG sun/moon morph and a system state. */
+/* v31: three complete icons, animated without masking away the moon contour. */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 :root #themeToggle{touch-action:manipulation}
 :root #themeToggle.theme-toggle{transition:box-shadow .25s ease,border-color .25s ease}
 :root #themeToggle .appearance-icon{width:24px;height:24px;overflow:visible}
-.appearance-orbit,.appearance-system,.appearance-rays{transform-origin:12px 12px;transition:opacity .35s ease,transform .6s cubic-bezier(.22,.8,.25,1)}
-.appearance-disc{transition:r .6s cubic-bezier(.22,.8,.25,1)}
-.appearance-cutout{transform:translate(0,0);transition:transform .6s cubic-bezier(.22,.8,.25,1)}
-.appearance-system{opacity:0;transform:translateY(5px) scale(.65)}
-[data-mode=dark] .appearance-disc{r:8.2px}
-[data-mode=dark] .appearance-cutout{transform:translate(-14px,13px)}
-[data-mode=dark] .appearance-rays{opacity:0;transform:rotate(70deg) scale(.35)}
-[data-mode=dark] .appearance-orbit{transform:rotate(-12deg)}
-[data-mode=system] .appearance-orbit{opacity:0;transform:rotate(100deg) scale(.5)}
+.appearance-sun,.appearance-moon,.appearance-system{transform-origin:12px 12px;transition:opacity .28s ease,transform .48s cubic-bezier(.22,.8,.25,1)}
+.appearance-sun{opacity:1;transform:rotate(0) scale(1)}
+.appearance-moon{opacity:0;transform:rotate(-55deg) scale(.4)}
+.appearance-system{opacity:0;transform:translateY(5px) scale(.6)}
+[data-mode=dark] .appearance-sun{opacity:0;transform:rotate(70deg) scale(.4)}
+[data-mode=dark] .appearance-moon{opacity:1;transform:rotate(0) scale(1)}
+[data-mode=system] .appearance-sun{opacity:0;transform:rotate(100deg) scale(.4)}
+[data-mode=system] .appearance-moon{opacity:0;transform:rotate(55deg) scale(.4)}
 [data-mode=system] .appearance-system{opacity:1;transform:translateY(0) scale(1)}
+@media(prefers-reduced-motion:reduce){.appearance-sun,.appearance-moon,.appearance-system{transition:none}}
 :root .today-btn .ui-today{display:block;width:18px;height:18px;flex:none}
 /* Two ambient layers blend the colour schemes without freezing the interface. */
 :root[data-theme] .ambient{background:radial-gradient(ellipse at 6% 16%,#71509b88,transparent 51%),radial-gradient(ellipse at 94% 2%,#c47d626e,transparent 49%),radial-gradient(ellipse at 87% 83%,#387e7566,transparent 50%),radial-gradient(ellipse at 15% 95%,#455c984a,transparent 48%),#15151b}
@@ -661,29 +634,6 @@ body{-webkit-font-smoothing:antialiased}
 [data-theme=light] .ambient:after{opacity:1}
 @media(max-width:700px){:root[data-theme=dark] .ambient{background:radial-gradient(ellipse at -15% 10%,#76549b99,transparent 52%),radial-gradient(ellipse at 110% 27%,#b3786766,transparent 48%),radial-gradient(ellipse at 55% 95%,#3e857266,transparent 53%),#15151b}}
 @media(prefers-reduced-motion:reduce){.ambient:after{transition:none}}
-/* First page paint shares the schedule's material, typography and colours. */
-.launch-screen{position:fixed;inset:0;z-index:200;overflow:hidden;pointer-events:none;opacity:1;background:var(--bg);color:var(--text);transition:opacity .38s ease,visibility .38s;isolation:isolate}
-.launch-pending .launch-screen[hidden],.launch-exit .launch-screen[hidden]{display:grid;place-items:center}
-.launch-exit .launch-screen{opacity:0;visibility:hidden}
-.launch-aurora{position:absolute;inset:-20%;z-index:-1;background:radial-gradient(ellipse at 18% 25%,#8f66bd59,transparent 46%),radial-gradient(ellipse at 88% 22%,#c58b6a40,transparent 42%),radial-gradient(ellipse at 65% 88%,#62ad963d,transparent 44%);animation:launch-drift 9s ease-in-out infinite alternate}
-.launch-center{display:flex;align-items:center;flex-direction:column;gap:28px;padding:24px;width:100%}
-.launch-card{position:relative;display:flex;flex-direction:column;align-items:center;width:min(284px,100%);padding:36px 28px 28px;border-radius:38px;background:var(--liquid-fill);border:1px solid var(--liquid-edge);box-shadow:inset 0 1px 1px #ffffff52,inset 0 -1px 1px #e4dcf014,0 20px 60px #00000012;backdrop-filter:blur(28px) saturate(125%);-webkit-backdrop-filter:blur(28px) saturate(125%)}
-.launch-emblem{position:relative;width:104px;height:104px;padding:5px;margin-bottom:26px;border-radius:29px;border:1px solid var(--liquid-selected-edge);background:var(--liquid-selected);box-shadow:var(--liquid-selected-shadow);overflow:hidden}
-.launch-emblem:after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(135deg,#ffffff28,transparent 42%,#ffffff08);pointer-events:none}
-.launch-emblem img{display:block;width:100%;height:100%;object-fit:contain;border-radius:23px}
-.launch-emblem .launch-logo-light{display:none}
-[data-theme=light] .launch-emblem .launch-logo-dark{display:none}
-[data-theme=light] .launch-emblem .launch-logo-light{display:block}
-.launch-caption{color:var(--muted);font-size:10px;font-weight:600;letter-spacing:2px}
-.launch-title{font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-.8px;margin-top:10px}
-.launch-subtitle{font-size:13px;color:var(--muted);margin-top:8px}
-.launch-loader{display:block;width:62px;height:4px;margin-top:30px;border-radius:8px;background:var(--liquid-edge);overflow:hidden}
-.launch-loader span{display:block;width:30px;height:100%;border-radius:inherit;background:var(--blue);animation:launch-loading 1.3s ease-in-out infinite}
-.launch-footnote{color:var(--muted);font-size:12px;letter-spacing:.1px}
-@keyframes launch-loading{from{transform:translateX(-30px)}to{transform:translateX(62px)}}
-@keyframes launch-drift{to{transform:translate3d(3%,2%,0) scale(1.04)}}
-@media(prefers-reduced-motion:reduce){.appearance-orbit,.appearance-system,.appearance-rays,.appearance-disc,.appearance-cutout,.launch-screen{transition:none}.launch-loader span,.launch-aurora{animation:none}.launch-loader span{width:100%}}
-@supports not (backdrop-filter:blur(1px)){.launch-card{background:var(--liquid-solid)}}
 </style>
 <meta name="application-name" content="Расписание">
 <meta name="apple-mobile-web-app-title" content="Расписание">
@@ -691,9 +641,9 @@ body{-webkit-font-smoothing:antialiased}
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png?v=7">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=7">
 </head>
-<body><div id="launchScreen" class="launch-screen" hidden aria-hidden="true"><div class="launch-aurora"></div><div class="launch-center"><div class="launch-card"><div class="launch-emblem"><img class="launch-logo-dark" src="icon-192.png?v=7" width="112" height="112" alt="" fetchpriority="high"><img class="launch-logo-light" src="icon-light.png?v=23" width="112" height="112" alt=""></div><span class="launch-caption">АКАДЕМИЯ МВД</span><span class="launch-title">Расписание</span><span class="launch-subtitle">Факультет права</span><span class="launch-loader"><span></span></span></div><span class="launch-footnote">Всё по расписанию</span></div></div><div class="ambient" aria-hidden="true"></div><div class="shell"><header><a class="brand" href="./"><span class="brand-icon"><img class="logo-dark" src="icon-192.png?v=7" width="48" height="48" alt="" decoding="async"><img class="logo-light" src="icon-light.png?v=23" width="48" height="48" alt="" decoding="async"></span><span>АКАДЕМИЯ МВД<span class="brand-sub">РЕСПУБЛИКИ БЕЛАРУСЬ</span></span></a><span class="header-note">2026 / 2027 · 5 семестр</span><button class="group glass" id="groupBtn" aria-haspopup="dialog">Выбрать группу <span class="group-chevron"><svg class="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 10 4 4 4-4"/></svg></span></button></header>
+<body><div class="ambient" aria-hidden="true"></div><div class="shell"><header><a class="brand" href="./"><span class="brand-icon"><img class="logo-dark" src="icon-192.png?v=7" width="48" height="48" alt="" decoding="async"><img class="logo-light" src="icon-light.png?v=23" width="48" height="48" alt="" decoding="async"></span><span>АКАДЕМИЯ МВД<span class="brand-sub">РЕСПУБЛИКИ БЕЛАРУСЬ</span></span></a><span class="header-note">2026 / 2027 · 5 семестр</span><button class="group glass" id="groupBtn" aria-haspopup="dialog">Выбрать группу <span class="group-chevron"><svg class="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 10 4 4 4-4"/></svg></span></button></header>
 
-<div class="workspace"><aside><div class="intro"><div class="theme-settings"><button type="button" class="theme-toggle" id="themeToggle" aria-label="Тема: системная. Нажмите, чтобы включить светлую" title="Системная тема → Светлая" data-mode="system"><svg class="appearance-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><defs><mask id="appearanceMoonCut"><rect width="24" height="24" fill="white"/><circle class="appearance-cutout" cx="30" cy="-6" r="6.7" fill="black"/></mask></defs><g class="appearance-orbit"><g mask="url(#appearanceMoonCut)"><circle class="appearance-disc" cx="12" cy="12" r="4"/></g><g class="appearance-rays"><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></g></g><g class="appearance-system"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8m-4-4v4M12 4v13"/><path d="M12 5h5a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-5Z" fill="currentColor" stroke="none" opacity=".32"/></g></svg></button><span id="themeAnnouncement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></span><span class="offline-status" id="offlineStatus" role="img" aria-label="Проверяем офлайн-доступ"><span class="offline-icon" aria-hidden="true"></span></span></div><span class="eyebrow">ФАКУЛЬТЕТ ПРАВА · 3 КУРС</span><h1>Расписание</h1><p id="todayLine"></p></div><div class="glass summary"><div id="summary"></div></div><div class="legend" id="typeLegend"></div><div class="source-note">По данным загруженного расписания<br><span>Время занятий — Минск (UTC+3)</span></div></aside>
+<div class="workspace"><aside><div class="intro"><div class="theme-settings"><button type="button" class="theme-toggle" id="themeToggle" aria-label="Тема: системная. Нажмите, чтобы включить светлую" title="Системная тема → Светлая" data-mode="system"><svg class="appearance-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><g class="appearance-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></g><g class="appearance-moon"><path d="M20.8 13.2A9 9 0 0 1 10.8 3.2 9 9 0 1 0 20.8 13.2Z"/></g><g class="appearance-system"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8m-4-4v4M12 4v13"/><path d="M12 5h5a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-5Z" fill="currentColor" stroke="none" opacity=".32"/></g></svg></button><span id="themeAnnouncement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></span><span class="offline-status" id="offlineStatus" role="img" aria-label="Проверяем офлайн-доступ"><span class="offline-icon" aria-hidden="true"></span></span></div><span class="eyebrow">ФАКУЛЬТЕТ ПРАВА · 3 КУРС</span><h1>Расписание</h1><p id="todayLine"></p></div><div class="glass summary"><div id="summary"></div></div><div class="legend" id="typeLegend"></div><div class="source-note">По данным загруженного расписания<br><span>Время занятий — Минск (UTC+3)</span></div></aside>
 <main><div class="toolbar"><div class="segmented" role="group" aria-label="Вид расписания"><span id="segThumb"></span><button id="dayMode">День</button><button id="weekMode">Неделя</button></div><button id="todayBtn" class="today-btn" type="button" title="Перейти к сегодняшней дате" aria-label="Перейти к сегодняшней дате"><svg class="ui-today" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="5" width="16" height="16" rx="4"/><path d="M8 3v4m8-4v4M4 10h16"/><circle cx="12" cy="15" r="1.7" fill="currentColor" stroke="none"/></svg><span>Сегодня</span></button></div><section class="calendar glass"><div class="week-nav"><div><div class="date-picker"><button type="button" id="dateOpen" class="date-open" aria-expanded="false" aria-controls="datePopover" aria-haspopup="dialog" title="Перейти к дате"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v4m8-4v4M4 10h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg><span id="weekLabel"></span><span id="dateDisplay" hidden></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg></button><input type="date" id="datePicker" hidden aria-label="Дата занятия"><section id="datePopover" class="date-popover" role="dialog" aria-labelledby="dateMonth" hidden><div class="date-month-nav"><button type="button" id="datePrev" aria-label="Предыдущий месяц"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><h3 id="dateMonth"></h3><button type="button" id="dateNext" aria-label="Следующий месяц"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div><div class="date-weekdays" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div id="dateGrid" class="date-grid"></div><p class="date-calendar-note"><span>Розовым</span> — воскресенья и нерабочие праздники</p><div class="date-popover-footer"><button type="button" id="dateNow">Сегодня</button><button type="button" id="dateClose">Закрыть</button></div></section></div></div><div class="arrows"><button id="prev" aria-label="Предыдущая неделя"><svg class="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6"/></svg></button><button id="next" aria-label="Следующая неделя"><svg class="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m10 6 6 6-6 6"/></svg></button></div></div><p id="weekSub" class="week-caption"></p><div id="days" class="days"></div></section><div id="content"></div><footer><div class="footer-top"><span>AMIA · Неофициальное расписание</span><a href="https://t.me/evxnescencee" target="_blank" rel="noopener noreferrer">Автор · @evxnescencee <svg class="ui-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7M7 7h10v10"/></svg></a></div><p>Расписание может изменяться деканатом. Пожалуйста, сверяйтесь с оригиналом расписания Академии. Этот сервис не является официальным.</p></footer></main></div></div>
 <div class="group-overlay" id="groupOverlay" hidden><section class="group-dialog" id="groupDialog" role="dialog" aria-modal="true" aria-labelledby="groupTitle" tabindex="-1"><div class="handle"></div><div class="dialog-head"><h2 id="groupTitle">Ваша группа</h2><button id="closeDialog" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div><p>Факультет права · 3 курс<br>Выбор сохранится на этом устройстве.</p><div id="groups"></div></section></div>
 <script>
@@ -1026,5 +976,4 @@ $('datePicker').addEventListener('change',()=>{
   e.preventDefault();const next=add(b.dataset.date,delta);if(next<input.min||next>input.max)return;month=next.slice(0,7)+'-01';draw(next);
  });
 })();
-requestAnimationFrame(()=>requestAnimationFrame(()=>window.scheduleLaunch.finish()));
 </script></body></html>
