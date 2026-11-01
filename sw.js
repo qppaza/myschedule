@@ -1,10 +1,11 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v31-no-flash-crescent';
+const VERSION = 'myschedule-offline-v32-study-materials';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const ASSETS = ['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href);
+const REQUIRED = ['curriculum.js?v=32', 'study.js?v=32', 'study.css?v=32', 'install.js?v=32', 'install.css?v=32'].map(path => new URL(path, BASE).href);
+const ASSETS = [...REQUIRED, ...['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href)];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
@@ -12,7 +13,13 @@ self.addEventListener('install', event => {
     const response = await fetch(new Request(INDEX, {cache: 'reload'}));
     if (!response.ok) throw new Error('Timetable download failed');
     await cache.put(INDEX, response);
-    await Promise.all(ASSETS.map(async url => {
+    // Questions and their UI form one mandatory offline bundle with the page.
+    await Promise.all(REQUIRED.map(async url => {
+      const asset = await fetch(new Request(url, {cache: 'reload'}));
+      if (!asset.ok) throw new Error('Study material download failed');
+      await cache.put(url, asset);
+    }));
+    await Promise.all(ASSETS.filter(url => !REQUIRED.includes(url)).map(async url => {
       try { const asset = await fetch(new Request(url, {cache: 'reload'})); if (asset.ok) await cache.put(url, asset); } catch (_) {}
     }));
     await self.skipWaiting();
@@ -29,7 +36,8 @@ self.addEventListener('message', event => {
   if (!event.data || event.data.type !== 'CHECK_OFFLINE') return;
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    if (await cache.match(INDEX)) event.source?.postMessage({type: 'OFFLINE_READY'});
+    const ready = await Promise.all([INDEX, ...REQUIRED].map(url => cache.match(url)));
+    if (ready.every(Boolean)) event.source?.postMessage({type: 'OFFLINE_READY'});
   })());
 });
 self.addEventListener('fetch', event => {
