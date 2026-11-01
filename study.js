@@ -13,7 +13,9 @@
     close: svg('<path d="m7 7 10 10M17 7 7 17"/>'),
     copy: svg('<rect x="8" y="8" width="12" height="13" rx="3"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/>'),
     check: svg('<path d="m5 12 4 4L19 6"/>'),
-    search: svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>')
+    search: svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>'),
+    folder: svg('<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3Z"/><path d="M3 10h18"/>'),
+    external: svg('<path d="M8 16 17 7M8 7h9v9"/>')
   };
   const kinds = {
     lecture: { label: 'Лекция', action: 'План лекции', field: 'lectures' },
@@ -21,6 +23,7 @@
     practical: { label: 'Практическое', action: 'К практическому занятию', field: 'practicals' }
   };
   const kindOf = type => type === 'practice' ? 'practical' : type;
+  const lectureFolder = 'https://drive.google.com/drive/u/0/mobile/folders/1uhkJoeVkKWGur3FtXbzJRynd_Itu3DJM';
   const subjectFor = name => {
     const aliases = {
       'гражданское право (часть 2)': 'гражданское право',
@@ -241,7 +244,7 @@
     title.textContent = 'Материалы занятий';
     back.hidden = true;
     const selectedName = subjects.find(subject => subject.id === librarySubject)?.name || 'Все дисциплины';
-    body.innerHTML = `<div class="study-filters"><label class="study-search">${icons.search}<input id="studySearch" type="search" placeholder="Найти тему или вопрос" aria-label="Найти тему или вопрос" value="${escape(query)}" autocomplete="off"></label><div class="study-subject-picker" id="studySubjectPicker"><button type="button" id="studySubject" class="study-subject-trigger" aria-label="Предмет: ${escape(selectedName)}" title="${escape(selectedName)}" aria-haspopup="listbox" aria-expanded="false" aria-controls="studySubjectList"><span>${escape(selectedName)}</span>${icons.chevron}</button><div id="studySubjectList" class="study-subject-menu" role="listbox" aria-label="Предмет" hidden>${[{ id: '', name: 'Все дисциплины' }, ...subjects].map((subject, index) => `<button type="button" role="option" id="studySubjectOption${index}" class="study-subject-option" data-study-filter="${escape(subject.id)}" aria-selected="${subject.id === librarySubject}" tabindex="-1"><span>${escape(subject.name)}</span>${icons.check}</button>`).join('')}</div></div></div><div id="studyResults" class="study-results" aria-live="polite"></div>`;
+    body.innerHTML = `<a class="study-drive-link" href="${lectureFolder}" target="_blank" rel="noopener noreferrer" aria-label="Материалы лекций на Google Диске — открыть в новой вкладке"><span class="study-drive-icon">${icons.folder}</span><span class="study-drive-copy"><strong>Материалы лекций</strong><small>Google Диск</small></span>${icons.external}</a><div class="study-filters"><label class="study-search">${icons.search}<input id="studySearch" type="search" placeholder="Найти тему или вопрос" aria-label="Найти тему или вопрос" value="${escape(query)}" autocomplete="off"></label><div class="study-subject-picker" id="studySubjectPicker"><button type="button" id="studySubject" class="study-subject-trigger" aria-label="Предмет: ${escape(selectedName)}" title="${escape(selectedName)}" aria-haspopup="listbox" aria-expanded="false" aria-controls="studySubjectList"><span>${escape(selectedName)}</span>${icons.chevron}</button><div id="studySubjectList" class="study-subject-menu" role="listbox" aria-label="Предмет" hidden>${[{ id: '', name: 'Все дисциплины' }, ...subjects].map((subject, index) => `<button type="button" role="option" id="studySubjectOption${index}" class="study-subject-option" data-study-filter="${escape(subject.id)}" aria-selected="${subject.id === librarySubject}" tabindex="-1"><span>${escape(subject.name)}</span>${icons.check}</button>`).join('')}</div></div></div><div id="studyResults" class="study-results" aria-live="polite"></div>`;
     byId('studySearch').addEventListener('input', event => { query = event.target.value; drawResults(); });
     setupSubjectPicker();
     drawResults();
@@ -439,7 +442,7 @@
       if (event.key === 'Escape' && byId('studySubjectList')?.hidden === false) { event.preventDefault(); event.stopPropagation(); closeSubjectPicker(true); return; }
       if (event.key === 'Escape') { event.preventDefault(); close(); return; }
       if (event.key !== 'Tab') return;
-      const controls = [...dialog.querySelectorAll('button:not(:disabled),input,select,summary')].filter(element => !element.hidden && element.getClientRects().length);
+      const controls = [...dialog.querySelectorAll('button:not(:disabled),input,select,summary,a[href]')].filter(element => !element.hidden && element.getClientRects().length);
       const first = controls[0], last = controls[controls.length - 1];
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }

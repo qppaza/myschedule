@@ -59,11 +59,11 @@
 .glass-segmented{position:relative;isolation:isolate;overflow:visible;touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .glass-segmented>button{position:relative;z-index:1;touch-action:pan-y}
 .glass-choice-thumb{position:absolute;left:0;top:0;z-index:0;pointer-events:none;border-radius:inherit}
-:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow);backdrop-filter:none!important;-webkit-backdrop-filter:none!important;transition:transform .36s var(--ui-spring),width .26s var(--ui-ease),height .26s var(--ui-ease),scale .26s var(--ui-spring),opacity .2s ease;transform-origin:center;will-change:auto;isolation:isolate}
+:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow);backdrop-filter:none!important;-webkit-backdrop-filter:none!important;scale:1;transition:transform .32s var(--ui-ease),width .24s var(--ui-ease),height .24s var(--ui-ease),opacity .2s ease;transform-origin:center;will-change:auto;isolation:isolate}
 .glass-choice-thumb{border-radius:19px}
 :root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(125deg,var(--lens-glint),transparent 29%,transparent 70%,#d7c0ef19);opacity:.65}
-:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):after{content:'';position:absolute;inset:-1px;border:1px solid var(--lens-edge);border-radius:inherit;opacity:0;box-shadow:inset 2px 0 3px #e6c4ff20,inset -2px 0 3px #d4ffed20;pointer-events:none;transition:opacity .22s ease}
-:root :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1.045;box-shadow:var(--liquid-selected-shadow),0 3px 17px #c6a3e623}
+:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):after{content:'';position:absolute;inset:0;border:1px solid var(--lens-edge);border-radius:inherit;opacity:0;box-shadow:inset 2px 0 3px #e6c4ff20,inset -2px 0 3px #d4ffed20;pointer-events:none;transition:opacity .22s ease}
+:root :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1;box-shadow:var(--liquid-selected-shadow),0 3px 17px #c6a3e623}
 :root :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):after{opacity:1}
 :root :is(.days,.segmented,#dateGrid,.glass-segmented).is-dragging>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){transition:scale .18s var(--ui-spring),opacity .18s ease}
 
@@ -101,3 +101,36 @@
 :root[data-ui-booting] *,:root[data-ui-booting] *:before,:root[data-ui-booting] *:after{transition:none!important;animation:none!important}
 
 :root{scrollbar-gutter:stable}
+
+/* Quiet footer actions share a single text baseline and consistent hit areas. */
+:root footer{display:block}
+:root .footer-top{display:block;font-size:11px;line-height:1.5;color:var(--muted);letter-spacing:0}
+:root .footer-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;margin-top:5px}
+:root .footer-actions :is(.footer-author,#installHelp){display:inline-flex;align-items:center;justify-content:flex-start;gap:7px;min-height:44px;margin:0;padding:0;border:0;border-radius:8px;background:transparent;box-shadow:none;font-size:12px;font-weight:400;line-height:1.4;letter-spacing:0;color:var(--muted);text-decoration:none;white-space:nowrap}
+:root .footer-author{min-width:0}
+:root .footer-author>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+:root .footer-actions #installHelp{flex:none;gap:6px}
+.academy-mark{display:block;flex:none;width:var(--academy-mark-size,22px);height:var(--academy-mark-size,22px);border-radius:27%;overflow:hidden}
+.academy-mark img{display:block;width:100%;height:100%;object-fit:contain}
+.academy-mark .logo-light{display:none}
+:root[data-theme=light] .academy-mark .logo-dark{display:none}
+:root[data-theme=light] .academy-mark .logo-light{display:block}
+:root footer .footer-disclaimer{margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.65;letter-spacing:0}
+:root footer .footer-disclaimer a{color:var(--control-ink);text-decoration:underline;text-decoration-color:var(--liquid-edge);text-underline-offset:3px;border-radius:3px}
+.footer-disclaimer a svg{display:inline-block;width:10px;height:10px;margin-left:2px;vertical-align:baseline;opacity:.65}
+@media(max-width:360px){:root .footer-actions :is(.footer-author,#installHelp){font-size:11px}:root .footer-actions{gap:7px}}
+
+/* The academy name offers a small, reversible choice before external navigation. */
+.academy-dialog{width:min(420px,calc(100% - 24px));max-height:calc(100dvh - 24px);margin:auto;padding:10px 23px 23px;overflow:auto;overscroll-behavior:contain;border:1px solid var(--liquid-selected-edge);border-radius:30px;background:var(--sheet-fill);color:var(--text);box-shadow:inset 0 1px 0 #fff3,0 24px 80px #100b1733}
+.academy-dialog::backdrop{background:var(--sheet-backdrop);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.academy-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:9px 0 18px}
+.academy-dialog-head .academy-mark{--academy-mark-size:44px}
+.academy-close{display:grid;place-items:center;flex:none;width:44px;height:44px;padding:0;border:1px solid var(--control-edge);border-radius:50%;background:var(--control-glass);color:var(--control-ink);box-shadow:var(--control-shadow)}
+.academy-close svg{width:19px;height:19px}
+.academy-dialog h2{margin:0 0 10px;font-size:23px;font-weight:600;line-height:1.25;letter-spacing:-.5px}
+.academy-dialog p{margin:0;color:var(--muted);font-size:15px;line-height:1.6}
+.academy-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:23px}
+.academy-actions :is(button,a){display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;padding:10px 12px;border:1px solid var(--control-edge);border-radius:17px;background:var(--control-glass);box-shadow:var(--control-shadow);color:var(--control-ink);font-size:14px;font-weight:550;line-height:1.4;text-decoration:none}
+.academy-actions a{background:var(--liquid-selected);border-color:var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow)}
+.academy-actions a svg{flex:none;width:15px;height:15px;opacity:.75}
+@media(max-width:700px){.academy-dialog{width:100%;max-width:520px;margin:auto auto 0;padding:4px 22px calc(23px + env(safe-area-inset-bottom));border-radius:30px 30px 0 0}.academy-dialog-head{margin-top:3px}}

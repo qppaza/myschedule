@@ -365,7 +365,61 @@
       else panelClosed(panel);
     }).observe(overlay, { attributes: true, attributeFilter: ['hidden'] });
   }
+
+  function setupAcademyLink() {
+    const trigger = document.querySelector('[data-academy-link]');
+    if (!trigger || typeof HTMLDialogElement === 'undefined' || typeof HTMLDialogElement.prototype.showModal !== 'function') return;
+    const dialog = document.createElement('dialog');
+    dialog.id = 'academyDialog'; dialog.className = 'academy-dialog';
+    dialog.setAttribute('aria-labelledby', 'academyTitle');
+    dialog.setAttribute('aria-describedby', 'academyDescription');
+    dialog.innerHTML = `<div class="academy-handle"></div><div class="academy-dialog-head"><span class="academy-mark"><img class="logo-dark" src="./icon-192.png?v=7" width="44" height="44" alt=""><img class="logo-light" src="./icon-light.png?v=23" width="44" height="44" alt=""></span><button type="button" class="academy-close" aria-label="Закрыть">${closeIcon}</button></div><h2 id="academyTitle">Сайт академии</h2><p id="academyDescription">Перейти на официальный сайт Академии МВД Республики Беларусь?</p><div class="academy-actions"><button type="button" data-academy-stay>Остаться</button><a href="https://www.amia.by/" target="_blank" rel="noopener noreferrer" data-academy-go aria-label="Перейти на сайт академии — откроется новая вкладка">Перейти <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a></div>`;
+    document.body.append(dialog);
+    let active = false, closing = false, restoreFocus = true, oldOverflow = '';
+    function restore() {
+      if (!active) return;
+      active = false; closing = false;
+      document.body.style.overflow = oldOverflow;
+      panelClosed(dialog);
+      if (restoreFocus && trigger.isConnected) trigger.focus({ preventScroll: true });
+    }
+    function close(focus = true) {
+      if (!dialog.open || closing) return;
+      closing = true; restoreFocus = focus;
+      closeSheet(dialog, () => { dialog.close(); });
+    }
+    mountSheet(dialog, { handle: '.academy-handle', close: () => close() });
+    dialog.addEventListener('close', restore);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
+    dialog.querySelector('.academy-close').addEventListener('click', () => close());
+    dialog.querySelector('[data-academy-stay]').addEventListener('click', () => close());
+    dialog.querySelector('[data-academy-go]').addEventListener('click', () => close(false));
+    dialog.addEventListener('click', event => {
+      if (event.target !== dialog) return;
+      const rect = dialog.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
+    });
+    dialog.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+      if (event.key !== 'Tab') return;
+      const controls = [...dialog.querySelectorAll('button,a[href],[data-sheet-grab]')].filter(element => element.getClientRects().length);
+      const first = controls[0], last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    });
+    trigger.addEventListener('click', event => {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button > 0) return;
+      event.preventDefault();
+      if (dialog.open) return;
+      restoreFocus = true; closing = false; oldOverflow = document.body.style.overflow;
+      dialog.showModal(); active = true; document.body.style.overflow = 'hidden';
+      panelOpened(dialog, { close: () => close() }); openSheet(dialog);
+      dialog.querySelector('[data-academy-stay]').focus({ preventScroll: true });
+    });
+  }
+
+  function initialize() { setupGroupSheet(); setupAcademyLink(); }
   window.GlassUI = { toast, hideToast, openSheet, closeSheet, mountSheet, mountSegmented, panelOpened, panelClosed };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupGroupSheet, { once: true });
-  else setupGroupSheet();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
+  else initialize();
 })();

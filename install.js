@@ -195,8 +195,10 @@
       help.id = 'installHelp';
       help.type = 'button';
       help.className = 'install-help';
-      help.innerHTML = `${appIcon}<span>Установить приложение</span>`;
-      (main.querySelector('footer .footer-top') || main.querySelector('footer') || main).append(help);
+      help.innerHTML = `${appIcon}<span>Приложение</span>`;
+      help.setAttribute('aria-label', 'Как установить расписание как приложение');
+      help.title = 'Установить расписание как приложение';
+      (main.querySelector('footer .footer-actions') || main.querySelector('footer .footer-top') || main.querySelector('footer') || main).append(help);
     }
     help.addEventListener('click', openHelp);
     sync();
