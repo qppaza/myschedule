@@ -123,7 +123,7 @@
     const label = count ? kinds[match.kind].action : 'Материалы по предмету';
     return `<button type="button" class="study-lesson-action" data-study-subject="${escape(lesson.subject)}" data-study-kind="${escape(match.kind)}" data-study-theme="${escape(lesson.theme || '')}" aria-haspopup="dialog">${icons.book}<span>${label}</span>${count ? `<span class="study-count">${count}</span>` : ''}${icons.chevron}</button>`;
   }
-  window.StudyMaterials = { card, resolve, buildPrompt: preparationPrompt };
+  window.StudyMaterials = { card, resolve, buildPrompt: preparationPrompt, buildSearchQuery, searchUrl };
 
   let dialog, body, title, eyebrow, back, lastFocus, previousOverflow = '', inertElements = [], view = null, copyText = '', librarySubject = '', query = '';
   let sheetOpen = false, sheetClosing = false;
@@ -297,7 +297,7 @@
     const questions = sets.length ? `<div class="study-copy-bar"><button type="button" class="study-copy-primary" data-study-copy="plain">${icons.copy}<span>Скопировать все</span></button><button type="button" class="study-copy-ai" data-study-copy="ai" title="Скопировать вопросы с запросом для подготовки">Для ИИ ${icons.copy}</button></div><div class="study-question-groups">${sets.map((set, groupIndex) => {
       const { topic: item, session, displayCode } = set;
       const groupTitle = !topic && item.number != null ? `${topicLabel(item)}. ${item.title}` : displayCode || session.code ? `Занятие ${displayCode || session.code}` : `${kinds[kind].label} ${session.numberWithinTopic || groupIndex + 1}`;
-      return `<section class="study-question-group">${!topic || sets.length > 1 ? `<h3>${escape(groupTitle)}</h3>` : ''}<ol class="study-questions">${questionsFor(set).map((question, index) => `<li><span class="study-question-text">${escape(question)}</span><button type="button" class="study-question-copy" data-study-question="${groupIndex}:${index}" aria-label="Скопировать вопрос ${index + 1}" title="Скопировать вопрос ${index + 1}"><span class="study-question-copy-face">${icons.copy}</span></button></li>`).join('')}</ol></section>`;
+      return `<section class="study-question-group">${!topic || sets.length > 1 ? `<h3>${escape(groupTitle)}</h3>` : ''}<ol class="study-questions">${questionsFor(set).map((question, index) => `<li><span class="study-question-text">${escape(question)}</span><span class="study-question-actions"><button type="button" class="study-question-copy" data-study-question="${groupIndex}:${index}" aria-label="Скопировать вопрос ${index + 1}" title="Скопировать вопрос ${index + 1}"><span class="study-question-copy-face">${icons.copy}</span></button><a class="study-question-search" href="${escape(searchUrl(question, subject, item))}" target="_blank" rel="noopener noreferrer" aria-label="Найти вопрос ${index + 1} в Google — откроется новая вкладка" title="${escape(buildSearchQuery(question, subject, item))}"><span class="study-question-copy-face">${icons.search}</span></a></span></li>`).join('')}</ol></section>`;
     }).join('')}</div>` : `<div class="study-missing"><span class="study-subject-icon">${icons.book}</span><h3>Материалов к этой теме пока нет</h3><p>Выберите другую тему в каталоге.</p></div>`;
     const content = notice + missing + questions + `<button type="button" class="study-other-topics" data-study-browse="${escape(subject.id)}">Все темы по предмету ${icons.chevron}</button>`;
     if (retainedRail) {
@@ -342,6 +342,51 @@
     if (focused?.isConnected) focused.focus();
     if (selection) { selection.removeAllRanges(); ranges.forEach(range => selection.addRange(range)); }
     return copied;
+  }
+  // Search uses the question itself, not instructions to an AI. Add only the
+  // context missing from a short question and a jurisdiction when law matters.
+  function buildSearchQuery(question, subject, topic) {
+    const clean = value => String(value ?? '').replace(/\s+/gu, ' ').trim().replace(/[.?!;:\s]+$/gu, '');
+    const questionText = clean(question).replace(/^(?:вопрос\s+)?\d+(?:\.\d+)*[.)]\s+/iu, '');
+    const name = clean(typeof subject === 'string' ? subject : subject?.name);
+    const title = clean(typeof topic === 'string' ? topic : topic?.title);
+    if (!questionText) return '';
+    const hasBelarus = value => /беларус|белорус|(?:^|\s)РБ(?=\s|[.,;:()]|$)/iu.test(value);
+    const foreignScope = /российск|россии|(?:^|\s)РФ(?=\s|[.,;:()]|$)|СССР|РСФСР|(?:^|\s)США(?=\s|[.,;:()]|$)|германи|франци|великобритани|англии|кита[йяею]|япони|зарубежн[а-яё-]*\s+(?:государств|стран)|зарубежных государств/iu;
+    const theoryHistory = /(?:^|[\s.,;(])(?:истори[яию]|историческ|становлени|зарождени)|возникновение\s+и\s+развитие\s+(?:налогообложени|науки|криминологи)|этапы развития|научн[а-яё-]*\s+(?:школ|теори)|методолог/iu;
+    const legalScienceQuestion = /законодательств|нормативн[а-яё-]*\s+(?:правов|акт|источник|регулирован|предписан)|кодекс|(?:^|\s)(?:УПК|ГК|УК|НК|КоАП)(?=\s|[.,;:()]|$)|правов[а-яё-]*(?:\s*,?\s*(?:и\s+)?(?:научн[а-яё-]*|организационн[а-яё-]*))*\s+(?:основ|основан|регулирован|статус|регламентац|норм)|процессуальн[а-яё-]*\s+(?:основ|поряд|требован)/iu;
+    const scientific = /криминолог|криминалист/iu.test(name);
+    const lawCourse = /право|процесс/iu.test(name);
+    const needsBelarus = !hasBelarus(questionText) && !foreignScope.test(questionText) && !foreignScope.test(title) && (scientific ? legalScienceQuestion.test(questionText) : lawCourse && !theoryHistory.test(questionText));
+    const generic = new Set('понятие понятия признаки виды вид значение сущность содержание характеристика общая общие основные основы положения особенности структура система классификация предмет метод методы задачи функции цели цель формы форма роль место вопросы вопрос порядок условия развитие наука теории теория научные научная'.split(' '));
+    const tokens = value => plain(value).match(/[а-яёa-z0-9]+/giu) || [];
+    const terms = value => tokens(value).filter(word => word.length > 2 && !generic.has(word)).map(word => /^криминолог/iu.test(word) ? 'криминология' : /^криминалист/iu.test(word) ? 'криминалистика' : /^купл/iu.test(word) ? 'купл' : /^прав[оа]/iu.test(word) ? 'прав' : word.slice(0, 5));
+    const questionTerms = new Set(terms(questionText));
+    const covers = (value, known) => terms(value).every(term => known.has(term));
+    const parts = [questionText];
+    // A complete named question already supplies its own topic. For a generic
+    // one, select a relevant clause instead of attaching a long combined title.
+    const jurisdictionContext = foreignScope.test(title) && !foreignScope.test(questionText) && !hasBelarus(questionText);
+    const relativeQuestion = /^(?:объект|объективная сторона|субъект|субъективная сторона|форма договора)(?=\s|[.,:;]|$)/iu.test(questionText) && questionTerms.size <= 3;
+    if (title && (questionTerms.size <= 1 || relativeQuestion || jurisdictionContext)) {
+      const clauses = title.split(/[.;]\s+/u).map(clean).filter(Boolean);
+      const overlap = value => [...new Set(terms(value))].filter(term => questionTerms.has(term)).length;
+      clauses.sort((a, b) => overlap(b) - overlap(a));
+      let context = clauses[0] || '';
+      if (!needsBelarus && !hasBelarus(questionText)) context = context.replace(/(?:^|\s)(?:в\s+)?(?:Республик[аиуе]\s+Беларус[ьи]|Беларус[ьи]|РБ)(?=\s|[.,;:()]|$)/giu, ' ').replace(/\s+/gu, ' ').trim();
+      const contextWords = context.split(' ');
+      if (contextWords.length > 14) context = contextWords.slice(0, 14).join(' ').replace(/\s+(?:и|в|на|по|с|для|из|к|о|об)$/iu, '');
+      if (context && !covers(context, questionTerms)) parts.push(context);
+    }
+    const known = new Set(terms(parts.join(' ')));
+    if (name && !covers(name, known)) parts.push(name);
+    if (needsBelarus && !foreignScope.test(parts.join(' ')) && !hasBelarus(parts.join(' '))) parts.push('Республика Беларусь');
+    return parts.join('. ');
+  }
+  function searchUrl(question, subject, topic) {
+    const url = new URL('https://www.google.com/search');
+    url.searchParams.set('q', buildSearchQuery(question, subject, topic));
+    return url.href;
   }
   function preparationPrompt(match, text) {
     const name = match.subject.name;

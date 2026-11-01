@@ -102,23 +102,25 @@
 
 :root{scrollbar-gutter:stable}
 
-/* Quiet footer actions share a single text baseline and consistent hit areas. */
-:root footer{display:block}
+/* A quiet, aligned footer: equal icon sizes, one baseline and two short notes. */
+:root footer{display:block;margin-top:22px;padding:16px 0 calc(20px + env(safe-area-inset-bottom))}
 :root .footer-top{display:block;font-size:11px;line-height:1.5;color:var(--muted);letter-spacing:0}
-:root .footer-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;margin-top:5px}
+:root .footer-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;margin:0;padding:5px 0 4px}
 :root .footer-actions :is(.footer-author,#installHelp){display:inline-flex;align-items:center;justify-content:flex-start;gap:7px;min-height:44px;margin:0;padding:0;border:0;border-radius:8px;background:transparent;box-shadow:none;font-size:12px;font-weight:400;line-height:1.4;letter-spacing:0;color:var(--muted);text-decoration:none;white-space:nowrap}
 :root .footer-author{min-width:0}
-:root .footer-author>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
-:root .footer-actions #installHelp{flex:none;gap:6px}
+:root .footer-author>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+:root .footer-actions :is(.footer-telegram,#installHelp>svg){display:block;flex:none;width:20px;height:20px;opacity:.85}
+:root .footer-actions #installHelp{flex:none;gap:7px}
 .academy-mark{display:block;flex:none;width:var(--academy-mark-size,22px);height:var(--academy-mark-size,22px);border-radius:27%;overflow:hidden}
 .academy-mark img{display:block;width:100%;height:100%;object-fit:contain}
 .academy-mark .logo-light{display:none}
 :root[data-theme=light] .academy-mark .logo-dark{display:none}
 :root[data-theme=light] .academy-mark .logo-light{display:block}
-:root footer .footer-disclaimer{margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.65;letter-spacing:0}
+:root footer .footer-notes{display:grid;gap:5px;max-width:68ch}
+:root footer .footer-disclaimer{margin:0;color:var(--muted);font-size:11.5px;line-height:1.6;letter-spacing:0;overflow-wrap:break-word}
 :root footer .footer-disclaimer a{color:var(--control-ink);text-decoration:underline;text-decoration-color:var(--liquid-edge);text-underline-offset:3px;border-radius:3px}
-.footer-disclaimer a svg{display:inline-block;width:10px;height:10px;margin-left:2px;vertical-align:baseline;opacity:.65}
-@media(max-width:360px){:root .footer-actions :is(.footer-author,#installHelp){font-size:11px}:root .footer-actions{gap:7px}}
+.footer-disclaimer a svg{display:inline-block;width:9px;height:9px;margin-left:2px;vertical-align:baseline;opacity:.65}
+@media(max-width:360px){:root .footer-actions :is(.footer-author,#installHelp){font-size:11px}:root .footer-actions{gap:10px}:root .footer-actions :is(.footer-telegram,#installHelp>svg){width:18px;height:18px}}
 
 /* The academy name offers a small, reversible choice before external navigation. */
 .academy-dialog{width:min(420px,calc(100% - 24px));max-height:calc(100dvh - 24px);margin:auto;padding:10px 23px 23px;overflow:auto;overscroll-behavior:contain;border:1px solid var(--liquid-selected-edge);border-radius:30px;background:var(--sheet-fill);color:var(--text);box-shadow:inset 0 1px 0 #fff3,0 24px 80px #100b1733}
