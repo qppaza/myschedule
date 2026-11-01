@@ -11,6 +11,7 @@
 .past .study-lesson-action{color:var(--control-ink)}
 .study-dialog{width:min(730px,calc(100% - 36px));max-width:730px;height:min(820px,90dvh);max-height:90dvh;margin:auto;padding:0;border:1px solid var(--liquid-selected-edge);border-radius:32px;background:linear-gradient(135deg,#39313ef5,#27232df7 60%,#293330f5);color:var(--text);box-shadow:var(--liquid-shadow),0 30px 100px #0005;backdrop-filter:blur(36px) saturate(125%);-webkit-backdrop-filter:blur(36px) saturate(125%);overflow:hidden;overscroll-behavior:contain}
 .study-dialog[open]{display:flex;flex-direction:column;animation:study-sheet-in .24s cubic-bezier(.2,.8,.2,1)}
+.study-dialog.study-shared-sheet[open]{animation:none}
 .study-dialog::backdrop{background:#100c184d;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .study-handle{display:none}
 .study-dialog-top{display:flex;align-items:center;gap:12px;padding:24px 25px 20px;border-bottom:1px solid var(--liquid-edge);flex:none}
@@ -61,9 +62,10 @@
 .study-topic-heading{margin-bottom:20px}
 .study-topic-heading>span{font-size:12px;color:var(--muted)}
 .study-topic-heading h3{font-size:21px;line-height:1.4;font-weight:550;letter-spacing:-.25px;margin:8px 0 0;overflow-wrap:anywhere}
-.study-kind-switch{display:flex;flex-wrap:wrap;gap:5px;padding:4px;border:1px solid var(--liquid-edge);border-radius:23px;width:fit-content;margin:0 0 18px;background:var(--liquid-fill)}
-.study-kind-switch button{padding:0 14px;border-radius:19px;font-size:12px;background:transparent;color:var(--muted);min-height:36px}
-.study-kind-switch button[aria-pressed=true]{color:var(--control-ink);background:var(--liquid-selected);box-shadow:var(--liquid-selected-shadow)}
+.study-kind-switch{position:relative;display:flex;flex-wrap:nowrap;gap:2px;padding:4px;border:1px solid var(--liquid-edge);border-radius:23px;width:fit-content;max-width:100%;min-width:0;margin:0 0 18px;background:var(--liquid-fill)}
+.study-kind-switch button{position:relative;z-index:1;flex:1 1 auto;min-width:0;padding:0 12px;border-radius:19px;font-size:12px;white-space:nowrap;background:transparent;color:var(--muted);min-height:36px}
+.study-kind-switch button[aria-pressed=true]{color:var(--control-ink)}
+.study-kind-switch:not(.has-glass-segments) button[aria-pressed=true]{background:var(--liquid-selected);box-shadow:var(--liquid-selected-shadow)}
 .study-notice{font-size:12px;line-height:1.65;padding:12px 14px;border-radius:15px;background:var(--liquid-fill);border:1px solid var(--liquid-edge);color:var(--muted);margin:0 0 18px}
 .study-copy-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 23px}
 .study-copy-primary,.study-copy-ai{display:flex;align-items:center;justify-content:center;gap:9px;border-radius:23px;padding:0 17px;min-height:46px;color:var(--control-ink);font-size:13px;background:var(--control-glass);border:1px solid var(--control-edge);box-shadow:var(--control-shadow)}
@@ -90,6 +92,7 @@
 .study-missing p{color:var(--muted);font-size:14px;line-height:1.7}
 .study-status{flex:none;margin:0;padding:0 27px;font-size:12px;line-height:1.5;color:var(--control-ink);background:var(--liquid-fill)}
 .study-status:not(:empty){padding-top:12px;padding-bottom:14px;border-top:1px solid var(--liquid-edge)}
+.study-status.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 [data-theme=light] .study-dialog{background:linear-gradient(135deg,#fffbf8f7,#f3ecf8f7 60%,#edf6f1f7);box-shadow:var(--liquid-shadow),0 30px 100px #4c345833}
 [data-theme=light] .study-dialog::backdrop{background:#46304438}
 [data-theme=light] .study-kind-labels span{color:#74518e;background:#ae82d01a}
@@ -98,7 +101,7 @@
 @media(hover:hover){.study-library-entry:hover,.study-subject-row:hover,.study-topic-row:hover{border-color:var(--liquid-selected-edge);background-color:#cbb5df0c}.study-lesson-action:hover,.study-other-topics:hover{color:var(--text);background:transparent}.study-copy-primary:hover,.study-round:hover,.study-subject-trigger:hover{background:var(--liquid-selected)}.study-subject-option:not([aria-selected=true]):hover{background:var(--liquid-fill)}.study-question-copy:hover{background:transparent;box-shadow:none}.study-question-copy:hover .study-question-copy-face{background:var(--liquid-selected)}}
 @media(max-width:700px){.study-dialog{width:100%;max-width:600px;height:92dvh;max-height:calc(100dvh - env(safe-area-inset-top) - 10px);margin:auto auto 0;border-radius:30px 30px 0 0}.study-handle{display:block;flex:none;width:34px;height:4px;margin:11px auto 2px;border-radius:9px;background:var(--muted);opacity:.4}.study-dialog-top{padding:15px 18px 17px;gap:10px}.study-dialog-title h2{font-size:21px}.study-dialog-title p{font-size:9px;letter-spacing:.8px}.study-body{padding:20px 17px calc(25px + env(safe-area-inset-bottom))}.study-filters{grid-template-columns:1fr}.study-subject-trigger{font-size:15px;min-height:47px}.study-subject-menu{max-height:40dvh}.study-topic-heading h3{font-size:20px}.study-questions li{font-size:15px;padding:13px 9px 13px 13px;gap:8px}.study-library-entry{padding:13px 15px}.study-lesson-action{font-size:13px}.study-status{padding-left:18px;padding-right:18px}.study-kind-switch button{min-height:40px;padding:0 12px}}
 @media(max-width:360px){.study-dialog-title h2{font-size:19px}.study-copy-primary{padding:0 13px;font-size:12px}.study-copy-ai{padding:0 12px;font-size:12px}.study-library-entry small{font-size:11px}}
-@media(max-width:700px){.study-search input{font-size:16px}.study-kind-switch button{min-height:44px}}
+@media(max-width:700px){.study-search input{font-size:16px}.study-kind-switch button{min-height:44px;padding:0 10px}.study-handle{position:relative;width:72px;height:25px;margin:4px auto 0;background:transparent;opacity:1;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.study-handle:before{content:'';position:absolute;width:34px;height:4px;left:19px;top:10px;border-radius:9px;background:var(--muted);opacity:.4}.study-shared-sheet .study-dialog-top{padding-top:5px}}
 @supports not (backdrop-filter:blur(1px)){.study-dialog,.study-library-entry,.study-subject-menu,.study-subject-trigger,.study-question-copy-face{background:var(--liquid-solid)}}
 @keyframes study-sheet-in{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
 @keyframes study-menu-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}

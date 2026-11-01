@@ -1,22 +1,24 @@
 .install-prompt[hidden],.install-dialog [hidden]{display:none!important}
-.install-prompt{display:flex;align-items:center;gap:12px;margin:16px 0 2px;padding:14px 12px 14px 17px;border-radius:23px;background:var(--control-glass);border:1px solid var(--control-edge);box-shadow:var(--control-shadow);backdrop-filter:var(--liquid-filter);-webkit-backdrop-filter:var(--liquid-filter)}
-.install-app-icon{display:grid;place-items:center;flex:none;width:43px;height:47px;border-radius:15px;color:var(--control-ink);background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:inset 0 1px 1px #ffffff40}
-.install-app-icon svg{width:27px;height:27px}
-.install-prompt-copy{min-width:0;flex:1}
-.install-prompt-copy h2{font-size:14px;line-height:1.4;font-weight:600;letter-spacing:-.15px;margin:0}
-.install-prompt-copy p{color:var(--muted);font-size:12px;line-height:1.45;margin:3px 0 0}
+.install-prompt{container-type:inline-size;margin:16px 0 2px;padding:15px;border-radius:23px;background:var(--control-glass);border:1px solid var(--control-edge);box-shadow:var(--control-shadow);backdrop-filter:var(--liquid-filter);-webkit-backdrop-filter:var(--liquid-filter)}
+.install-prompt-layout{display:grid;grid-template-columns:44px minmax(0,1fr) max-content 44px;grid-template-areas:"icon copy action dismiss";align-items:center;gap:12px;min-width:0}
+.install-app-icon{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:15px;color:var(--control-ink);background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow,var(--control-shadow))}
+.install-app-icon svg{width:26px;height:26px}
+.install-prompt-layout>.install-app-icon{grid-area:icon}
+.install-prompt-copy{grid-area:copy;min-width:0}
+.install-prompt-copy h2{font-size:14px;line-height:1.35;font-weight:600;letter-spacing:-.2px;margin:0;text-wrap:balance}
+.install-prompt-copy p{color:var(--muted);font-size:12px;line-height:1.45;margin:4px 0 0}
 .install-action,.install-dismiss,.install-done{color:var(--control-ink);border:1px solid var(--control-edge);background:var(--control-glass);box-shadow:var(--control-shadow);font:inherit}
-.install-action{flex:none;min-height:44px;border-radius:22px;padding:0 15px;font-size:12px;font-weight:600;white-space:nowrap}
-.install-dismiss{display:grid;place-items:center;flex:none;width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;background:transparent;box-shadow:none;border-color:transparent;color:var(--muted)}
+.install-action{min-height:44px;max-width:100%;border-radius:24px;padding:0 15px;font-size:12px;font-weight:600;line-height:1.3;white-space:nowrap}
+.install-prompt-layout>.install-action{grid-area:action;justify-self:start;background:var(--liquid-selected);border-color:var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow,var(--control-shadow))}
+.install-dismiss{display:grid;place-items:center;flex:none;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%;background:transparent;box-shadow:none;border-color:transparent;color:var(--muted)}
+.install-prompt-layout>.install-dismiss{grid-area:dismiss}
 .install-dismiss svg{width:18px;height:18px}
 .install-help{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0;background:transparent;color:var(--muted);font-size:12px;border-radius:8px}
 .install-help svg{width:16px;height:16px}
-.install-dialog{width:min(440px,calc(100% - 24px));max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;padding:17px 25px 24px;border:1px solid var(--liquid-selected-edge);border-radius:31px;background:linear-gradient(135deg,#3a333ff7,#29242ff7 60%,#2c3533f7);color:var(--text);box-shadow:var(--liquid-shadow),0 24px 90px #0005;backdrop-filter:blur(36px) saturate(125%);-webkit-backdrop-filter:blur(36px) saturate(125%)}
-.install-dialog::backdrop{background:#110c183d;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
-.install-dialog[open]{animation:install-sheet-in .25s cubic-bezier(.2,.8,.2,1)}
+.install-dialog{width:min(440px,calc(100% - 24px));max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;padding:20px 25px 24px;border:1px solid var(--liquid-selected-edge);border-radius:31px;background:var(--sheet-fill,var(--liquid-solid));color:var(--text);box-shadow:var(--liquid-shadow),0 24px 90px #0003;backdrop-filter:var(--liquid-filter);-webkit-backdrop-filter:var(--liquid-filter)}
+.install-dialog::backdrop{background:var(--sheet-backdrop,#110c183d);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 .install-dialog-header{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:0 0 20px}
 .install-dialog-handle{display:none}
-.install-dialog .install-app-icon{width:49px;height:53px;border-radius:18px}
 .install-eyebrow{font-size:10px;line-height:1.5;font-weight:600;letter-spacing:1.1px;color:var(--muted);margin:0 0 9px}
 .install-dialog h2{font-size:26px;line-height:1.2;letter-spacing:-.75px;font-weight:600;margin:0 0 21px}
 .install-steps{counter-reset:install-step;list-style:none;display:grid;gap:19px;margin:0;padding:0}
@@ -27,11 +29,8 @@
 .install-native,.install-done{width:100%;min-height:46px;font-size:14px;border-radius:23px}
 .install-native{background:var(--liquid-selected);margin-bottom:9px}
 .install-done{background:var(--control-glass)}
-[data-theme=light] .install-dialog{background:linear-gradient(135deg,#fffcf9f7,#f4edf8f7 60%,#eff6f1f7);box-shadow:var(--liquid-shadow),0 24px 90px #49345830}
-[data-theme=light] .install-dialog::backdrop{background:#4d354326}
+@container(max-width:480px){.install-prompt-layout{grid-template-columns:44px minmax(0,1fr) 44px;grid-template-areas:"icon copy dismiss" ". action .";align-items:start;gap:10px}.install-prompt-layout>.install-action{margin-top:1px}.install-prompt-layout>.install-app-icon{align-self:start}}
+@supports not (container-type:inline-size){@media(max-width:560px){.install-prompt-layout{grid-template-columns:44px minmax(0,1fr) 44px;grid-template-areas:"icon copy dismiss" ". action .";align-items:start;gap:10px}.install-prompt-layout>.install-action{margin-top:1px}}}
 @media(hover:hover){.install-action:hover,.install-dismiss:hover,.install-done:hover{background:var(--liquid-selected)}.install-help:hover{color:var(--text)}}
-@media(max-width:700px){.install-prompt{gap:10px;padding:12px 9px 12px 13px;border-radius:22px}.install-prompt>.install-app-icon{width:37px;height:41px;border-radius:13px}.install-prompt-copy h2{font-size:13px}.install-prompt-copy p{font-size:11px}.install-action{font-size:12px;padding:0 12px}.install-prompt>.install-dismiss{width:35px}.install-dialog{margin:auto auto 0;width:100%;max-width:520px;max-height:calc(100dvh - env(safe-area-inset-top) - 12px);padding:12px 23px calc(24px + env(safe-area-inset-bottom));border-radius:30px 30px 0 0}.install-dialog-handle{display:block;width:34px;height:4px;border-radius:8px;background:var(--muted);opacity:.45;margin:0 auto 17px}.install-dialog-header{margin-bottom:18px}.install-dialog h2{font-size:25px}}
-@media(max-width:390px){.install-prompt{display:grid;grid-template-columns:37px minmax(0,1fr) 35px;gap:4px 10px}.install-prompt>.install-app-icon{grid-row:1/3}.install-prompt-copy{grid-column:2}.install-prompt>.install-action{grid-column:2;justify-self:start;min-height:38px;padding:0;font-size:12px;background:transparent;border-color:transparent;box-shadow:none;color:var(--control-ink)}.install-prompt>.install-dismiss{grid-column:3;grid-row:1/3}.install-prompt-copy p{margin-top:1px}.install-prompt-copy h2{font-size:13px}}
+@media(max-width:700px){.install-dialog{margin:auto auto 0;width:100%;max-width:520px;max-height:calc(100dvh - env(safe-area-inset-top) - 12px);padding:8px 23px calc(24px + env(safe-area-inset-bottom));border-radius:30px 30px 0 0}.install-dialog-handle{display:grid;place-items:center;width:100%;height:24px;margin:0 auto 8px;touch-action:none;cursor:grab}.install-dialog-handle::before{content:"";width:34px;height:4px;border-radius:8px;background:var(--muted);opacity:.45}.install-dialog-header{margin-bottom:18px}.install-dialog h2{font-size:25px}}
 @supports not (backdrop-filter:blur(1px)){.install-prompt,.install-dialog{background:var(--liquid-solid)}}
-@keyframes install-sheet-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.install-dialog[open]{animation:none}}

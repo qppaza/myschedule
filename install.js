@@ -16,6 +16,7 @@
   let lastFocus;
   let oldOverflow = '';
   let inertElements = [];
+  let helpClosing = false;
 
   function wasDismissed() {
     try {
@@ -76,6 +77,7 @@
   }
 
   function restoreBackground() {
+    helpClosing = false;
     document.body.style.overflow = oldOverflow;
     inertElements.forEach(([element, wasInert]) => { element.inert = wasInert; });
     inertElements = [];
@@ -83,9 +85,17 @@
   }
 
   function closeHelp() {
-    if (!dialog?.open) return;
-    if (typeof dialog.close === 'function') dialog.close();
-    else { dialog.removeAttribute('open'); restoreBackground(); }
+    if (!dialog?.open || helpClosing) return;
+    helpClosing = true;
+    let finalized = false;
+    const finalize = () => {
+      if (finalized) return;
+      finalized = true;
+      if (typeof dialog.close === 'function') dialog.close();
+      else { dialog.removeAttribute('open'); restoreBackground(); }
+    };
+    if (typeof window.GlassUI?.closeSheet === 'function') window.GlassUI.closeSheet(dialog, finalize);
+    else finalize();
   }
 
   function openHelp() {
@@ -106,6 +116,7 @@
       inertElements = [...document.body.children].filter(element => element !== dialog).map(element => [element, element.inert]);
       inertElements.forEach(([element]) => { element.inert = true; });
     }
+    if (typeof window.GlassUI?.openSheet === 'function') window.GlassUI.openSheet(dialog);
     dialog.querySelector('[data-close-install]').focus();
   }
 
@@ -141,7 +152,7 @@
     }
     prompt.classList.add('install-prompt');
     prompt.setAttribute('aria-labelledby', 'installPromptTitle');
-    prompt.innerHTML = `<span class="install-app-icon">${appIcon}</span><div class="install-prompt-copy"><h2 id="installPromptTitle">Расписание как приложение</h2><p>Один значок. Всё под рукой.</p></div><button class="install-action" data-install-action type="button">Как установить</button><button class="install-dismiss" type="button" aria-label="Скрыть предложение установки на неделю">${closeIcon}</button>`;
+    prompt.innerHTML = `<div class="install-prompt-layout"><span class="install-app-icon">${appIcon}</span><div class="install-prompt-copy"><h2 id="installPromptTitle">Расписание как приложение</h2><p>Один значок. Всё под рукой.</p></div><button class="install-action" data-install-action type="button">Как установить</button><button class="install-dismiss" type="button" aria-label="Скрыть предложение установки на неделю">${closeIcon}</button></div>`;
     prompt.querySelector('[data-install-action]').addEventListener('click', install);
     prompt.querySelector('.install-dismiss').addEventListener('click', dismiss);
 
@@ -152,10 +163,14 @@
     dialog.setAttribute('aria-describedby', 'installNote');
     dialog.innerHTML = `<div class="install-dialog-handle" aria-hidden="true"></div><div class="install-dialog-header"><span class="install-app-icon">${appIcon}</span><button class="install-dismiss" type="button" data-close-install aria-label="Закрыть инструкцию">${closeIcon}</button></div><p class="install-eyebrow">РАСПИСАНИЕ · ПРИЛОЖЕНИЕ</p><h2 id="installTitle"></h2><ol class="install-steps"></ol><p class="install-dialog-note" id="installNote"></p><button class="install-action install-native" data-native-install type="button" hidden>Установить приложение</button><button class="install-done" type="button" data-done-install>Понятно</button>`;
     document.body.append(dialog);
+    if (typeof window.GlassUI?.mountSheet === 'function') {
+      window.GlassUI.mountSheet(dialog, { handle: '.install-dialog-handle', close: closeHelp });
+    }
     dialog.querySelector('[data-close-install]').addEventListener('click', closeHelp);
     dialog.querySelector('[data-done-install]').addEventListener('click', closeHelp);
     dialog.querySelector('[data-native-install]').addEventListener('click', install);
     dialog.addEventListener('close', restoreBackground);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); closeHelp(); });
     dialog.addEventListener('click', event => {
       if (event.target !== dialog) return;
       const bounds = dialog.getBoundingClientRect();

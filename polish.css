@@ -1,0 +1,91 @@
+/* v34: a restrained pearl palette and a shared motion / optical vocabulary. */
+:root{
+ --ui-spring:cubic-bezier(.18,1.12,.28,1);
+ --ui-ease:cubic-bezier(.22,.8,.25,1);
+ --sheet-fill:linear-gradient(145deg,rgba(53,45,61,.96),rgba(36,33,43,.96) 65%,rgba(37,49,45,.96));
+ --sheet-backdrop:rgba(14,10,21,.36);
+ --toast-fill:linear-gradient(130deg,rgba(70,59,79,.96),rgba(42,43,48,.96));
+ --lens-glint:rgba(255,247,255,.34);
+ --lens-edge:rgba(250,234,255,.52);
+}
+:root[data-theme=light]{
+ --bg:#ece9f1;--text:#30283b;--muted:#6c6277;--blue:#70538f;--border:rgba(119,96,140,.18);
+ --control-ink:#574564;--control-focus:#826295;
+ --liquid-fill:linear-gradient(135deg,rgba(255,255,255,.72),rgba(247,242,251,.53) 58%,rgba(243,251,247,.57));
+ --liquid-edge:rgba(135,113,151,.24);
+ --liquid-shadow:inset 0 1px 1px rgba(255,255,255,.98),inset 0 -1px 0 rgba(114,88,137,.045),0 5px 20px rgba(63,43,85,.075);
+ --liquid-selected:linear-gradient(135deg,rgba(255,255,255,.97),rgba(224,209,239,.73) 64%,rgba(222,239,231,.58));
+ --liquid-selected-edge:rgba(126,96,151,.32);
+ --liquid-selected-shadow:inset 0 1px 1px #fff,inset 0 -1px 1px rgba(113,83,139,.10),0 3px 12px rgba(72,45,95,.13);
+ --liquid-solid:#ede7f2;
+ --control-glass:var(--liquid-fill);--control-edge:var(--liquid-edge);--control-shadow:var(--liquid-shadow);
+ --sheet-fill:linear-gradient(145deg,rgba(251,248,253,.97),rgba(237,230,246,.97) 68%,rgba(235,246,239,.96));
+ --sheet-backdrop:rgba(60,43,75,.22);
+ --toast-fill:linear-gradient(130deg,rgba(255,252,255,.97),rgba(236,226,245,.97));
+ --lens-glint:rgba(255,255,255,.85);--lens-edge:rgba(145,115,167,.42);
+}
+:root[data-theme=light] .ambient:after{background:radial-gradient(ellipse at 3% 13%,#cab4e25e,transparent 54%),radial-gradient(ellipse at 96% 6%,#e6c8bd58,transparent 49%),radial-gradient(ellipse at 91% 89%,#abd5c75b,transparent 52%),radial-gradient(ellipse at 9% 96%,#bccce34d,transparent 45%),#ece9f1}
+:root[data-theme=light] .teacher{color:#5b5068}
+:root[data-theme=light] :is(.eyebrow,.header-note,.brand-sub,.source-note,.source-note span,footer,footer p,.date-calendar-note,.week-caption){color:var(--muted)}
+:root[data-theme=light] .footer-top a{color:var(--control-ink)}
+:root[data-theme=light] .empty h3{color:var(--text)}
+:root[data-theme=light] :is(.lesson,.calendar,.summary,.study-library-entry,.install-prompt){border-color:var(--liquid-edge)}
+:root[data-theme=light] .lesson.past{background:linear-gradient(135deg,#ffffff73,#f4eef769);border-color:#9580a31f}
+:root[data-theme=light] .lesson.current{background:linear-gradient(135deg,#edf9f2dc,#f4eefbd4);border-color:#64957b66;box-shadow:inset 0 1px 0 #fff,0 5px 22px #395d4910}
+:root[data-theme=light] .empty{background:#ffffff59;border-color:#a58bb247}
+:root[data-theme=light] .study-questions li{background:linear-gradient(135deg,#fffafdb8,#f1eaf78c);border-color:#9c83ad2d}
+:root[data-theme=light] :is(.study-topic-row,.study-subject-row){background:linear-gradient(135deg,#fffafbc7,#f0e8f68a)}
+:root[data-theme=light] :is(.study-search,.study-kind-switch,.segmented){background:#d6cbe335;border-color:#9c81ad38}
+:root[data-theme=light] :is(.study-notice,.study-count){background:#dacde53d;border-color:#a58cb82b}
+:root[data-theme=light] :is(.study-subject-option,.study-copy-primary,.install-action,.group.glass){color:var(--control-ink)}
+:root[data-theme=light] :is(.segmented,.glass-segmented)>button[aria-pressed=true]{color:#493452}
+:root[data-theme=light] .day.selected :is(.dow,.date){color:#4d375c}
+:root[data-theme] .study-dialog,:root[data-theme] .install-dialog,:root #groupOverlay #groupDialog{background:var(--sheet-fill);border-color:var(--liquid-selected-edge);box-shadow:inset 0 1px 0 #fff3,0 24px 90px #100b1733}
+:root[data-theme=light] :is(.study-dialog,.install-dialog){box-shadow:inset 0 1px 0 #fff,0 24px 90px #49345824}
+:root :is(.study-dialog,.install-dialog)::backdrop{background:var(--sheet-backdrop);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+:root[data-theme=light] .group-overlay{background:var(--sheet-backdrop)}
+
+/* A common spring for taps; draggable controls retain exact hit geometry. */
+:root :is(button,a[href],[role=button]){transition:transform .34s var(--ui-spring),filter .2s var(--ui-ease),background-color .2s ease,box-shadow .24s ease}
+:root :is(button,a[href],[role=button]):not(:disabled):is(:active,[data-ui-pressed=true]){transform:scale(.965);filter:brightness(1.07) saturate(1.04)}
+:root :is(.days,.segmented,.glass-segmented,#dateGrid)>button:is(:active,[data-ui-pressed=true]),:root [data-sheet-grab]:is(:active,[data-ui-pressed=true]){transform:none!important;filter:brightness(1.06)}
+:root .study-question-copy:active .study-question-copy-face{transform:none}
+:root .study-question-copy-face{transition:background .2s ease,color .2s ease,box-shadow .24s ease}
+:root #themeToggle.theme-toggle{transition:transform .34s var(--ui-spring),filter .2s ease,box-shadow .24s ease,border-color .2s ease}
+@media(hover:hover){:root :is(button,a[href]):not(:disabled):hover{filter:brightness(1.04)}}
+
+/* The same floating lens follows every segmented control. */
+.glass-segmented{position:relative;isolation:isolate;overflow:visible;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.glass-segmented>button{position:relative;z-index:1;touch-action:pan-y}
+.glass-choice-thumb{position:absolute;left:0;top:0;z-index:0;pointer-events:none;border-radius:inherit}
+:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow);backdrop-filter:blur(18px) saturate(145%);-webkit-backdrop-filter:blur(18px) saturate(145%);transition:transform .36s var(--ui-spring),width .26s var(--ui-ease),height .26s var(--ui-ease),scale .26s var(--ui-spring),opacity .2s ease;transform-origin:center;will-change:transform;isolation:isolate}
+.glass-choice-thumb{border-radius:19px}
+:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(125deg,var(--lens-glint),transparent 29%,transparent 70%,#d7c0ef19);opacity:.65}
+:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):after{content:'';position:absolute;inset:-1px;border:1px solid var(--lens-edge);border-radius:inherit;opacity:0;box-shadow:inset 2px 0 3px #e6c4ff20,inset -2px 0 3px #d4ffed20;pointer-events:none;transition:opacity .22s ease}
+:root :is(.is-dragging,.has-preview,.is-touching)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1.045;backdrop-filter:blur(20px) saturate(175%);-webkit-backdrop-filter:blur(20px) saturate(175%);box-shadow:var(--liquid-selected-shadow),0 3px 17px #c6a3e623}
+:root :is(.is-dragging,.has-preview,.is-touching)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):after{opacity:1}
+:root :is(.days,.segmented,#dateGrid,.glass-segmented).is-dragging>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){transition:scale .18s var(--ui-spring),opacity .18s ease}
+
+/* The grabber is a real control, with a larger invisible touch area. */
+:root [data-sheet-grab]{position:relative;display:block;flex:none;box-sizing:border-box;width:86px;height:28px;min-height:28px;margin:3px auto 0;padding:0;border:0;border-radius:18px;background:transparent!important;box-shadow:none;opacity:1;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+:root [data-sheet-grab]:before{content:'';position:absolute;left:calc(50% - 17px);top:11px;width:34px;height:4px;border-radius:5px;background:var(--muted);opacity:.38}
+:root [data-sheet-grab]:active{cursor:grabbing}
+:root [data-sheet-grab]:focus-visible{outline:2px solid var(--control-focus);outline-offset:-2px}
+:root :is(.study-dialog[open],.install-dialog[open],.group-dialog.is-open){animation:none!important}
+:root [data-sheet-dragging]{transition:none!important;will-change:transform}
+:root [data-sheet-closing]{pointer-events:none}
+@media(max-width:700px){.shared-sheet{transform-origin:50% 100%}}
+@media(min-width:701px){:root [data-sheet-grab]{display:none!important}}
+
+/* Lightweight transient feedback, in the active modal's own top layer. */
+.glass-toast[hidden]{display:none!important}
+.glass-toast{position:fixed;z-index:1000;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translate(-50%,0);display:flex;align-items:center;gap:10px;width:max-content;max-width:min(440px,calc(100% - 30px));min-height:56px;padding:6px 8px 6px 14px;border-radius:23px;border:1px solid var(--liquid-selected-edge);background:var(--toast-fill);box-shadow:inset 0 1px 0 #fff4,0 12px 38px #100b1730;color:var(--text);backdrop-filter:blur(26px) saturate(135%);-webkit-backdrop-filter:blur(26px) saturate(135%);touch-action:none;user-select:none;-webkit-user-select:none;will-change:transform,opacity}
+.glass-toast-mark{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--liquid-selected);color:var(--live,var(--control-ink))}
+.glass-toast-mark svg{width:17px;height:17px}
+.glass-toast-text{min-width:0;font-size:13px;font-weight:500;line-height:1.45;overflow-wrap:anywhere}
+.glass-toast-close{display:grid;place-items:center;flex:none;min-height:44px;height:44px;width:44px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted);box-shadow:none}
+.glass-toast-close svg{width:16px;height:16px}
+:root[data-theme=light] .glass-toast{box-shadow:inset 0 1px 0 #fff,0 10px 32px #4d34592b}
+.study-status{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@supports not (backdrop-filter:blur(1px)){.glass-toast{background:var(--liquid-solid)}}
+@media(prefers-reduced-motion:reduce){:root :is(button,a[href],[role=button],.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){transition:none!important}:root :is(button,a[href],[role=button]):is(:active,[data-ui-pressed=true]){transform:none!important;filter:none!important}:root :is(.is-dragging,.has-preview,.is-touching)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1!important}}

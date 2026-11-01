@@ -123,6 +123,7 @@
   window.StudyMaterials = { card, resolve, buildPrompt: preparationPrompt };
 
   let dialog, body, title, eyebrow, back, lastFocus, previousOverflow = '', inertElements = [], view = null, copyText = '', librarySubject = '', query = '';
+  let sheetOpen = false, sheetClosing = false;
   const copyTimers = new WeakMap();
   const byId = id => document.getElementById(id);
   const topicLabel = topic => topic.number == null ? '' : `Тема ${topic.number}`;
@@ -183,6 +184,8 @@
   }
   function open() {
     if (dialog.open) { byId('studyClose').focus(); return; }
+    sheetOpen = true;
+    sheetClosing = false;
     lastFocus = document.activeElement;
     previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -192,6 +195,7 @@
       inertElements = [...document.body.children].filter(element => element !== dialog).map(element => [element, element.inert]);
       inertElements.forEach(([element]) => { element.inert = true; });
     }
+    if (window.GlassUI?.openSheet) window.GlassUI.openSheet(dialog);
     byId('studyClose').focus();
   }
   function restore() {
@@ -201,12 +205,29 @@
     inertElements = [];
     if (lastFocus?.isConnected) lastFocus.focus();
   }
+  function finalizeClose() {
+    if (!sheetOpen) return;
+    sheetOpen = false;
+    sheetClosing = false;
+    if (dialog.open) {
+      if (dialog.close) dialog.close();
+      else dialog.removeAttribute('open');
+    }
+    restore();
+  }
   function close() {
     closeSubjectPicker();
-    if (dialog.close) dialog.close();
-    else { dialog.removeAttribute('open'); restore(); }
+    if (!sheetOpen || sheetClosing) return;
+    sheetClosing = true;
+    if (window.GlassUI?.closeSheet) window.GlassUI.closeSheet(dialog, finalizeClose);
+    else finalizeClose();
   }
-  function announce(text) { byId('studyStatus').textContent = text; }
+  function announce(text) {
+    const status = byId('studyStatus'), toast = window.GlassUI?.toast;
+    status.classList.toggle('sr-only', !!toast);
+    status.textContent = toast ? '' : text;
+    if (toast && text) window.GlassUI.toast(text, { duration: 4000 });
+  }
   function showLibrary(subjectId = '', keepQuery = false) {
     view = { type: 'library' };
     librarySubject = subjectId;
@@ -261,7 +282,7 @@
       return heading + (code ? `Занятие ${code}\n` : '') + questionsFor(set).map((question, index) => `${index + 1}. ${question}`).join('\n');
     }).join('\n\n');
     const heading = topic && (topic.number != null || match.requested) ? `<div class="study-topic-heading"><span>${escape(match.requested ? 'Тема ' + match.requested : topicLabel(topic))}</span>${topic.number != null ? `<h3>${escape(topic.title)}</h3>` : ''}</div>` : '';
-    const switches = available.length > 1 ? `<div class="study-kind-switch" role="group" aria-label="Вид занятия">${available.map(item => `<button type="button" data-study-switch="${item}" aria-pressed="${item === kind}">${kinds[item].label}</button>`).join('')}</div>` : '';
+    const switches = available.length > 1 ? `<div class="study-kind-switch glass-segmented" role="group" aria-label="Вид занятия">${available.map(item => `<button type="button" data-study-switch="${item}" aria-pressed="${item === kind}">${kinds[item].label}</button>`).join('')}</div>` : '';
     const notice = match.fallback ? '<p class="study-notice">Показана тема целиком: точная привязка подпункта пока не подтверждена.</p>' : '';
     const missing = sets.length && match.missing.length ? `<p class="study-notice">Вопросы к теме ${escape(match.missing.join(', '))} пока не добавлены.</p>` : '';
     const questions = sets.length ? `<div class="study-copy-bar"><button type="button" class="study-copy-primary" data-study-copy="plain">${icons.copy}<span>Скопировать все</span></button><button type="button" class="study-copy-ai" data-study-copy="ai" title="Скопировать вопросы с запросом для подготовки">Для ИИ ${icons.copy}</button></div><div class="study-question-groups">${sets.map((set, groupIndex) => {
@@ -277,6 +298,11 @@
     body.scrollTop = 0;
     announce('');
     open();
+    const rail = body.querySelector('.study-kind-switch');
+    if (rail && window.GlassUI?.mountSegmented) {
+      rail.classList.add('has-glass-segments');
+      window.GlassUI.mountSegmented(rail, { onSelect: button => button.click() });
+    }
   }
   function fallbackCopy(text) {
     const selection = window.getSelection(), ranges = selection ? Array.from({ length: selection.rangeCount }, (_, index) => selection.getRangeAt(index).cloneRange()) : [];
@@ -363,9 +389,11 @@
     body = byId('studyBody'); title = byId('studyTitle'); eyebrow = byId('studyEyebrow'); back = byId('studyBack');
     byId('studyClose').addEventListener('click', close);
     back.addEventListener('click', () => showLibrary(view.match.subject.id));
-    dialog.addEventListener('close', restore);
+    dialog.addEventListener('close', () => { if (!dialog.open) finalizeClose(); });
     dialog.addEventListener('cancel', event => {
-      if (byId('studySubjectList')?.hidden === false) { event.preventDefault(); closeSubjectPicker(true); }
+      event.preventDefault();
+      if (byId('studySubjectList')?.hidden === false) { closeSubjectPicker(true); return; }
+      close();
     });
     dialog.addEventListener('click', event => {
       if (event.target !== dialog) return;
@@ -374,7 +402,7 @@
     });
     dialog.addEventListener('keydown', event => {
       if (event.key === 'Escape' && byId('studySubjectList')?.hidden === false) { event.preventDefault(); event.stopPropagation(); closeSubjectPicker(true); return; }
-      if (event.key === 'Escape' && !dialog.showModal) { event.preventDefault(); close(); }
+      if (event.key === 'Escape') { event.preventDefault(); close(); return; }
       if (event.key !== 'Tab') return;
       const controls = [...dialog.querySelectorAll('button:not(:disabled),input,select,summary')].filter(element => !element.hidden && element.getClientRects().length);
       const first = controls[0], last = controls[controls.length - 1];
@@ -401,6 +429,10 @@
     byId('studyOpen')?.addEventListener('click', () => showLibrary());
     const count = byId('studySubjectCount');
     if (count) count.textContent = `${subjects.length} дисциплин · Вопросы и планы занятий`;
+    if (window.GlassUI?.mountSheet) {
+      dialog.classList.add('study-shared-sheet');
+      window.GlassUI.mountSheet(dialog, { handle: '.study-handle', close });
+    }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
   else initialize();
