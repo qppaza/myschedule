@@ -1,10 +1,10 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v32-study-materials';
+const VERSION = 'myschedule-offline-v33-calendar-and-questions';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const REQUIRED = ['curriculum.js?v=32', 'study.js?v=32', 'study.css?v=32', 'install.js?v=32', 'install.css?v=32'].map(path => new URL(path, BASE).href);
+const REQUIRED = ['curriculum.js?v=33', 'study.js?v=33', 'study.css?v=33', 'install.js?v=33', 'install.css?v=33'].map(path => new URL(path, BASE).href);
 const ASSETS = [...REQUIRED, ...['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href)];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

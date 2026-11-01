@@ -12,6 +12,7 @@
     back: svg('<path d="m14 6-6 6 6 6"/>'),
     close: svg('<path d="m7 7 10 10M17 7 7 17"/>'),
     copy: svg('<rect x="8" y="8" width="12" height="13" rx="3"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/>'),
+    check: svg('<path d="m5 12 4 4L19 6"/>'),
     search: svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>')
   };
   const kinds = {
@@ -81,7 +82,12 @@
     }
     const whole = verifiedFor(subject, kind, lesson.theme || '');
     if (whole.length) return { subject, kind, sets: whole, missing, fallback, requested: lesson.theme || '' };
-    for (const code of codes(lesson.theme)) {
+    // Keep combined sublesson codes intact until their verified lookup runs.
+    // Expanding 17-18/2 first would lose the shared 17.2,18.2 mapping.
+    for (const segment of String(lesson.theme || '').split(',').map(value => value.trim()).filter(Boolean)) {
+      const grouped = verifiedFor(subject, kind, segment);
+      if (grouped.length) { grouped.forEach(append); continue; }
+      for (const code of codes(segment)) {
       const verified = verifiedFor(subject, kind, code);
       if (verified.length) {
         verified.forEach(append);
@@ -103,6 +109,7 @@
       // A parent topic is useful, but is never presented as a verified sublesson.
       if (code.includes('.') || available.length > 1) fallback = true;
       available.forEach(append);
+      }
     }
     return { subject, kind, sets, missing, fallback, requested: lesson.theme || '' };
   }
@@ -113,11 +120,67 @@
     const label = count ? kinds[match.kind].action : 'Материалы по предмету';
     return `<button type="button" class="study-lesson-action" data-study-subject="${escape(lesson.subject)}" data-study-kind="${escape(match.kind)}" data-study-theme="${escape(lesson.theme || '')}" aria-haspopup="dialog">${icons.book}<span>${label}</span>${count ? `<span class="study-count">${count}</span>` : ''}${icons.chevron}</button>`;
   }
-  window.StudyMaterials = { card, resolve };
+  window.StudyMaterials = { card, resolve, buildPrompt: preparationPrompt };
 
   let dialog, body, title, eyebrow, back, lastFocus, previousOverflow = '', inertElements = [], view = null, copyText = '', librarySubject = '', query = '';
+  const copyTimers = new WeakMap();
   const byId = id => document.getElementById(id);
-  const topicLabel = topic => topic.number == null ? 'Фрагмент программы' : `Тема ${topic.number}`;
+  const topicLabel = topic => topic.number == null ? '' : `Тема ${topic.number}`;
+  const visibleTopic = topic => topic.number != null && availableKinds(topic).length;
+  function closeSubjectPicker(restoreFocus = false) {
+    const list = byId('studySubjectList'), button = byId('studySubject');
+    if (!list || list.hidden) return;
+    list.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) button.focus();
+  }
+  function setupSubjectPicker() {
+    const picker = byId('studySubjectPicker'), button = byId('studySubject'), list = byId('studySubjectList');
+    const options = [...list.querySelectorAll('[data-study-filter]')];
+    let active = options.findIndex(option => option.dataset.studyFilter === librarySubject);
+    function focusOption(index) {
+      active = Math.max(0, Math.min(options.length - 1, index));
+      options.forEach((option, item) => { option.tabIndex = item === active ? 0 : -1; });
+      options[active].focus();
+      options[active].scrollIntoView({ block: 'nearest' });
+    }
+    function openPicker(index = active) {
+      list.hidden = false;
+      button.setAttribute('aria-expanded', 'true');
+      focusOption(index);
+    }
+    function select(option) {
+      librarySubject = option.dataset.studyFilter;
+      const label = subjects.find(subject => subject.id === librarySubject)?.name || 'Все дисциплины';
+      button.querySelector('span').textContent = label;
+      button.setAttribute('aria-label', 'Предмет: ' + label);
+      button.title = label;
+      options.forEach(item => item.setAttribute('aria-selected', String(item === option)));
+      active = options.indexOf(option);
+      closeSubjectPicker(true);
+      drawResults();
+    }
+    button.addEventListener('click', () => list.hidden ? openPicker() : closeSubjectPicker(true));
+    list.addEventListener('click', event => {
+      const option = event.target.closest('[data-study-filter]');
+      if (option) select(option);
+    });
+    picker.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !list.hidden) {
+        event.preventDefault(); event.stopPropagation(); closeSubjectPicker(true); return;
+      }
+      if (event.key === 'Tab' && !list.hidden) { closeSubjectPicker(true); return; }
+      const navigation = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+      if (navigation.includes(event.key)) {
+        event.preventDefault();
+        const wasHidden = list.hidden;
+        const index = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : wasHidden ? active : (active + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+        openPicker(index);
+      } else if (!list.hidden && event.target !== button && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault(); select(options[active]);
+      }
+    });
+  }
   function open() {
     if (dialog.open) { byId('studyClose').focus(); return; }
     lastFocus = document.activeElement;
@@ -132,12 +195,14 @@
     byId('studyClose').focus();
   }
   function restore() {
+    closeSubjectPicker();
     document.body.style.overflow = previousOverflow;
     inertElements.forEach(([element, inert]) => { element.inert = inert; });
     inertElements = [];
     if (lastFocus?.isConnected) lastFocus.focus();
   }
   function close() {
+    closeSubjectPicker();
     if (dialog.close) dialog.close();
     else { dialog.removeAttribute('open'); restore(); }
   }
@@ -149,9 +214,10 @@
     eyebrow.textContent = 'УЧЕБНЫЕ ПРОГРАММЫ';
     title.textContent = 'Материалы занятий';
     back.hidden = true;
-    body.innerHTML = `<p class="study-intro">Темы и вопросы из ваших учебных программ. Выберите предмет или найдите нужное по словам.</p><div class="study-filters"><label class="study-search">${icons.search}<input id="studySearch" type="search" placeholder="Найти тему или вопрос" aria-label="Найти тему или вопрос" value="${escape(query)}" autocomplete="off"></label><label class="study-subject-label"><span class="sr-only">Предмет</span><select id="studySubject"><option value="">Все ${subjects.length} дисциплин</option>${subjects.map(subject => `<option value="${escape(subject.id)}" ${subject.id === librarySubject ? 'selected' : ''}>${escape(subject.name)}</option>`).join('')}</select></label></div><div id="studyResults" class="study-results" aria-live="polite"></div>`;
+    const selectedName = subjects.find(subject => subject.id === librarySubject)?.name || 'Все дисциплины';
+    body.innerHTML = `<div class="study-filters"><label class="study-search">${icons.search}<input id="studySearch" type="search" placeholder="Найти тему или вопрос" aria-label="Найти тему или вопрос" value="${escape(query)}" autocomplete="off"></label><div class="study-subject-picker" id="studySubjectPicker"><button type="button" id="studySubject" class="study-subject-trigger" aria-label="Предмет: ${escape(selectedName)}" title="${escape(selectedName)}" aria-haspopup="listbox" aria-expanded="false" aria-controls="studySubjectList"><span>${escape(selectedName)}</span>${icons.chevron}</button><div id="studySubjectList" class="study-subject-menu" role="listbox" aria-label="Предмет" hidden>${[{ id: '', name: 'Все дисциплины' }, ...subjects].map((subject, index) => `<button type="button" role="option" id="studySubjectOption${index}" class="study-subject-option" data-study-filter="${escape(subject.id)}" aria-selected="${subject.id === librarySubject}" tabindex="-1"><span>${escape(subject.name)}</span>${icons.check}</button>`).join('')}</div></div></div><div id="studyResults" class="study-results" aria-live="polite"></div>`;
     byId('studySearch').addEventListener('input', event => { query = event.target.value; drawResults(); });
-    byId('studySubject').addEventListener('change', event => { librarySubject = event.target.value; drawResults(); });
+    setupSubjectPicker();
     drawResults();
     body.scrollTop = 0;
     open();
@@ -160,17 +226,16 @@
     const term = plain(query), chosen = subjects.filter(subject => !librarySubject || subject.id === librarySubject);
     const container = byId('studyResults');
     if (!term && !librarySubject) {
-      container.innerHTML = `<div class="study-subjects">${subjects.map(subject => `<button type="button" class="study-subject-row" data-study-browse="${escape(subject.id)}"><span class="study-subject-icon">${icons.book}</span><span><strong>${escape(subject.name)}</strong><small>${subject.topics.filter(topic => availableKinds(topic).length).length} тем в программе</small></span>${icons.chevron}</button>`).join('')}</div><p class="study-footnote">Вопросы приведены по приложенным программам. Задания и изменения преподавателя уточняйте на занятии.</p>`;
+      container.innerHTML = `<div class="study-subjects">${subjects.map(subject => `<button type="button" class="study-subject-row" data-study-browse="${escape(subject.id)}"><span class="study-subject-icon">${icons.book}</span><span><strong>${escape(subject.name)}</strong><small>${subject.topics.filter(visibleTopic).length} тем</small></span>${icons.chevron}</button>`).join('')}</div>`;
       return;
     }
     const found = [];
     for (const subject of chosen) subject.topics.forEach((topic, index) => {
-      if (!availableKinds(topic).length) return;
+      if (!visibleTopic(topic)) return;
       const allText = [subject.name, topic.number, topic.title, ...Object.values(kinds).flatMap(kind => topic[kind.field] || [])].join(' ');
       if (!term || plain(allText).includes(term)) found.push({ subject, topic, index });
     });
-    const notes = librarySubject ? chosen[0]?.notes || [] : [];
-    container.innerHTML = `${notes.length ? `<details class="study-source-notes"><summary>Об этой программе</summary>${notes.map(note => `<p>${escape(note)}</p>`).join('')}</details>` : ''}<p class="study-result-count">${found.length ? `Найдено тем: ${found.length}` : 'Темы не найдены'}</p><div class="study-topic-list">${found.slice(0, 80).map(({ subject, topic, index }) => `<button type="button" class="study-topic-row" data-study-topic="${index}" data-study-owner="${escape(subject.id)}"><span class="study-topic-meta">${!librarySubject ? `${escape(subject.name)} · ` : ''}${escape(topicLabel(topic))}</span><strong>${escape(topic.title || topicLabel(topic))}</strong><span class="study-kind-labels">${availableKinds(topic).map(kind => `<span data-kind="${kind}">${kinds[kind].label}</span>`).join('')}</span>${icons.chevron}</button>`).join('')}</div>${!found.length ? '<p class="study-footnote">Попробуйте другое слово или выберите все дисциплины.</p>' : found.length > 80 ? '<p class="study-footnote">Показаны первые 80 тем. Уточните поиск.</p>' : ''}`;
+    container.innerHTML = `<p class="study-result-count">${found.length ? `Тем: ${found.length}` : 'Ничего не найдено'}</p><div class="study-topic-list">${found.slice(0, 80).map(({ subject, topic, index }) => `<button type="button" class="study-topic-row" data-study-topic="${index}" data-study-owner="${escape(subject.id)}"><span class="study-topic-meta">${!librarySubject ? `${escape(subject.name)} · ` : ''}${escape(topicLabel(topic))}</span><strong>${escape(topic.title || topicLabel(topic))}</strong><span class="study-kind-labels">${availableKinds(topic).map(kind => `<span data-kind="${kind}">${kinds[kind].label}</span>`).join('')}</span>${icons.chevron}</button>`).join('')}</div>${found.length > 80 ? '<p class="study-result-count study-search-limit">Уточните запрос, чтобы увидеть остальные темы.</p>' : ''}`;
   }
   function showTopic(subject, topic, preferredKind) {
     const available = availableKinds(topic);
@@ -179,6 +244,8 @@
     showQuestions({ subject, kind, sets: sessionsFor(topic, kind).map(session => ({ topic, session })), missing: [], fallback: false, requested: topic.number || '', topic });
   }
   function showQuestions(match) {
+    if (!match) return;
+    closeSubjectPicker();
     view = { type: 'questions', match };
     const { subject, kind, sets } = match;
     eyebrow.textContent = kinds[kind].action.toUpperCase();
@@ -188,9 +255,21 @@
     const uniqueTopics = [...new Set(sets.map(set => set.topic))];
     const topic = match.topic || (uniqueTopics.length === 1 ? uniqueTopics[0] : null);
     const available = topic ? availableKinds(topic) : [];
-    copyText = `${subject.name}\n${kinds[kind].label}${match.requested ? ' · Тема ' + match.requested : ''}\n${match.fallback ? 'Все вопросы темы для этого вида занятия; подпункт расписания не удалось однозначно сопоставить с программой.\n' : ''}\n` + sets.map(set => `${topicLabel(set.topic)}. ${set.topic.title}\n${set.displayCode || set.session.code ? 'Занятие ' + (set.displayCode || set.session.code) + '\n' : ''}${questionsFor(set).map((question, index) => `${index + 1}. ${question}`).join('\n')}`).join('\n\n');
-    const pages = [...new Set(sets.flatMap(set => set.session.sourcePages || set.topic.sourcePages || []))].sort((a, b) => a - b);
-    body.innerHTML = `${topic ? `<div class="study-topic-heading"><span>${escape(match.requested ? 'Тема ' + match.requested : topicLabel(topic))}</span><h3>${escape(topic.title)}</h3></div>` : ''}${available.length > 1 ? `<div class="study-kind-switch" role="group" aria-label="Вид занятия">${available.map(item => `<button type="button" data-study-switch="${item}" aria-pressed="${item === kind}">${kinds[item].label}</button>`).join('')}</div>` : ''}${match.fallback ? '<p class="study-notice">Показаны все вопросы темы для этого вида занятия. Отдельный подпункт из расписания не удалось однозначно сопоставить с программой.</p>' : ''}${match.missing.length ? `<p class="study-notice">В приложенной программе нет ${kinds[kind].label === 'Лекция' ? 'плана лекции' : 'вопросов этого вида занятия'} к теме ${escape(match.missing.join(', '))}. Можно выбрать другую тему.</p>` : ''}${sets.length ? `<div class="study-copy-bar"><button type="button" class="study-copy-primary" data-study-copy="plain">${icons.copy}<span>Скопировать вопросы</span></button><button type="button" class="study-copy-ai" data-study-copy="ai" title="Скопировать вопросы с запросом для подготовки">Для ИИ ${icons.copy}</button></div><div class="study-question-groups">${sets.map(({ topic: item, session, questions, displayCode }, index) => `<section class="study-question-group">${!topic || sets.length > 1 ? `<h3>${escape(!topic ? `${topicLabel(item)}. ${item.title}` : displayCode || session.code ? `Занятие ${displayCode || session.code}` : `${kinds[kind].label} ${session.numberWithinTopic || index + 1}`)}</h3>` : ''}<ol class="study-questions">${(questions || session.questions).map(question => `<li><span>${escape(question)}</span></li>`).join('')}</ol></section>`).join('')}</div><p class="study-footnote">Источник: ${escape(subject.sourceFile)}${pages.length ? ` · стр. ${pages.join(', ')}` : ''}. ${topic?.contentStatus === 'partial' ? 'В исходном файле эта тема приведена не полностью.' : ''}</p>` : '<div class="study-missing"><span class="study-subject-icon">' + icons.book + '</span><h3>Нужная тема пока не найдена</h3><p>В приложенном фрагменте программы могут отсутствовать отдельные темы или вопросы. Откройте каталог, чтобы посмотреть доступные материалы.</p></div>'}<button type="button" class="study-other-topics" data-study-browse="${escape(subject.id)}">Все темы по предмету ${icons.chevron}</button>`;
+    copyText = `${subject.name}\n${kinds[kind].label}${match.requested ? ' · Тема ' + match.requested : ''}\n${match.fallback ? 'Показана тема целиком; точная привязка подпункта не подтверждена.\n' : ''}\n` + sets.map(set => {
+      const heading = set.topic.number != null ? `${topicLabel(set.topic)}. ${set.topic.title}\n` : '';
+      const code = set.displayCode || set.session.code;
+      return heading + (code ? `Занятие ${code}\n` : '') + questionsFor(set).map((question, index) => `${index + 1}. ${question}`).join('\n');
+    }).join('\n\n');
+    const heading = topic && (topic.number != null || match.requested) ? `<div class="study-topic-heading"><span>${escape(match.requested ? 'Тема ' + match.requested : topicLabel(topic))}</span>${topic.number != null ? `<h3>${escape(topic.title)}</h3>` : ''}</div>` : '';
+    const switches = available.length > 1 ? `<div class="study-kind-switch" role="group" aria-label="Вид занятия">${available.map(item => `<button type="button" data-study-switch="${item}" aria-pressed="${item === kind}">${kinds[item].label}</button>`).join('')}</div>` : '';
+    const notice = match.fallback ? '<p class="study-notice">Показана тема целиком: точная привязка подпункта пока не подтверждена.</p>' : '';
+    const missing = sets.length && match.missing.length ? `<p class="study-notice">Вопросы к теме ${escape(match.missing.join(', '))} пока не добавлены.</p>` : '';
+    const questions = sets.length ? `<div class="study-copy-bar"><button type="button" class="study-copy-primary" data-study-copy="plain">${icons.copy}<span>Скопировать все</span></button><button type="button" class="study-copy-ai" data-study-copy="ai" title="Скопировать вопросы с запросом для подготовки">Для ИИ ${icons.copy}</button></div><div class="study-question-groups">${sets.map((set, groupIndex) => {
+      const { topic: item, session, displayCode } = set;
+      const groupTitle = !topic && item.number != null ? `${topicLabel(item)}. ${item.title}` : displayCode || session.code ? `Занятие ${displayCode || session.code}` : `${kinds[kind].label} ${session.numberWithinTopic || groupIndex + 1}`;
+      return `<section class="study-question-group">${!topic || sets.length > 1 ? `<h3>${escape(groupTitle)}</h3>` : ''}<ol class="study-questions">${questionsFor(set).map((question, index) => `<li><span class="study-question-text">${escape(question)}</span><button type="button" class="study-question-copy" data-study-question="${groupIndex}:${index}" aria-label="Скопировать вопрос ${index + 1}" title="Скопировать вопрос ${index + 1}"><span class="study-question-copy-face">${icons.copy}</span></button></li>`).join('')}</ol></section>`;
+    }).join('')}</div>` : `<div class="study-missing"><span class="study-subject-icon">${icons.book}</span><h3>Материалов к этой теме пока нет</h3><p>Выберите другую тему в каталоге.</p></div>`;
+    body.innerHTML = heading + switches + notice + missing + questions + `<button type="button" class="study-other-topics" data-study-browse="${escape(subject.id)}">Все темы по предмету ${icons.chevron}</button>`;
     body.querySelectorAll('[data-study-switch]').forEach(button => button.addEventListener('click', () => {
       showTopic(subject, topic, button.dataset.studySwitch);
       body.querySelector(`[data-study-switch="${button.dataset.studySwitch}"]`)?.focus();
@@ -214,16 +293,65 @@
     if (selection) { selection.removeAllRanges(); ranges.forEach(range => selection.addRange(range)); }
     return copied;
   }
-  async function copy(mode, button) {
-    const original = copyText;
-    const text = mode === 'ai' ? `Помоги подготовиться к занятию по следующим вопросам. Ответь на каждый вопрос отдельно, объясни ключевые понятия и приведи короткие примеры. Для юридических вопросов используй право Республики Беларусь, проверь актуальность норм на дату ответа, указывай источники и не выдумывай статьи. Если не можешь проверить норму, прямо сообщи об этом.\n\n${original}` : original;
-    if (!text) return;
+  function preparationPrompt(match, text) {
+    const name = match.subject.name;
+    const theoretical = /криминолог|криминалист/i.test(name);
+    const format = {
+      lecture: 'Сначала покажи логику темы, затем раскрой каждый пункт коротким тезисным конспектом: основные понятия, связи между ними и один поясняющий пример.',
+      seminar: 'Для каждого пункта подготовь опору для устного ответа: главная мысль, несколько аргументов и короткий пример. Выдели понятия, которые легко перепутать.',
+      practical: 'Разбери порядок выполнения: исходные данные, последовательность действий и проверка результата. Если дан только теоретический вопрос, объясни его применение. Придуманные примеры явно пометь как учебные.'
+    }[match.kind] || 'Разбери основные понятия и покажи, как они связаны.';
+    const parts = [
+      `Собери рабочий материал по дисциплине «${name}». Формат занятия: ${kinds[match.kind]?.label.toLowerCase() || 'занятие'}.`,
+      format,
+      theoretical
+        ? 'Опирайся на научные понятия, теории, методы и практические приёмы. Объясняй причинные связи и границы применимости методов.'
+        : 'Соединяй понятия с условиями их применения. Правовые правила раскрывай только там, где они нужны для ответа.'
+    ];
+    const explicitLegalQuestion = /законодательств|нормативн|кодекс|стать[яиею]|правов(?:ые|ая|ое|ого|ых)\s+основан/i.test(text);
+    if (!theoretical || explicitLegalQuestion) parts.push('Если ответ зависит от действующей нормы, используй право Республики Беларусь и проверь её актуальность. Называй акт и статью лишь при подтверждённой ссылке; при отсутствии проверки обозначь это. Для теоретических пунктов перечень нормативных актов не нужен.');
+    parts.push('Сохрани номера вопросов. Отделяй проверяемые факты от научных трактовок и собственных оценок. Не придумывай источники, цитаты и результаты исследований; пробелы в знаниях отмечай прямо.');
+    parts.push('Пиши компактно, без повторения формулировки вопроса и длинных вступлений. В конце предложи три коротких вопроса для самопроверки без готовых ответов.');
+    return parts.join('\n\n') + '\n\nМатериал для разбора:\n' + text;
+  }
+  async function writeClipboard(text, button) {
     button.disabled = true;
     let success = false;
-    try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); success = true; } } catch (_) {}
-    if (!success) success = fallbackCopy(text);
-    button.disabled = false;
+    try {
+      try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); success = true; } } catch (_) {}
+      if (!success) success = fallbackCopy(text);
+      return success;
+    } finally { button.disabled = false; }
+  }
+  async function copy(mode, button) {
+    const text = mode === 'ai' ? preparationPrompt(view.match, copyText) : copyText;
+    if (!text) return;
+    announce('');
+    const success = await writeClipboard(text, button);
     announce(success ? mode === 'ai' ? 'Вопросы и запрос для ИИ скопированы' : 'Вопросы скопированы' : 'Не удалось скопировать. Выделите текст вопросов и скопируйте вручную.');
+  }
+  async function copyQuestion(button) {
+    const [groupIndex, questionIndex] = button.dataset.studyQuestion.split(':').map(Number);
+    const set = view?.match?.sets[groupIndex], question = set && questionsFor(set)[questionIndex];
+    if (typeof question !== 'string') return;
+    announce('');
+    const success = await writeClipboard(question, button);
+    if (!success) { announce('Не удалось скопировать. Выделите текст вопроса и скопируйте вручную.'); return; }
+    const number = questionIndex + 1;
+    announce(`Вопрос ${number} скопирован`);
+    if (!button.isConnected) return;
+    clearTimeout(copyTimers.get(button));
+    button.dataset.copied = 'true';
+    button.querySelector('.study-question-copy-face').innerHTML = icons.check;
+    button.setAttribute('aria-label', `Вопрос ${number} скопирован`);
+    button.title = `Вопрос ${number} скопирован`;
+    copyTimers.set(button, setTimeout(() => {
+      if (!button.isConnected) return;
+      delete button.dataset.copied;
+      button.querySelector('.study-question-copy-face').innerHTML = icons.copy;
+      button.setAttribute('aria-label', `Скопировать вопрос ${number}`);
+      button.title = `Скопировать вопрос ${number}`;
+    }, 1800));
   }
   function initialize() {
     dialog = document.createElement('dialog');
@@ -236,12 +364,16 @@
     byId('studyClose').addEventListener('click', close);
     back.addEventListener('click', () => showLibrary(view.match.subject.id));
     dialog.addEventListener('close', restore);
+    dialog.addEventListener('cancel', event => {
+      if (byId('studySubjectList')?.hidden === false) { event.preventDefault(); closeSubjectPicker(true); }
+    });
     dialog.addEventListener('click', event => {
       if (event.target !== dialog) return;
       const bounds = dialog.getBoundingClientRect();
       if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) close();
     });
     dialog.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && byId('studySubjectList')?.hidden === false) { event.preventDefault(); event.stopPropagation(); closeSubjectPicker(true); return; }
       if (event.key === 'Escape' && !dialog.showModal) { event.preventDefault(); close(); }
       if (event.key !== 'Tab') return;
       const controls = [...dialog.querySelectorAll('button:not(:disabled),input,select,summary')].filter(element => !element.hidden && element.getClientRects().length);
@@ -250,6 +382,7 @@
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     });
     document.addEventListener('click', event => {
+      if (!event.target.closest('#studySubjectPicker')) closeSubjectPicker();
       const lesson = event.target.closest('[data-study-subject]');
       if (lesson) { showQuestions(resolve({ subject: lesson.dataset.studySubject, type: lesson.dataset.studyKind, theme: lesson.dataset.studyTheme })); return; }
       const browse = event.target.closest('[data-study-browse]');
@@ -262,6 +395,8 @@
       }
       const copyButton = event.target.closest('[data-study-copy]');
       if (copyButton) copy(copyButton.dataset.studyCopy, copyButton);
+      const questionButton = event.target.closest('[data-study-question]');
+      if (questionButton) copyQuestion(questionButton);
     });
     byId('studyOpen')?.addEventListener('click', () => showLibrary());
     const count = byId('studySubjectCount');
