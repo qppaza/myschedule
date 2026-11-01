@@ -8,7 +8,7 @@
   const byId = id => document.getElementById(id);
   const historyKey = '__amiaPanelV35', historyOwner = Date.now().toString(36) + Math.random().toString(36).slice(2);
   const panelStack = [], closedPanelTokens = new Set();
-  let historySerial = 0, pendingHistoryCleanup = false;
+  let historySerial = 0, pendingHistoryCleanup = false, historyCleanupTimer = 0;
   let toastElement, toastTimer = 0, toastAnimation, toastDrag = null, toastEpoch = 0;
   const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
   const closeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>';
@@ -26,14 +26,27 @@
       record.historyOwned = true;
     } catch (_) { record.historyOwned = false; }
   }
+  function reuseClosingPanelHistory(record) {
+    if (!pendingHistoryCleanup || !historyCleanupTimer) return false;
+    clearTimeout(historyCleanupTimer); historyCleanupTimer = 0; pendingHistoryCleanup = false;
+    const current = history.state?.[historyKey];
+    if (current?.owner !== historyOwner) return false;
+    try {
+      history.replaceState({ ...history.state, [historyKey]: { owner: historyOwner, token: record.token, panel: record.panel.id } }, '', location.href);
+      record.historyOwned = true;
+      return true;
+    } catch (_) { return false; }
+  }
   function panelOpened(panel, { close }) {
     if (!panel) return;
     const existing = panelStack.find(record => record.panel === panel);
     if (existing) { existing.close = close; return; }
     const record = { panel, close, token: historyOwner + ':' + (++historySerial), historyOwned: false, fromBack: false };
     panelStack.push(record);
-    // Closing a sheet traverses asynchronously. Do not push onto the entry being removed.
-    if (!pendingHistoryCleanup) pushPanelHistory(record);
+    // A new panel opened in the same action can reuse the closing panel's
+    // marker before traversal starts, so even an immediate Back belongs to it.
+    // Once traversal has started, queue the marker until cleanup completes.
+    if (!reuseClosingPanelHistory(record) && !pendingHistoryCleanup) pushPanelHistory(record);
   }
   function panelClosed(panel) {
     const index = panelStack.findIndex(record => record.panel === panel);
@@ -47,10 +60,16 @@
     if (marker?.owner !== historyOwner || !closedPanelTokens.has(marker.token)) return false;
     closedPanelTokens.delete(marker.token);
     pendingHistoryCleanup = true;
-    try { history.back(); return true; } catch (_) { pendingHistoryCleanup = false; return false; }
+    historyCleanupTimer = setTimeout(() => {
+      historyCleanupTimer = 0;
+      if (!pendingHistoryCleanup) return;
+      try { history.back(); } catch (_) { pendingHistoryCleanup = false; }
+    }, 0);
+    return true;
   }
   window.addEventListener('popstate', () => {
     if (pendingHistoryCleanup) {
+      clearTimeout(historyCleanupTimer); historyCleanupTimer = 0;
       pendingHistoryCleanup = false;
       // An older sheet may have finished closing underneath the newer one.
       if (consumeClosedPanelEntry()) return;
@@ -148,6 +167,9 @@
     let drag = null, suppressClickUntil = 0;
     const release = id => { try { if (grab.hasPointerCapture?.(id)) grab.releasePointerCapture(id); } catch (_) {} };
     grab.style.touchAction = 'none';
+    // Some legacy decorative handles opt out of hit testing. Once mounted,
+    // the whole enlarged grab area must receive the same events as a button.
+    grab.style.pointerEvents = 'auto';
     function begin(event) {
       if (event.isPrimary === false || event.pointerType !== 'touch' && event.button !== 0 || panel.hasAttribute('data-sheet-closing')) return;
       cancelJob(panel); clearSheetStyle(panel);

@@ -1,4 +1,4 @@
-/* v34: a restrained pearl palette and a shared motion / optical vocabulary. */
+/* Shared glass palette and motion. v36 keeps scrolling surfaces painted without nested blur. */
 :root{
  --ui-spring:cubic-bezier(.18,1.12,.28,1);
  --ui-ease:cubic-bezier(.22,.8,.25,1);
@@ -47,28 +47,28 @@
 :root[data-theme=light] .group-overlay{background:var(--sheet-backdrop)}
 
 /* A common spring for taps; draggable controls retain exact hit geometry. */
-:root :is(button,a[href],[role=button]){transition:transform .34s var(--ui-spring),filter .2s var(--ui-ease),background-color .2s ease,box-shadow .24s ease}
-:root :is(button,a[href],[role=button]):not(:disabled):is(:active,[data-ui-pressed=true]){transform:scale(.965);filter:brightness(1.07) saturate(1.04)}
-:root :is(.days,.segmented,.glass-segmented,#dateGrid)>button:is(:active,[data-ui-pressed=true]),:root [data-sheet-grab]:is(:active,[data-ui-pressed=true]){transform:none!important;filter:brightness(1.06)}
+:root :is(button,a[href],[role=button]){transition:transform .34s var(--ui-spring),background-color .2s ease,box-shadow .24s ease}
+:root :is(button,a[href],[role=button]):not(:disabled):is(:active,[data-ui-pressed=true]){transform:scale(.965)}
+:root :is(.days,.segmented,.glass-segmented,#dateGrid)>button:is(:active,[data-ui-pressed=true]),:root [data-sheet-grab]:is(:active,[data-ui-pressed=true]){transform:none!important}
 :root .study-question-copy:active .study-question-copy-face{transform:none}
 :root .study-question-copy-face{transition:background .2s ease,color .2s ease,box-shadow .24s ease}
-:root #themeToggle.theme-toggle{transition:transform .34s var(--ui-spring),filter .2s ease,box-shadow .24s ease,border-color .2s ease}
-@media(hover:hover){:root :is(button,a[href]):not(:disabled):hover{filter:brightness(1.04)}}
+:root #themeToggle.theme-toggle{transition:transform .34s var(--ui-spring),box-shadow .24s ease,border-color .2s ease}
+
 
 /* The same floating lens follows every segmented control. */
 .glass-segmented{position:relative;isolation:isolate;overflow:visible;touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .glass-segmented>button{position:relative;z-index:1;touch-action:pan-y}
 .glass-choice-thumb{position:absolute;left:0;top:0;z-index:0;pointer-events:none;border-radius:inherit}
-:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow);backdrop-filter:blur(18px) saturate(145%);-webkit-backdrop-filter:blur(18px) saturate(145%);transition:transform .36s var(--ui-spring),width .26s var(--ui-ease),height .26s var(--ui-ease),scale .26s var(--ui-spring),opacity .2s ease;transform-origin:center;will-change:transform;isolation:isolate}
+:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow);backdrop-filter:none!important;-webkit-backdrop-filter:none!important;transition:transform .36s var(--ui-spring),width .26s var(--ui-ease),height .26s var(--ui-ease),scale .26s var(--ui-spring),opacity .2s ease;transform-origin:center;will-change:auto;isolation:isolate}
 .glass-choice-thumb{border-radius:19px}
 :root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(125deg,var(--lens-glint),transparent 29%,transparent 70%,#d7c0ef19);opacity:.65}
 :root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):after{content:'';position:absolute;inset:-1px;border:1px solid var(--lens-edge);border-radius:inherit;opacity:0;box-shadow:inset 2px 0 3px #e6c4ff20,inset -2px 0 3px #d4ffed20;pointer-events:none;transition:opacity .22s ease}
-:root :is(.is-dragging,.has-preview,.is-touching)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1.045;backdrop-filter:blur(20px) saturate(175%);-webkit-backdrop-filter:blur(20px) saturate(175%);box-shadow:var(--liquid-selected-shadow),0 3px 17px #c6a3e623}
-:root :is(.is-dragging,.has-preview,.is-touching)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):after{opacity:1}
+:root :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1.045;box-shadow:var(--liquid-selected-shadow),0 3px 17px #c6a3e623}
+:root :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb):after{opacity:1}
 :root :is(.days,.segmented,#dateGrid,.glass-segmented).is-dragging>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){transition:scale .18s var(--ui-spring),opacity .18s ease}
 
 /* The grabber is a real control, with a larger invisible touch area. */
-:root [data-sheet-grab]{position:relative;display:block;flex:none;box-sizing:border-box;width:86px;height:28px;min-height:28px;margin:3px auto 0;padding:0;border:0;border-radius:18px;background:transparent!important;box-shadow:none;opacity:1;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+:root [data-sheet-grab]{position:relative;display:block;flex:none;box-sizing:border-box;width:86px;height:28px;min-height:28px;margin:3px auto 0;padding:0;border:0;border-radius:18px;background:transparent!important;box-shadow:none;opacity:1;cursor:grab;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
 :root [data-sheet-grab]:before{content:'';position:absolute;left:calc(50% - 17px);top:11px;width:34px;height:4px;border-radius:5px;background:var(--muted);opacity:.38}
 :root [data-sheet-grab]:active{cursor:grabbing}
 :root [data-sheet-grab]:focus-visible{outline:2px solid var(--control-focus);outline-offset:-2px}
@@ -80,7 +80,7 @@
 
 /* Lightweight transient feedback, in the active modal's own top layer. */
 .glass-toast[hidden]{display:none!important}
-.glass-toast{position:fixed;z-index:1000;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translate(-50%,0);display:flex;align-items:center;gap:7px;width:max-content;max-width:min(340px,calc(100% - 30px));min-height:38px;padding:3px 5px 3px 11px;border-radius:16px;border:1px solid var(--liquid-selected-edge);background:var(--toast-fill);box-shadow:inset 0 1px 0 #fff4,0 7px 24px #100b1726;color:var(--text);backdrop-filter:blur(26px) saturate(135%);-webkit-backdrop-filter:blur(26px) saturate(135%);touch-action:none;user-select:none;-webkit-user-select:none;will-change:transform,opacity}
+.glass-toast{position:fixed;z-index:1000;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translate(-50%,0);display:flex;align-items:center;gap:7px;width:max-content;max-width:min(340px,calc(100% - 30px));min-height:38px;padding:3px 5px 3px 11px;border-radius:16px;border:1px solid var(--liquid-selected-edge);background:var(--toast-fill);box-shadow:inset 0 1px 0 #fff4,0 7px 24px #100b1726;color:var(--text);backdrop-filter:blur(26px) saturate(135%);-webkit-backdrop-filter:blur(26px) saturate(135%);touch-action:none;user-select:none;-webkit-user-select:none;will-change:auto}
 .glass-toast-mark{display:grid;place-items:center;flex:none;width:20px;height:20px;border-radius:50%;background:transparent;color:var(--live,var(--control-ink))}
 .glass-toast-mark svg{width:15px;height:15px}
 .glass-toast-text{min-width:0;font-size:12px;font-weight:500;line-height:1.35;overflow-wrap:anywhere}
@@ -89,4 +89,15 @@
 :root[data-theme=light] .glass-toast{box-shadow:inset 0 1px 0 #fff,0 10px 32px #4d34592b}
 .study-status{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 @supports not (backdrop-filter:blur(1px)){.glass-toast{background:var(--liquid-solid)}}
-@media(prefers-reduced-motion:reduce){:root :is(button,a[href],[role=button],.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){transition:none!important}:root :is(button,a[href],[role=button]):is(:active,[data-ui-pressed=true]){transform:none!important;filter:none!important}:root :is(.is-dragging,.has-preview,.is-touching)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1!important}}
+@media(prefers-reduced-motion:reduce){:root :is(button,a[href],[role=button],.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){transition:none!important}:root :is(button,a[href],[role=button]):is(:active,[data-ui-pressed=true]){transform:none!important;filter:none!important}:root :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1!important}}
+
+/* Small translucent surfaces use their painted gradients. Repeated backdrop roots
+   in a scrolling list caused raster tiles to flash on mobile WebViews. */
+:root :is(.study-library-entry,.install-prompt,.study-subject-trigger,.study-subject-menu,.study-question-copy-face,.study-dialog,.install-dialog,#groupDialog,#groups button,.dialog-head button,.date-month-nav button){backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+:root :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){will-change:auto}
+:root :is(.days,.segmented,.glass-segmented,#dateGrid).is-dragging>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){will-change:transform}
+/* Hold only the unfinished first frame, including deferred installation UI. */
+:root[data-ui-booting] .shell{visibility:hidden}
+:root[data-ui-booting] *,:root[data-ui-booting] *:before,:root[data-ui-booting] *:after{transition:none!important;animation:none!important}
+
+:root{scrollbar-gutter:stable}
