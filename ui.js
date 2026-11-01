@@ -6,9 +6,69 @@
   const jobs = new WeakMap(), sheets = new WeakMap(), rails = new Map();
   const now = () => window.performance?.now() ?? Date.now();
   const byId = id => document.getElementById(id);
+  const historyKey = '__amiaPanelV35', historyOwner = Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const panelStack = [], closedPanelTokens = new Set();
+  let historySerial = 0, pendingHistoryCleanup = false;
   let toastElement, toastTimer = 0, toastAnimation, toastDrag = null, toastEpoch = 0;
   const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
   const closeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>';
+
+  function cleanHistoryState(state) {
+    if (!state || typeof state !== 'object') return state;
+    const clean = { ...state }; delete clean[historyKey]; return clean;
+  }
+  // A reload starts with closed panels; remove a stale marker without navigation.
+  try { if (history.state?.[historyKey]) history.replaceState(cleanHistoryState(history.state), '', location.href); } catch (_) {}
+  function pushPanelHistory(record) {
+    try {
+      const previous = history.state;
+      history.pushState({ ...(previous && typeof previous === 'object' ? previous : {}), [historyKey]: { owner: historyOwner, token: record.token, panel: record.panel.id } }, '', location.href);
+      record.historyOwned = true;
+    } catch (_) { record.historyOwned = false; }
+  }
+  function panelOpened(panel, { close }) {
+    if (!panel) return;
+    const existing = panelStack.find(record => record.panel === panel);
+    if (existing) { existing.close = close; return; }
+    const record = { panel, close, token: historyOwner + ':' + (++historySerial), historyOwned: false, fromBack: false };
+    panelStack.push(record);
+    // Closing a sheet traverses asynchronously. Do not push onto the entry being removed.
+    if (!pendingHistoryCleanup) pushPanelHistory(record);
+  }
+  function panelClosed(panel) {
+    const index = panelStack.findIndex(record => record.panel === panel);
+    if (index < 0) return;
+    const [record] = panelStack.splice(index, 1);
+    if (!record.fromBack && record.historyOwned) closedPanelTokens.add(record.token);
+    consumeClosedPanelEntry();
+  }
+  function consumeClosedPanelEntry() {
+    const marker = history.state?.[historyKey];
+    if (marker?.owner !== historyOwner || !closedPanelTokens.has(marker.token)) return false;
+    closedPanelTokens.delete(marker.token);
+    pendingHistoryCleanup = true;
+    try { history.back(); return true; } catch (_) { pendingHistoryCleanup = false; return false; }
+  }
+  window.addEventListener('popstate', () => {
+    if (pendingHistoryCleanup) {
+      pendingHistoryCleanup = false;
+      // An older sheet may have finished closing underneath the newer one.
+      if (consumeClosedPanelEntry()) return;
+      for (const record of panelStack) if (!record.historyOwned) pushPanelHistory(record);
+      return;
+    }
+    const current = history.state?.[historyKey];
+    const record = panelStack.at(-1);
+    if (record && record.historyOwned && current?.token !== record.token) {
+      record.fromBack = true;
+      record.close();
+      consumeClosedPanelEntry();
+    } else if (!record && current) {
+      // Forward may revisit a closed sheet marker; it must not trap future Back presses.
+      try { history.replaceState(cleanHistoryState(history.state), '', location.href); } catch (_) {}
+      closedPanelTokens.delete(current.token);
+    }
+  });
 
   function cancelJob(panel) {
     const job = jobs.get(panel);
@@ -87,13 +147,14 @@
     panel.classList.add('shared-sheet');
     let drag = null, suppressClickUntil = 0;
     const release = id => { try { if (grab.hasPointerCapture?.(id)) grab.releasePointerCapture(id); } catch (_) {} };
-    grab.addEventListener('pointerdown', event => {
-      if (!mobile() || event.isPrimary === false || event.button !== 0 || panel.hasAttribute('data-sheet-closing')) return;
+    grab.style.touchAction = 'none';
+    function begin(event) {
+      if (event.isPrimary === false || event.pointerType !== 'touch' && event.button !== 0 || panel.hasAttribute('data-sheet-closing')) return;
       cancelJob(panel); clearSheetStyle(panel);
       drag = { id: event.pointerId, x: event.clientX, y: event.clientY, time: now(), dy: 0, active: false };
       try { grab.setPointerCapture(event.pointerId); } catch (_) {}
-    });
-    grab.addEventListener('pointermove', event => {
+    }
+    function move(event) {
       if (!drag || drag.id !== event.pointerId) return;
       const dy = Math.max(0, event.clientY - drag.y), dx = event.clientX - drag.x;
       if (!drag.active && Math.abs(dx) > dy + 8) { release(drag.id); drag = null; return; }
@@ -101,7 +162,10 @@
       event.preventDefault(); drag.active = true; drag.dy = dy;
       panel.setAttribute('data-sheet-dragging', '');
       panel.style.transform = `translateY(${dy}px)`;
-    }, { passive: false });
+    }
+    grab.addEventListener('pointerdown', begin);
+    // Track on window as well: WebViews can lose capture as a dialog is transformed.
+    window.addEventListener('pointermove', move, { passive: false, capture: true });
     function finish(event, cancelled = false) {
       if (!drag || drag.id !== event.pointerId) return;
       const ended = drag; drag = null; release(ended.id);
@@ -114,9 +178,22 @@
       if (!cancelled && (dy >= threshold || dy > 36 && velocity > .55)) { panel.style.transform = `translateY(${dy}px)`; close(); }
       else springBack(panel);
     }
-    grab.addEventListener('pointerup', event => finish(event));
-    grab.addEventListener('pointercancel', event => finish(event, true));
-    grab.addEventListener('lostpointercapture', event => { if (drag?.id === event.pointerId) finish(event, true); });
+    window.addEventListener('pointerup', event => finish(event), { capture: true });
+    window.addEventListener('pointercancel', event => finish(event, true), { capture: true });
+    window.addEventListener('blur', () => {
+      if (!drag) return;
+      const id = drag.id; drag = null; release(id); springBack(panel);
+    });
+    if (!window.PointerEvent) {
+      const touchEvent = (event, touch) => ({ pointerId: touch.identifier, pointerType: 'touch', isPrimary: true, button: 0, clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => event.preventDefault() });
+      grab.addEventListener('touchstart', event => { if (event.touches.length === 1) begin(touchEvent(event, event.touches[0])); }, { passive: true });
+      window.addEventListener('touchmove', event => {
+        const touch = [...event.changedTouches].find(touch => touch.identifier === drag?.id); if (touch) move(touchEvent(event, touch));
+      }, { passive: false, capture: true });
+      for (const type of ['touchend', 'touchcancel']) window.addEventListener(type, event => {
+        const touch = [...event.changedTouches].find(touch => touch.identifier === drag?.id); if (touch) finish(touchEvent(event, touch), type === 'touchcancel');
+      }, { capture: true });
+    }
     grab.addEventListener('click', event => {
       if (event.detail !== 0 && Date.now() < suppressClickUntil) { event.preventDefault(); event.stopPropagation(); return; }
       close();
@@ -158,9 +235,9 @@
     toastAnimation = element.animate([
       { opacity: 1, transform: from },
       { opacity: 0, transform: `translate(calc(-50% + ${swipeX}px),${swipeY || 14}px) scale(.96)` }
-    ], { duration: 210, easing: 'cubic-bezier(.3,0,.7,.3)', fill: 'both' });
+    ], { duration: 150, easing: 'cubic-bezier(.3,0,.7,.3)', fill: 'both' });
     toastAnimation.finished?.then(finish, () => {});
-    setTimeout(finish, 250);
+    setTimeout(finish, 190);
   }
   function ensureToast() {
     if (toastElement) return toastElement;
@@ -195,7 +272,7 @@
         toastAnimation = element.animate([{ transform: from }, { transform: 'translate(-50%,0) scale(1)' }], { duration: 300, easing: 'cubic-bezier(.2,1.2,.3,1)' });
         toastAnimation.finished?.catch(() => {});
       }
-      toastTimer = setTimeout(() => hideToast(), 4000);
+      toastTimer = setTimeout(() => hideToast(), 1400);
     }
     element.addEventListener('pointerup', event => finish(event));
     element.addEventListener('pointercancel', event => finish(event, true));
@@ -203,7 +280,7 @@
     window.addEventListener('blur', () => { if (toastDrag) finish({ pointerId: toastDrag.id }, true); });
     toastElement = element; return element;
   }
-  function toast(text, { duration = 4000 } = {}) {
+  function toast(text, { duration = 1400 } = {}) {
     if (!text) return;
     const element = ensureToast(); ++toastEpoch;
     clearTimeout(toastTimer); toastAnimation?.cancel(); toastAnimation = null; toastDrag = null;
@@ -215,12 +292,12 @@
     element.hidden = false; element.style.removeProperty('transform'); element.style.removeProperty('opacity');
     if (!reduced() && typeof element.animate === 'function') {
       toastAnimation = element.animate([
-        { opacity: 0, transform: 'translate(-50%,16px) scale(.93)' },
+        { opacity: 0, transform: 'translate(-50%,6px) scale(.98)' },
         { opacity: 1, transform: 'translate(-50%,0) scale(1)' }
-      ], { duration: 360, easing: 'cubic-bezier(.16,1.12,.25,1)' });
+      ], { duration: 180, easing: 'cubic-bezier(.2,.8,.25,1)' });
       toastAnimation.finished?.catch(() => {});
     }
-    toastTimer = setTimeout(() => hideToast(), Math.max(500, duration));
+    toastTimer = setTimeout(() => hideToast(), Math.max(500, Math.min(1800, duration)));
   }
 
   // All ordinary controls use one press/release response; rails keep stable geometry.
@@ -256,13 +333,17 @@
       if (overlay.hidden) return originalClose(...args);
       closeSheet(panel, () => {
         originalClose(...args);
+        panelClosed(panel);
         if (args[0] === false) byId('groupBtn')?.focus();
       });
     };
     mountSheet(panel, { handle: '.handle', close: () => window.closeGroups() });
-    new MutationObserver(() => { if (!overlay.hidden) openSheet(panel); }).observe(overlay, { attributes: true, attributeFilter: ['hidden'] });
+    new MutationObserver(() => {
+      if (!overlay.hidden) { panelOpened(panel, { close: () => window.closeGroups() }); openSheet(panel); }
+      else panelClosed(panel);
+    }).observe(overlay, { attributes: true, attributeFilter: ['hidden'] });
   }
-  window.GlassUI = { toast, hideToast, openSheet, closeSheet, mountSheet, mountSegmented };
+  window.GlassUI = { toast, hideToast, openSheet, closeSheet, mountSheet, mountSegmented, panelOpened, panelClosed };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupGroupSheet, { once: true });
   else setupGroupSheet();
 })();

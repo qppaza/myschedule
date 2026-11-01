@@ -1,7 +1,9 @@
 /* Inline install invitation. Load with defer, after install.css. */
 (() => {
   'use strict';
-  const DISMISSED_KEY = 'sched_install_dismissed_at';
+  // A previous invitation dismissal must not hide the restored v35 invitation.
+  // Keep the legacy key untouched; only the explicit X below writes this key.
+  const DISMISSED_KEY = 'sched_install_dismissed_at_v35';
   const WEEK = 7 * 24 * 60 * 60 * 1000;
   const standalone = window.matchMedia('(display-mode: standalone)');
   const isStandalone = () => standalone.matches || navigator.standalone === true;
@@ -21,7 +23,8 @@
   function wasDismissed() {
     try {
       const at = Number(localStorage.getItem(DISMISSED_KEY));
-      return at > 0 && Date.now() - at < WEEK;
+      const elapsed = Date.now() - at;
+      return Number.isFinite(at) && at > 0 && elapsed >= 0 && elapsed < WEEK;
     } catch (_) { return false; }
   }
 
@@ -77,6 +80,7 @@
   }
 
   function restoreBackground() {
+    window.GlassUI?.panelClosed?.(dialog);
     helpClosing = false;
     document.body.style.overflow = oldOverflow;
     inertElements.forEach(([element, wasInert]) => { element.inert = wasInert; });
@@ -117,6 +121,7 @@
       inertElements.forEach(([element]) => { element.inert = true; });
     }
     if (typeof window.GlassUI?.openSheet === 'function') window.GlassUI.openSheet(dialog);
+    window.GlassUI?.panelOpened?.(dialog, { close: closeHelp });
     dialog.querySelector('[data-close-install]').focus();
   }
 
@@ -130,7 +135,6 @@
       await event.prompt();
       const choice = await event.userChoice;
       if (choice.outcome === 'accepted') { installed = true; closeHelp(); }
-      else dismiss();
     } catch (_) {
       openHelp();
     } finally {

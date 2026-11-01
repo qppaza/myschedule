@@ -124,7 +124,8 @@
 
   let dialog, body, title, eyebrow, back, lastFocus, previousOverflow = '', inertElements = [], view = null, copyText = '', librarySubject = '', query = '';
   let sheetOpen = false, sheetClosing = false;
-  const copyTimers = new WeakMap();
+  let materialRail = null;
+  const copyTimers = new WeakMap(), copyDefaults = new WeakMap();
   const byId = id => document.getElementById(id);
   const topicLabel = topic => topic.number == null ? '' : `Тема ${topic.number}`;
   const visibleTopic = topic => topic.number != null && availableKinds(topic).length;
@@ -182,8 +183,8 @@
       }
     });
   }
-  function open() {
-    if (dialog.open) { byId('studyClose').focus(); return; }
+  function open({ preserveFocus = false } = {}) {
+    if (dialog.open) { if (!preserveFocus) byId('studyClose').focus(); return; }
     sheetOpen = true;
     sheetClosing = false;
     lastFocus = document.activeElement;
@@ -195,6 +196,7 @@
       inertElements = [...document.body.children].filter(element => element !== dialog).map(element => [element, element.inert]);
       inertElements.forEach(([element]) => { element.inert = true; });
     }
+    if (window.GlassUI?.panelOpened) window.GlassUI.panelOpened(dialog, { close });
     if (window.GlassUI?.openSheet) window.GlassUI.openSheet(dialog);
     byId('studyClose').focus();
   }
@@ -213,6 +215,7 @@
       if (dialog.close) dialog.close();
       else dialog.removeAttribute('open');
     }
+    if (window.GlassUI?.panelClosed) window.GlassUI.panelClosed(dialog);
     restore();
   }
   function close() {
@@ -222,13 +225,15 @@
     if (window.GlassUI?.closeSheet) window.GlassUI.closeSheet(dialog, finalizeClose);
     else finalizeClose();
   }
-  function announce(text) {
+  function announce(text, { quiet = false, duration = 1400 } = {}) {
     const status = byId('studyStatus'), toast = window.GlassUI?.toast;
-    status.classList.toggle('sr-only', !!toast);
-    status.textContent = toast ? '' : text;
-    if (toast && text) window.GlassUI.toast(text, { duration: 4000 });
+    const useToast = !!toast && !quiet;
+    status.classList.toggle('sr-only', quiet || !!toast);
+    status.textContent = useToast ? '' : text;
+    if (useToast && text) window.GlassUI.toast(text, { duration });
   }
   function showLibrary(subjectId = '', keepQuery = false) {
+    materialRail = null;
     view = { type: 'library' };
     librarySubject = subjectId;
     if (!keepQuery) query = '';
@@ -276,6 +281,7 @@
     const uniqueTopics = [...new Set(sets.map(set => set.topic))];
     const topic = match.topic || (uniqueTopics.length === 1 ? uniqueTopics[0] : null);
     const available = topic ? availableKinds(topic) : [];
+    const retainedRail = available.length > 1 && materialRail?.subject === subject && materialRail.topic === topic && materialRail.element.parentNode === body ? materialRail : null;
     copyText = `${subject.name}\n${kinds[kind].label}${match.requested ? ' · Тема ' + match.requested : ''}\n${match.fallback ? 'Показана тема целиком; точная привязка подпункта не подтверждена.\n' : ''}\n` + sets.map(set => {
       const heading = set.topic.number != null ? `${topicLabel(set.topic)}. ${set.topic.title}\n` : '';
       const code = set.displayCode || set.session.code;
@@ -290,18 +296,33 @@
       const groupTitle = !topic && item.number != null ? `${topicLabel(item)}. ${item.title}` : displayCode || session.code ? `Занятие ${displayCode || session.code}` : `${kinds[kind].label} ${session.numberWithinTopic || groupIndex + 1}`;
       return `<section class="study-question-group">${!topic || sets.length > 1 ? `<h3>${escape(groupTitle)}</h3>` : ''}<ol class="study-questions">${questionsFor(set).map((question, index) => `<li><span class="study-question-text">${escape(question)}</span><button type="button" class="study-question-copy" data-study-question="${groupIndex}:${index}" aria-label="Скопировать вопрос ${index + 1}" title="Скопировать вопрос ${index + 1}"><span class="study-question-copy-face">${icons.copy}</span></button></li>`).join('')}</ol></section>`;
     }).join('')}</div>` : `<div class="study-missing"><span class="study-subject-icon">${icons.book}</span><h3>Материалов к этой теме пока нет</h3><p>Выберите другую тему в каталоге.</p></div>`;
-    body.innerHTML = heading + switches + notice + missing + questions + `<button type="button" class="study-other-topics" data-study-browse="${escape(subject.id)}">Все темы по предмету ${icons.chevron}</button>`;
-    body.querySelectorAll('[data-study-switch]').forEach(button => button.addEventListener('click', () => {
-      showTopic(subject, topic, button.dataset.studySwitch);
-      body.querySelector(`[data-study-switch="${button.dataset.studySwitch}"]`)?.focus();
-    }));
+    const content = notice + missing + questions + `<button type="button" class="study-other-topics" data-study-browse="${escape(subject.id)}">Все темы по предмету ${icons.chevron}</button>`;
+    if (retainedRail) {
+      // Keep the rail, thumb and focused button connected while replacing content.
+      [...body.childNodes].forEach(child => { if (child !== retainedRail.element) child.remove(); });
+      retainedRail.element.insertAdjacentHTML('beforebegin', heading);
+      retainedRail.element.insertAdjacentHTML('afterend', content);
+    } else {
+      body.innerHTML = heading + switches + content;
+      materialRail = null;
+      body.querySelectorAll('[data-study-switch]').forEach(button => button.addEventListener('click', () => {
+        showTopic(subject, topic, button.dataset.studySwitch);
+        body.querySelector(`[data-study-switch="${button.dataset.studySwitch}"]`)?.focus({ preventScroll: true });
+      }));
+    }
+    const rail = body.querySelector('.study-kind-switch');
+    rail?.querySelectorAll('[data-study-switch]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.studySwitch === kind)));
     body.scrollTop = 0;
     announce('');
-    open();
-    const rail = body.querySelector('.study-kind-switch');
-    if (rail && window.GlassUI?.mountSegmented) {
+    open({ preserveFocus: !!retainedRail });
+    if (rail && !retainedRail) materialRail = { element: rail, subject, topic, api: null };
+    if (rail && !retainedRail && window.GlassUI?.mountSegmented) {
       rail.classList.add('has-glass-segments');
-      window.GlassUI.mountSegmented(rail, { onSelect: button => button.click() });
+      materialRail.api = window.GlassUI.mountSegmented(rail, { onSelect: button => button.click() });
+    } else if (retainedRail?.api?.reflow) {
+      const reflow = () => { if (retainedRail.element.isConnected) retainedRail.api.reflow(true); };
+      if (window.requestAnimationFrame) window.requestAnimationFrame(reflow);
+      else setTimeout(reflow, 0);
     }
   }
   function fallbackCopy(text) {
@@ -354,30 +375,44 @@
     if (!text) return;
     announce('');
     const success = await writeClipboard(text, button);
-    announce(success ? mode === 'ai' ? 'Вопросы и запрос для ИИ скопированы' : 'Вопросы скопированы' : 'Не удалось скопировать. Выделите текст вопросов и скопируйте вручную.');
+    if (!success) { announce('Не удалось скопировать', { duration: 2200 }); return; }
+    const message = mode === 'ai' ? 'Запрос скопирован' : 'Вопросы скопированы';
+    flashCopied(button, message);
+    const android = navigator.userAgentData?.platform === 'Android' || /Android/i.test(navigator.userAgent || '');
+    announce(message, { quiet: android });
+  }
+  function flashCopied(button, message) {
+    if (!button.isConnected) return;
+    if (!copyDefaults.has(button)) copyDefaults.set(button, { label: button.getAttribute('aria-label'), title: button.getAttribute('title') });
+    const original = copyDefaults.get(button);
+    const setIcon = markup => {
+      const face = button.querySelector('.study-question-copy-face');
+      if (face) face.innerHTML = markup;
+      else { const icon = button.querySelector('svg'); if (icon) icon.outerHTML = markup; }
+    };
+    clearTimeout(copyTimers.get(button));
+    button.dataset.copied = 'true';
+    setIcon(icons.check);
+    button.setAttribute('aria-label', message);
+    button.title = message;
+    copyTimers.set(button, setTimeout(() => {
+      if (!button.isConnected) return;
+      delete button.dataset.copied;
+      setIcon(icons.copy);
+      if (original.label == null) button.removeAttribute('aria-label'); else button.setAttribute('aria-label', original.label);
+      if (original.title == null) button.removeAttribute('title'); else button.setAttribute('title', original.title);
+    }, 1800));
   }
   async function copyQuestion(button) {
     const [groupIndex, questionIndex] = button.dataset.studyQuestion.split(':').map(Number);
     const set = view?.match?.sets[groupIndex], question = set && questionsFor(set)[questionIndex];
     if (typeof question !== 'string') return;
-    announce('');
+    announce('', { quiet: true });
     const success = await writeClipboard(question, button);
-    if (!success) { announce('Не удалось скопировать. Выделите текст вопроса и скопируйте вручную.'); return; }
+    if (!success) { announce('Не удалось скопировать', { duration: 2200 }); return; }
     const number = questionIndex + 1;
-    announce(`Вопрос ${number} скопирован`);
-    if (!button.isConnected) return;
-    clearTimeout(copyTimers.get(button));
-    button.dataset.copied = 'true';
-    button.querySelector('.study-question-copy-face').innerHTML = icons.check;
-    button.setAttribute('aria-label', `Вопрос ${number} скопирован`);
-    button.title = `Вопрос ${number} скопирован`;
-    copyTimers.set(button, setTimeout(() => {
-      if (!button.isConnected) return;
-      delete button.dataset.copied;
-      button.querySelector('.study-question-copy-face').innerHTML = icons.copy;
-      button.setAttribute('aria-label', `Скопировать вопрос ${number}`);
-      button.title = `Скопировать вопрос ${number}`;
-    }, 1800));
+    announce(`Вопрос ${number} скопирован`, { quiet: true });
+    flashCopied(button, `Вопрос ${number} скопирован`);
   }
   function initialize() {
     dialog = document.createElement('dialog');

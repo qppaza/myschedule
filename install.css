@@ -1,6 +1,6 @@
 .install-prompt[hidden],.install-dialog [hidden]{display:none!important}
-.install-prompt{container-type:inline-size;margin:16px 0 2px;padding:15px;border-radius:23px;background:var(--control-glass);border:1px solid var(--control-edge);box-shadow:var(--control-shadow);backdrop-filter:var(--liquid-filter);-webkit-backdrop-filter:var(--liquid-filter)}
-.install-prompt-layout{display:grid;grid-template-columns:44px minmax(0,1fr) max-content 44px;grid-template-areas:"icon copy action dismiss";align-items:center;gap:12px;min-width:0}
+.install-prompt{display:block;container-type:inline-size;min-width:0;margin:16px 0 2px;padding:15px;border-radius:23px;background:var(--control-glass);border:1px solid var(--control-edge);box-shadow:var(--control-shadow);backdrop-filter:var(--liquid-filter);-webkit-backdrop-filter:var(--liquid-filter)}
+.install-prompt-layout{display:grid;grid-template-columns:44px minmax(0,1fr) max-content 44px;grid-template-areas:"icon copy action dismiss";align-items:center;gap:12px;min-width:0;min-height:44px}
 .install-app-icon{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:15px;color:var(--control-ink);background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow,var(--control-shadow))}
 .install-app-icon svg{width:26px;height:26px}
 .install-prompt-layout>.install-app-icon{grid-area:icon}

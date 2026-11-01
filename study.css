@@ -71,6 +71,7 @@
 .study-copy-primary,.study-copy-ai{display:flex;align-items:center;justify-content:center;gap:9px;border-radius:23px;padding:0 17px;min-height:46px;color:var(--control-ink);font-size:13px;background:var(--control-glass);border:1px solid var(--control-edge);box-shadow:var(--control-shadow)}
 .study-copy-primary svg,.study-copy-ai svg{width:17px;height:17px;flex:none}
 .study-copy-ai{color:var(--muted);background:transparent;border-color:var(--liquid-edge);box-shadow:none}
+.study-copy-bar [data-copied=true]>svg{color:var(--live,var(--control-ink))}
 .study-question-group+ .study-question-group{margin-top:26px}
 .study-question-group>h3{font-size:15px;font-weight:550;line-height:1.55;color:var(--control-ink);margin:0 0 13px}
 .study-questions{list-style:none;counter-reset:question;margin:0;padding:0;display:grid;gap:9px;user-select:text;-webkit-user-select:text}
