@@ -298,7 +298,7 @@
       const { topic: item, session, displayCode } = set;
       const groupTitle = !topic && item.number != null ? `${topicLabel(item)}. ${item.title}` : displayCode || session.code ? `Занятие ${displayCode || session.code}` : `${kinds[kind].label} ${session.numberWithinTopic || groupIndex + 1}`;
       return `<section class="study-question-group">${!topic || sets.length > 1 ? `<h3>${escape(groupTitle)}</h3>` : ''}<ol class="study-questions">${questionsFor(set).map((question, index) => `<li><span class="study-question-text">${escape(question)}</span><span class="study-question-actions"><button type="button" class="study-question-copy" data-study-question="${groupIndex}:${index}" aria-label="Скопировать вопрос ${index + 1}" title="Скопировать вопрос ${index + 1}"><span class="study-question-copy-face">${icons.copy}</span></button><a class="study-question-search" href="${escape(searchUrl(question, subject, item))}" target="_blank" rel="noopener noreferrer" aria-label="Найти вопрос ${index + 1} в Google — откроется новая вкладка" title="${escape(buildSearchQuery(question, subject, item))}"><span class="study-question-copy-face">${icons.search}</span></a></span></li>`).join('')}</ol></section>`;
-    }).join('')}</div>` : `<div class="study-missing"><span class="study-subject-icon">${icons.book}</span><h3>Материалов к этой теме пока нет</h3><p>Выберите другую тему в каталоге.</p></div>`;
+    }).join('')}</div>` : `<div class="study-missing"><span class="study-subject-icon">${icons.book}</span><h3>Материалов к этой теме пока нет</h3><p>${match.requested ? `В загруженной учебной программе не найдены вопросы к теме ${escape(match.requested)}. ` : ''}Выберите другую тему в каталоге или сверьте материалы с актуальной программой.</p></div>`;
     const content = notice + missing + questions + `<button type="button" class="study-other-topics" data-study-browse="${escape(subject.id)}">Все темы по предмету ${icons.chevron}</button>`;
     if (retainedRail) {
       // Keep the rail, thumb and focused button connected while replacing content.
@@ -309,7 +309,11 @@
       body.innerHTML = heading + switches + content;
       materialRail = null;
       body.querySelectorAll('[data-study-switch]').forEach(button => button.addEventListener('click', () => {
-        showTopic(subject, topic, button.dataset.studySwitch);
+        // A lesson keeps its subtopic when changing kind. Catalog views stay whole-topic.
+        const active = view?.type === 'questions' ? view.match : match;
+        const selected = active.topic ? null : resolve({ subject: subject.name, type: button.dataset.studySwitch, theme: active.requested });
+        if (selected) showQuestions(selected);
+        else showTopic(subject, topic, button.dataset.studySwitch);
         body.querySelector(`[data-study-switch="${button.dataset.studySwitch}"]`)?.focus({ preventScroll: true });
       }));
     }
