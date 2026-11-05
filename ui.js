@@ -19,10 +19,14 @@
   }
   // A reload starts with closed panels; remove a stale marker without navigation.
   try { if (history.state?.[historyKey]) history.replaceState(cleanHistoryState(history.state), '', location.href); } catch (_) {}
+  function markerFor(record) {
+    return { owner: historyOwner, token: record.token, panel: record.panel.id,
+      ...(record.kind === 'step' ? { step: record.key } : {}) };
+  }
   function pushPanelHistory(record) {
     try {
       const previous = history.state;
-      history.pushState({ ...(previous && typeof previous === 'object' ? previous : {}), [historyKey]: { owner: historyOwner, token: record.token, panel: record.panel.id } }, '', location.href);
+      history.pushState({ ...(previous && typeof previous === 'object' ? previous : {}), [historyKey]: markerFor(record) }, '', location.href);
       record.historyOwned = true;
     } catch (_) { record.historyOwned = false; }
   }
@@ -32,33 +36,69 @@
     const current = history.state?.[historyKey];
     if (current?.owner !== historyOwner) return false;
     try {
-      history.replaceState({ ...history.state, [historyKey]: { owner: historyOwner, token: record.token, panel: record.panel.id } }, '', location.href);
+      history.replaceState({ ...history.state, [historyKey]: markerFor(record) }, '', location.href);
+      closedPanelTokens.delete(current.token);
       record.historyOwned = true;
       return true;
     } catch (_) { return false; }
   }
+  function registerNavigation(record) {
+    record.serial = ++historySerial;
+    record.token = historyOwner + ':' + record.serial;
+    record.historyOwned = false;
+    panelStack.push(record);
+    // A same-action handoff can reuse a closing marker until traversal starts.
+    // Later openings wait for the cleanup popstate before acquiring markers.
+    if (!reuseClosingPanelHistory(record) && !pendingHistoryCleanup) pushPanelHistory(record);
+    return record.token;
+  }
   function panelOpened(panel, { close }) {
     if (!panel) return;
-    const existing = panelStack.find(record => record.panel === panel);
-    if (existing) { existing.close = close; return; }
-    const record = { panel, close, token: historyOwner + ':' + (++historySerial), historyOwned: false, fromBack: false };
-    panelStack.push(record);
-    // A new panel opened in the same action can reuse the closing panel's
-    // marker before traversal starts, so even an immediate Back belongs to it.
-    // Once traversal has started, queue the marker until cleanup completes.
-    if (!reuseClosingPanelHistory(record) && !pendingHistoryCleanup) pushPanelHistory(record);
+    const existing = panelStack.find(record => record.kind === 'panel' && record.panel === panel);
+    if (existing) { existing.close = close; return existing.token; }
+    return registerNavigation({ kind: 'panel', panel, close });
+  }
+  // Virtual child screens share their parent panel, but own one Back entry.
+  // Consumers render the previous view in back(); they never traverse history.
+  function navigationStep(panel, key, { back } = {}) {
+    if (!panel || key == null || typeof back !== 'function') return;
+    const parent = panelStack.find(record => record.kind === 'panel' && record.panel === panel);
+    if (!parent) return;
+    const existing = panelStack.find(record => record.kind === 'step' && record.panel === panel && record.key === key);
+    if (existing) { existing.close = back; return existing.token; }
+    return registerNavigation({ kind: 'step', panel, key, close: back });
+  }
+  function removeNavigation(records, fromBack = false) {
+    const removed = new Set(records);
+    for (let index = panelStack.length - 1; index >= 0; index--) {
+      const record = panelStack[index];
+      if (!removed.has(record)) continue;
+      panelStack.splice(index, 1);
+      if (!fromBack && record.historyOwned) closedPanelTokens.add(record.token);
+    }
+  }
+  function navigationStepClosed(panel, key) {
+    const index = panelStack.findIndex(record => record.kind === 'step' && record.panel === panel && record.key === key);
+    if (index < 0) return;
+    // A manual jump to an earlier view removes its later children as well.
+    removeNavigation(panelStack.filter((record, position) => position >= index && record.kind === 'step' && record.panel === panel));
+    consumeClosedPanelEntry();
   }
   function panelClosed(panel) {
-    const index = panelStack.findIndex(record => record.panel === panel);
-    if (index < 0) return;
-    const [record] = panelStack.splice(index, 1);
-    if (!record.fromBack && record.historyOwned) closedPanelTokens.add(record.token);
+    // A parent close clears its virtual children, including markers underneath
+    // another still-open panel. Those markers are consumed when reached.
+    removeNavigation(panelStack.filter(record => record.panel === panel));
     consumeClosedPanelEntry();
   }
   function consumeClosedPanelEntry() {
+    if (pendingHistoryCleanup) return true;
     const marker = history.state?.[historyKey];
-    if (marker?.owner !== historyOwner || !closedPanelTokens.has(marker.token)) return false;
-    closedPanelTokens.delete(marker.token);
+    const staleOwner = marker && marker.owner !== historyOwner;
+    if (!staleOwner && (marker?.owner !== historyOwner || !closedPanelTokens.has(marker.token))) return false;
+    if (staleOwner) {
+      // Older entries can outlive a reload. Strip and skip them when reached.
+      try { history.replaceState(cleanHistoryState(history.state), '', location.href); } catch (_) {}
+    } else closedPanelTokens.delete(marker.token);
     pendingHistoryCleanup = true;
     historyCleanupTimer = setTimeout(() => {
       historyCleanupTimer = 0;
@@ -71,22 +111,29 @@
     if (pendingHistoryCleanup) {
       clearTimeout(historyCleanupTimer); historyCleanupTimer = 0;
       pendingHistoryCleanup = false;
-      // An older sheet may have finished closing underneath the newer one.
       if (consumeClosedPanelEntry()) return;
       for (const record of panelStack) if (!record.historyOwned) pushPanelHistory(record);
       return;
     }
     const current = history.state?.[historyKey];
-    const record = panelStack.at(-1);
-    if (record && record.historyOwned && current?.token !== record.token) {
-      record.fromBack = true;
-      record.close();
+    const owned = current?.owner === historyOwner;
+    const targetIndex = owned ? panelStack.findIndex(record => record.token === current.token) : -1;
+    const serial = owned ? Number(String(current.token).split(':').at(-1)) : 0;
+    const top = panelStack.at(-1);
+    if (owned && targetIndex < 0 && (!top || Number.isFinite(serial) && serial > top.serial)) {
+      // Forward can revisit a child that already closed. Skip that obsolete
+      // marker; do not reopen a view or spend the user's next Back on it.
+      closedPanelTokens.add(current.token);
       consumeClosedPanelEntry();
-    } else if (!record && current) {
-      // Forward may revisit a closed sheet marker; it must not trap future Back presses.
-      try { history.replaceState(cleanHistoryState(history.state), '', location.href); } catch (_) {}
-      closedPanelTokens.delete(current.token);
+      return;
     }
+    const removed = targetIndex >= 0 ? panelStack.slice(targetIndex + 1) :
+      panelStack.filter(record => !owned || !Number.isFinite(serial) || record.serial > serial);
+    // Detach before callbacks: animations can finalize later, while another
+    // Back press must already target the previous screen or underlying panel.
+    removeNavigation(removed, true);
+    for (const record of removed.reverse()) record.close?.();
+    consumeClosedPanelEntry();
   });
 
   function cancelJob(panel) {
@@ -419,7 +466,7 @@
   }
 
   function initialize() { setupGroupSheet(); setupAcademyLink(); }
-  window.GlassUI = { toast, hideToast, openSheet, closeSheet, mountSheet, mountSegmented, panelOpened, panelClosed };
+  window.GlassUI = { toast, hideToast, openSheet, closeSheet, mountSheet, mountSegmented, panelOpened, panelClosed, navigationStep, navigationStepClosed };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
   else initialize();
 })();

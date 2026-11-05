@@ -24,6 +24,12 @@
   };
   const kindOf = type => type === 'practice' ? 'practical' : type;
   const lectureFolder = 'https://drive.google.com/drive/u/0/mobile/folders/1uhkJoeVkKWGur3FtXbzJRynd_Itu3DJM';
+  function driveCard(subject) {
+    const value = String(subject?.lectureFolderUrl || '');
+    const specific = /^https:\/\/drive\.google\.com\/drive\/(?:u\/\d+\/)?(?:mobile\/)?folders\/[A-Za-z0-9_-]+(?:[/?#].*)?$/.test(value);
+    const label = specific ? `Лекции · ${subject.name}` : 'Материалы лекций';
+    return `<a class="study-drive-link" href="${escape(specific ? value : lectureFolder)}" target="_blank" rel="noopener noreferrer" aria-label="${escape(label)} на Google Диске — открыть в новой вкладке"><span class="study-drive-icon">${icons.folder}</span><span class="study-drive-copy"><strong>${escape(label)}</strong><small>Google Диск</small></span>${icons.external}</a>`;
+  }
   const subjectFor = name => {
     const aliases = {
       'гражданское право (часть 2)': 'гражданское право',
@@ -132,11 +138,81 @@
   const byId = id => document.getElementById(id);
   const topicLabel = topic => topic.number == null ? '' : `Тема ${topic.number}`;
   const visibleTopic = topic => topic.number != null && availableKinds(topic).length;
+  let navigationFrames = [], navigationSerial = 0;
+  function screenSnapshot() {
+    let focus = '';
+    const active = document.activeElement;
+    if (body?.contains(active)) {
+      if (active.id) focus = `#${active.id}`;
+      else if (active.dataset?.studyTopic != null) focus = `[data-study-owner="${active.dataset.studyOwner}"][data-study-topic="${active.dataset.studyTopic}"]`;
+      else if (active.dataset?.studyBrowse) focus = `[data-study-browse="${active.dataset.studyBrowse}"]`;
+    }
+    return view?.type === 'questions'
+      ? { type: 'questions', match: view.match, scroll: body.scrollTop, focus }
+      : { type: 'library', subjectId: librarySubject, query, scroll: body?.scrollTop || 0, focus };
+  }
+  const screenKey = screen => screen.type === 'questions'
+    ? `questions:${screen.match.subject.id}:${screen.match.requested}`
+    : `library:${screen.subjectId || ''}:${screen.query || ''}`;
+  function updateBackControl() {
+    back.hidden = !navigationFrames.length && view?.type !== 'questions' && !librarySubject;
+    const previous = navigationFrames.at(-1)?.previous;
+    back.setAttribute('aria-label', previous?.type === 'library' && previous.subjectId ? 'Назад к темам предмета' : 'Назад к дисциплинам');
+  }
+  function renderScreen(screen, restorePosition = false) {
+    if (screen.type === 'questions') showQuestions(screen.match);
+    else { query = screen.query || ''; showLibrary(screen.subjectId || '', true); }
+    updateBackControl();
+    if (restorePosition) {
+      body.scrollTop = screen.scroll || 0;
+      if (screen.focus) body.querySelector(screen.focus)?.focus({ preventScroll: true });
+    }
+  }
+  function restoreFrame(frame) {
+    const index = navigationFrames.indexOf(frame);
+    if (index < 0) return;
+    navigationFrames.splice(index);
+    window.GlassUI?.navigationStepClosed?.(dialog, frame.key);
+    renderScreen(frame.previous, true);
+  }
+  function pushScreen(screen) {
+    const previous = screenSnapshot();
+    if (screenKey(previous) === screenKey(screen)) { renderScreen(screen); return; }
+    const frame = { key: `study-view-${++navigationSerial}`, previous };
+    navigationFrames.push(frame);
+    renderScreen(screen);
+    window.GlassUI?.navigationStep?.(dialog, frame.key, { back: () => restoreFrame(frame) });
+  }
+  function navigateBack() {
+    if (byId('studySubjectList')?.hidden === false) { closeSubjectPicker(true); return; }
+    const frame = navigationFrames.at(-1);
+    if (frame) { restoreFrame(frame); return; }
+    if (view?.type === 'questions') { showLibrary(view.match.subject.id); updateBackControl(); return; }
+    if (librarySubject) { showLibrary(); updateBackControl(); return; }
+    close();
+  }
+  function openLibraryRoot() {
+    if (navigationFrames.length) window.GlassUI?.navigationStepClosed?.(dialog, navigationFrames[0].key);
+    navigationFrames = [];
+    showLibrary(); updateBackControl();
+  }
+  function openSubjectLibrary(subjectId, keepQuery = false) {
+    if (!dialog.open) openLibraryRoot();
+    const frame = navigationFrames.at(-1);
+    if (view?.type === 'questions' && frame?.previous.type === 'library' && frame.previous.subjectId === subjectId) { restoreFrame(frame); return; }
+    pushScreen({ type: 'library', subjectId, query: keepQuery ? query : '' });
+  }
+  function openQuestionView(match) {
+    if (!match) return;
+    if (!dialog.open) { openLibraryRoot(); openSubjectLibrary(match.subject.id); }
+    pushScreen({ type: 'questions', match });
+  }
   function closeSubjectPicker(restoreFocus = false) {
     const list = byId('studySubjectList'), button = byId('studySubject');
     if (!list || list.hidden) return;
     list.hidden = true;
     button.setAttribute('aria-expanded', 'false');
+    window.GlassUI?.navigationStepClosed?.(dialog, 'study-subject-picker');
     if (restoreFocus) button.focus();
   }
   function setupSubjectPicker() {
@@ -153,17 +229,12 @@
       list.hidden = false;
       button.setAttribute('aria-expanded', 'true');
       focusOption(index);
+      window.GlassUI?.navigationStep?.(dialog, 'study-subject-picker', { back: () => closeSubjectPicker(true) });
     }
     function select(option) {
-      librarySubject = option.dataset.studyFilter;
-      const label = subjects.find(subject => subject.id === librarySubject)?.name || 'Все дисциплины';
-      button.querySelector('span').textContent = label;
-      button.setAttribute('aria-label', 'Предмет: ' + label);
-      button.title = label;
-      options.forEach(item => item.setAttribute('aria-selected', String(item === option)));
-      active = options.indexOf(option);
-      closeSubjectPicker(true);
-      drawResults();
+      const subjectId = option.dataset.studyFilter;
+      closeSubjectPicker();
+      openSubjectLibrary(subjectId, true);
     }
     button.addEventListener('click', () => list.hidden ? openPicker() : closeSubjectPicker(true));
     list.addEventListener('click', event => {
@@ -213,6 +284,7 @@
   function finalizeClose() {
     if (!sheetOpen) return;
     sheetOpen = false;
+    navigationFrames = [];
     sheetClosing = false;
     if (dialog.open) {
       if (dialog.close) dialog.close();
@@ -244,12 +316,13 @@
     title.textContent = 'Материалы занятий';
     back.hidden = true;
     const selectedName = subjects.find(subject => subject.id === librarySubject)?.name || 'Все дисциплины';
-    body.innerHTML = `<a class="study-drive-link" href="${lectureFolder}" target="_blank" rel="noopener noreferrer" aria-label="Материалы лекций на Google Диске — открыть в новой вкладке"><span class="study-drive-icon">${icons.folder}</span><span class="study-drive-copy"><strong>Материалы лекций</strong><small>Google Диск</small></span>${icons.external}</a><div class="study-filters"><label class="study-search">${icons.search}<input id="studySearch" type="search" placeholder="Найти тему или вопрос" aria-label="Найти тему или вопрос" value="${escape(query)}" autocomplete="off"></label><div class="study-subject-picker" id="studySubjectPicker"><button type="button" id="studySubject" class="study-subject-trigger" aria-label="Предмет: ${escape(selectedName)}" title="${escape(selectedName)}" aria-haspopup="listbox" aria-expanded="false" aria-controls="studySubjectList"><span>${escape(selectedName)}</span>${icons.chevron}</button><div id="studySubjectList" class="study-subject-menu" role="listbox" aria-label="Предмет" hidden>${[{ id: '', name: 'Все дисциплины' }, ...subjects].map((subject, index) => `<button type="button" role="option" id="studySubjectOption${index}" class="study-subject-option" data-study-filter="${escape(subject.id)}" aria-selected="${subject.id === librarySubject}" tabindex="-1"><span>${escape(subject.name)}</span>${icons.check}</button>`).join('')}</div></div></div><div id="studyResults" class="study-results" aria-live="polite"></div>`;
+    body.innerHTML = `${driveCard(subjects.find(subject => subject.id === librarySubject))}<div class="study-filters"><label class="study-search">${icons.search}<input id="studySearch" type="search" placeholder="Найти тему или вопрос" aria-label="Найти тему или вопрос" value="${escape(query)}" autocomplete="off"></label><div class="study-subject-picker" id="studySubjectPicker"><button type="button" id="studySubject" class="study-subject-trigger" aria-label="Предмет: ${escape(selectedName)}" title="${escape(selectedName)}" aria-haspopup="listbox" aria-expanded="false" aria-controls="studySubjectList"><span>${escape(selectedName)}</span>${icons.chevron}</button><div id="studySubjectList" class="study-subject-menu" role="listbox" aria-label="Предмет" hidden>${[{ id: '', name: 'Все дисциплины' }, ...subjects].map((subject, index) => `<button type="button" role="option" id="studySubjectOption${index}" class="study-subject-option" data-study-filter="${escape(subject.id)}" aria-selected="${subject.id === librarySubject}" tabindex="-1"><span>${escape(subject.name)}</span>${icons.check}</button>`).join('')}</div></div></div><div id="studyResults" class="study-results" aria-live="polite"></div>`;
     byId('studySearch').addEventListener('input', event => { query = event.target.value; drawResults(); });
     setupSubjectPicker();
     drawResults();
     body.scrollTop = 0;
     open();
+    updateBackControl();
   }
   function drawResults() {
     const term = plain(query), chosen = subjects.filter(subject => !librarySubject || subject.id === librarySubject);
@@ -303,10 +376,10 @@
     if (retainedRail) {
       // Keep the rail, thumb and focused button connected while replacing content.
       [...body.childNodes].forEach(child => { if (child !== retainedRail.element) child.remove(); });
-      retainedRail.element.insertAdjacentHTML('beforebegin', heading);
+      retainedRail.element.insertAdjacentHTML('beforebegin', driveCard(subject) + heading);
       retainedRail.element.insertAdjacentHTML('afterend', content);
     } else {
-      body.innerHTML = heading + switches + content;
+      body.innerHTML = driveCard(subject) + heading + switches + content;
       materialRail = null;
       body.querySelectorAll('[data-study-switch]').forEach(button => button.addEventListener('click', () => {
         // A lesson keeps its subtopic when changing kind. Catalog views stay whole-topic.
@@ -322,6 +395,7 @@
     body.scrollTop = 0;
     announce('');
     open({ preserveFocus: !!retainedRail });
+    updateBackControl();
     if (rail && !retainedRail) materialRail = { element: rail, subject, topic, api: null };
     if (rail && !retainedRail && window.GlassUI?.mountSegmented) {
       rail.classList.add('has-glass-segments');
@@ -472,12 +546,11 @@
     document.body.append(dialog);
     body = byId('studyBody'); title = byId('studyTitle'); eyebrow = byId('studyEyebrow'); back = byId('studyBack');
     byId('studyClose').addEventListener('click', close);
-    back.addEventListener('click', () => showLibrary(view.match.subject.id));
+    back.addEventListener('click', navigateBack);
     dialog.addEventListener('close', () => { if (!dialog.open) finalizeClose(); });
     dialog.addEventListener('cancel', event => {
       event.preventDefault();
-      if (byId('studySubjectList')?.hidden === false) { closeSubjectPicker(true); return; }
-      close();
+      navigateBack();
     });
     dialog.addEventListener('click', event => {
       if (event.target !== dialog) return;
@@ -486,7 +559,7 @@
     });
     dialog.addEventListener('keydown', event => {
       if (event.key === 'Escape' && byId('studySubjectList')?.hidden === false) { event.preventDefault(); event.stopPropagation(); closeSubjectPicker(true); return; }
-      if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); navigateBack(); return; }
       if (event.key !== 'Tab') return;
       const controls = [...dialog.querySelectorAll('button:not(:disabled),input,select,summary,a[href]')].filter(element => !element.hidden && element.getClientRects().length);
       const first = controls[0], last = controls[controls.length - 1];
@@ -496,13 +569,15 @@
     document.addEventListener('click', event => {
       if (!event.target.closest('#studySubjectPicker')) closeSubjectPicker();
       const lesson = event.target.closest('[data-study-subject]');
-      if (lesson) { showQuestions(resolve({ subject: lesson.dataset.studySubject, type: lesson.dataset.studyKind, theme: lesson.dataset.studyTheme })); return; }
+      if (lesson) { openQuestionView(resolve({ subject: lesson.dataset.studySubject, type: lesson.dataset.studyKind, theme: lesson.dataset.studyTheme })); return; }
       const browse = event.target.closest('[data-study-browse]');
-      if (browse) { showLibrary(browse.dataset.studyBrowse); return; }
+      if (browse) { openSubjectLibrary(browse.dataset.studyBrowse); return; }
       const topicButton = event.target.closest('[data-study-topic]');
       if (topicButton) {
         const subject = subjects.find(item => item.id === topicButton.dataset.studyOwner);
-        showTopic(subject, subject.topics[+topicButton.dataset.studyTopic]);
+        const topic = subject.topics[+topicButton.dataset.studyTopic];
+        const available = availableKinds(topic), kind = available.includes('seminar') ? 'seminar' : available[0];
+        if (kind) openQuestionView({ subject, kind, sets: sessionsFor(topic, kind).map(session => ({ topic, session })), missing: [], fallback: false, requested: topic.number || '', topic });
         return;
       }
       const copyButton = event.target.closest('[data-study-copy]');
@@ -510,7 +585,7 @@
       const questionButton = event.target.closest('[data-study-question]');
       if (questionButton) copyQuestion(questionButton);
     });
-    byId('studyOpen')?.addEventListener('click', () => showLibrary());
+    byId('studyOpen')?.addEventListener('click', openLibraryRoot);
     const count = byId('studySubjectCount');
     if (count) count.textContent = `${subjects.length} дисциплин · Вопросы и планы занятий`;
     if (window.GlassUI?.mountSheet) {
