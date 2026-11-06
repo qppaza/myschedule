@@ -8,8 +8,10 @@
  --lens-glint:rgba(255,247,255,.34);
  --lens-edge:rgba(250,234,255,.52);
 }
+:root[data-theme=dark]{--muted:#eee6f6}
+:root[data-theme=dark] .teacher{color:var(--muted)}
 :root[data-theme=light]{
- --bg:#ece9f1;--text:#30283b;--muted:#6c6277;--blue:#70538f;--border:rgba(119,96,140,.18);
+ --bg:#ece9f1;--text:#30283b;--muted:#402b4b;--blue:#70538f;--border:rgba(119,96,140,.18);
  --control-ink:#574564;--control-focus:#826295;
  --liquid-fill:linear-gradient(135deg,rgba(255,255,255,.72),rgba(247,242,251,.53) 58%,rgba(243,251,247,.57));
  --liquid-edge:rgba(135,113,151,.24);
