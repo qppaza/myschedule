@@ -24,11 +24,19 @@
   };
   const kindOf = type => type === 'practice' ? 'practical' : type;
   const lectureFolder = 'https://drive.google.com/drive/u/0/mobile/folders/1uhkJoeVkKWGur3FtXbzJRynd_Itu3DJM';
-  function driveCard(subject) {
+  function driveCard(subject, compact = false) {
     const value = String(subject?.lectureFolderUrl || '');
     const specific = /^https:\/\/drive\.google\.com\/drive\/(?:u\/\d+\/)?(?:mobile\/)?folders\/[A-Za-z0-9_-]+(?:[/?#].*)?$/.test(value);
     const label = specific ? `Лекции · ${subject.name}` : 'Материалы лекций';
-    return `<a class="study-drive-link" href="${escape(specific ? value : lectureFolder)}" target="_blank" rel="noopener noreferrer" aria-label="${escape(label)} на Google Диске — открыть в новой вкладке"><span class="study-drive-icon">${icons.folder}</span><span class="study-drive-copy"><strong>${escape(label)}</strong><small>Google Диск</small></span>${icons.external}</a>`;
+    return `<a class="study-drive-link" href="${escape(specific ? value : lectureFolder)}" target="_blank" rel="noopener noreferrer" aria-label="${escape(label)} на Google Диске — открыть в новой вкладке"><span class="study-drive-icon">${icons.folder}</span><span class="study-drive-copy"><strong>${escape(compact ? 'Лекции' : label)}</strong><small>Google Диск</small></span>${icons.external}</a>`;
+  }
+  function resourceCards(subject) {
+    const value = String(subject?.eumkUrl || '');
+    const specific = /^https:\/\/(?:www\.)?amia\.by\/book\/umk\/[A-Za-z0-9_/-]+\/project\/index\.html(?:[?#].*)?$/.test(value);
+    if (subject && !specific) return driveCard(subject, false);
+    const label = subject ? `ЭУМК · ${subject.name}` : 'Каталог ЭУМК академии';
+    const href = subject ? value : 'https://www.amia.by/eumk';
+    return `<div class="study-resource-links">${driveCard(subject, true)}<a class="study-eumk-link" href="${escape(href)}" target="_blank" rel="noopener noreferrer" aria-label="${escape(label)} — открыть в новой вкладке"><span class="study-drive-icon">${icons.book}</span><span class="study-drive-copy"><strong>ЭУМК</strong><small>Академия МВД</small></span>${icons.external}</a></div>`;
   }
   const subjectFor = name => {
     const aliases = {
@@ -138,7 +146,7 @@
   const byId = id => document.getElementById(id);
   const topicLabel = topic => topic.number == null ? '' : `Тема ${topic.number}`;
   const visibleTopic = topic => topic.number != null && availableKinds(topic).length;
-  let navigationFrames = [], navigationSerial = 0;
+  let navigationFrames = [], navigationSerial = 0, entryOrigin = 'library';
   function screenSnapshot() {
     let focus = '';
     const active = document.activeElement;
@@ -157,7 +165,7 @@
   function updateBackControl() {
     back.hidden = !navigationFrames.length && view?.type !== 'questions' && !librarySubject;
     const previous = navigationFrames.at(-1)?.previous;
-    back.setAttribute('aria-label', previous?.type === 'library' && previous.subjectId ? 'Назад к темам предмета' : 'Назад к дисциплинам');
+    back.setAttribute('aria-label', !navigationFrames.length && entryOrigin === 'lesson' ? 'Назад к расписанию' : previous?.type === 'questions' ? 'Назад к вопросам' : previous?.type === 'library' && previous.subjectId ? 'Назад к темам предмета' : 'Назад к дисциплинам');
   }
   function renderScreen(screen, restorePosition = false) {
     if (screen.type === 'questions') showQuestions(screen.match);
@@ -187,6 +195,7 @@
     if (byId('studySubjectList')?.hidden === false) { closeSubjectPicker(true); return; }
     const frame = navigationFrames.at(-1);
     if (frame) { restoreFrame(frame); return; }
+    if (entryOrigin === 'lesson') { close(); return; }
     if (view?.type === 'questions') { showLibrary(view.match.subject.id); updateBackControl(); return; }
     if (librarySubject) { showLibrary(); updateBackControl(); return; }
     close();
@@ -194,6 +203,7 @@
   function openLibraryRoot() {
     if (navigationFrames.length) window.GlassUI?.navigationStepClosed?.(dialog, navigationFrames[0].key);
     navigationFrames = [];
+    entryOrigin = 'library';
     showLibrary(); updateBackControl();
   }
   function openSubjectLibrary(subjectId, keepQuery = false) {
@@ -204,7 +214,12 @@
   }
   function openQuestionView(match) {
     if (!match) return;
-    if (!dialog.open) { openLibraryRoot(); openSubjectLibrary(match.subject.id); }
+    if (!dialog.open) {
+      navigationFrames = [];
+      entryOrigin = 'lesson';
+      showQuestions(match);
+      return;
+    }
     pushScreen({ type: 'questions', match });
   }
   function closeSubjectPicker(restoreFocus = false) {
@@ -316,7 +331,7 @@
     title.textContent = 'Материалы занятий';
     back.hidden = true;
     const selectedName = subjects.find(subject => subject.id === librarySubject)?.name || 'Все дисциплины';
-    body.innerHTML = `${driveCard(subjects.find(subject => subject.id === librarySubject))}<div class="study-filters"><label class="study-search">${icons.search}<input id="studySearch" type="search" placeholder="Найти тему или вопрос" aria-label="Найти тему или вопрос" value="${escape(query)}" autocomplete="off"></label><div class="study-subject-picker" id="studySubjectPicker"><button type="button" id="studySubject" class="study-subject-trigger" aria-label="Предмет: ${escape(selectedName)}" title="${escape(selectedName)}" aria-haspopup="listbox" aria-expanded="false" aria-controls="studySubjectList"><span>${escape(selectedName)}</span>${icons.chevron}</button><div id="studySubjectList" class="study-subject-menu" role="listbox" aria-label="Предмет" hidden>${[{ id: '', name: 'Все дисциплины' }, ...subjects].map((subject, index) => `<button type="button" role="option" id="studySubjectOption${index}" class="study-subject-option" data-study-filter="${escape(subject.id)}" aria-selected="${subject.id === librarySubject}" tabindex="-1"><span>${escape(subject.name)}</span>${icons.check}</button>`).join('')}</div></div></div><div id="studyResults" class="study-results" aria-live="polite"></div>`;
+    body.innerHTML = `${resourceCards(subjects.find(subject => subject.id === librarySubject))}<div class="study-filters"><label class="study-search">${icons.search}<input id="studySearch" type="search" placeholder="Найти тему или вопрос" aria-label="Найти тему или вопрос" value="${escape(query)}" autocomplete="off"></label><div class="study-subject-picker" id="studySubjectPicker"><button type="button" id="studySubject" class="study-subject-trigger" aria-label="Предмет: ${escape(selectedName)}" title="${escape(selectedName)}" aria-haspopup="listbox" aria-expanded="false" aria-controls="studySubjectList"><span>${escape(selectedName)}</span>${icons.chevron}</button><div id="studySubjectList" class="study-subject-menu" role="listbox" aria-label="Предмет" hidden>${[{ id: '', name: 'Все дисциплины' }, ...subjects].map((subject, index) => `<button type="button" role="option" id="studySubjectOption${index}" class="study-subject-option" data-study-filter="${escape(subject.id)}" aria-selected="${subject.id === librarySubject}" tabindex="-1"><span>${escape(subject.name)}</span>${icons.check}</button>`).join('')}</div></div></div><div id="studyResults" class="study-results" aria-live="polite"></div>`;
     byId('studySearch').addEventListener('input', event => { query = event.target.value; drawResults(); });
     setupSubjectPicker();
     drawResults();
@@ -376,10 +391,10 @@
     if (retainedRail) {
       // Keep the rail, thumb and focused button connected while replacing content.
       [...body.childNodes].forEach(child => { if (child !== retainedRail.element) child.remove(); });
-      retainedRail.element.insertAdjacentHTML('beforebegin', driveCard(subject) + heading);
+      retainedRail.element.insertAdjacentHTML('beforebegin', resourceCards(subject) + heading);
       retainedRail.element.insertAdjacentHTML('afterend', content);
     } else {
-      body.innerHTML = driveCard(subject) + heading + switches + content;
+      body.innerHTML = resourceCards(subject) + heading + switches + content;
       materialRail = null;
       body.querySelectorAll('[data-study-switch]').forEach(button => button.addEventListener('click', () => {
         // A lesson keeps its subtopic when changing kind. Catalog views stay whole-topic.
