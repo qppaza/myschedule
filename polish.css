@@ -24,7 +24,7 @@
  --toast-fill:linear-gradient(130deg,rgba(255,252,255,.97),rgba(236,226,245,.97));
  --lens-glint:rgba(255,255,255,.85);--lens-edge:rgba(145,115,167,.42);
 }
-:root[data-theme=light] .ambient:after{background:radial-gradient(ellipse at 3% 13%,#cab4e25e,transparent 54%),radial-gradient(ellipse at 96% 6%,#e6c8bd58,transparent 49%),radial-gradient(ellipse at 91% 89%,#abd5c75b,transparent 52%),radial-gradient(ellipse at 9% 96%,#bccce34d,transparent 45%),#ece9f1}
+:root[data-theme=light] .ambient:after{background:#ece9f1}
 :root[data-theme=light] .teacher{color:#5b5068}
 :root[data-theme=light] :is(.eyebrow,.header-note,.brand-sub,.source-note,.source-note span,footer,footer p,.date-calendar-note,.week-caption){color:var(--muted)}
 :root[data-theme=light] .footer-top a{color:var(--control-ink)}
