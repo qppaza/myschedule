@@ -1,10 +1,10 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v48-continuous-colour-flow';
+const VERSION = 'myschedule-offline-v49-soft-compositor-background';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const REQUIRED = ['ui.js?v=48', 'polish.css?v=48', 'curriculum.js?v=48', 'study.js?v=48', 'study.css?v=48', 'install.js?v=48', 'install.css?v=48'].map(path => new URL(path, BASE).href);
+const REQUIRED = ['ui.js?v=49', 'polish.css?v=49', 'curriculum.js?v=49', 'study.js?v=49', 'study.css?v=49', 'install.js?v=49', 'install.css?v=49'].map(path => new URL(path, BASE).href);
 const ASSETS = [...REQUIRED, ...['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href)];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
