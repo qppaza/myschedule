@@ -128,16 +128,16 @@
       available.forEach(append);
       }
     }
-    return { subject, kind, sets, missing, fallback, requested: lesson.theme || '' };
+    return { subject, kind, sets, missing, fallback, requested: lesson.theme || '', lesson: { ...lesson } };
   }
   function card(lesson) {
     const match = resolve(lesson);
     if (!match) return '';
     const count = match.sets.reduce((sum, set) => sum + questionsFor(set).length, 0);
     const label = count ? kinds[match.kind].action : 'Материалы по предмету';
-    return `<button type="button" class="study-lesson-action" data-study-subject="${escape(lesson.subject)}" data-study-kind="${escape(match.kind)}" data-study-theme="${escape(lesson.theme || '')}" aria-haspopup="dialog">${icons.book}<span>${label}</span>${count ? `<span class="study-count">${count}</span>` : ''}${icons.chevron}</button>`;
+    return `<button type="button" class="study-lesson-action" data-study-subject="${escape(lesson.subject)}" data-study-kind="${escape(match.kind)}" data-study-theme="${escape(lesson.theme || '')}" data-study-date="${escape(lesson.date || '')}" data-study-num="${escape(lesson.num || '')}" data-study-start="${escape(lesson.start ?? '')}" data-study-group="${escape(lesson.group || window.AmiaSchedule?.getGroup?.() || (typeof state !== 'undefined' ? state.group : '') || '')}" aria-haspopup="dialog">${icons.book}<span>${label}</span>${count ? `<span class="study-count">${count}</span>` : ''}${icons.chevron}</button>`;
   }
-  window.StudyMaterials = { card, resolve, buildPrompt: preparationPrompt, buildSearchQuery, searchUrl };
+  window.StudyMaterials = { card, resolve, buildPrompt: preparationPrompt, buildSearchQuery, searchUrl, openLesson: lesson => openQuestionView(resolve(lesson)) };
 
   let dialog, body, title, eyebrow, back, lastFocus, previousOverflow = '', inertElements = [], view = null, copyText = '', librarySubject = '', query = '';
   let sheetOpen = false, sheetClosing = false;
@@ -420,6 +420,7 @@
       if (window.requestAnimationFrame) window.requestAnimationFrame(reflow);
       else setTimeout(reflow, 0);
     }
+    window.AmiaCabinet?.decorateQuestions?.(body, match);
   }
   function fallbackCopy(text) {
     const selection = window.getSelection(), ranges = selection ? Array.from({ length: selection.rangeCount }, (_, index) => selection.getRangeAt(index).cloneRange()) : [];
@@ -584,7 +585,7 @@
     document.addEventListener('click', event => {
       if (!event.target.closest('#studySubjectPicker')) closeSubjectPicker();
       const lesson = event.target.closest('[data-study-subject]');
-      if (lesson) { openQuestionView(resolve({ subject: lesson.dataset.studySubject, type: lesson.dataset.studyKind, theme: lesson.dataset.studyTheme })); return; }
+      if (lesson) { openQuestionView(resolve({ subject: lesson.dataset.studySubject, type: lesson.dataset.studyKind, theme: lesson.dataset.studyTheme, date: lesson.dataset.studyDate || '', num: lesson.dataset.studyNum || '', start: lesson.dataset.studyStart === '' ? null : Number(lesson.dataset.studyStart), group: lesson.dataset.studyGroup || '' })); return; }
       const browse = event.target.closest('[data-study-browse]');
       if (browse) { openSubjectLibrary(browse.dataset.studyBrowse); return; }
       const topicButton = event.target.closest('[data-study-topic]');
