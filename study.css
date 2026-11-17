@@ -129,3 +129,10 @@
 .study-resource-links .study-drive-copy small{font-size:10px;overflow-wrap:normal}
 .study-resource-links>a>svg{width:14px;height:14px}
 @media(max-width:330px){.study-resource-links{gap:8px}.study-resource-links :is(.study-drive-link,.study-eumk-link){padding:10px 8px;gap:6px}.study-resource-links>a>svg{display:none}}
+
+/* Shared timetable typography; headings retain their existing hierarchy. */
+:root :is(.study-dialog,.study-library-entry,.study-lesson-action){font-family:var(--app-font-family,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)}
+:root :is(.study-lesson-action,.study-subject-trigger,.study-subject-option,.study-kind-switch button,.study-copy-primary,.study-copy-ai,.study-other-topics,.study-search input){font-size:var(--app-control-size,14px)}
+:root :is(.study-questions li,.study-subject-row strong,.study-topic-row strong,.study-drive-copy strong,.study-resource-links .study-drive-copy strong){font-size:var(--app-text-size,14px)}
+:root :is(.study-count,.study-dialog-title p,.study-drive-copy small,.study-resource-links .study-drive-copy small,.study-subject-row small,.study-topic-meta,.study-kind-labels span,.study-result-count,.study-notice,.study-questions li:before,.study-status){font-size:var(--app-caption-size,12px)}
+:root .study-dialog :is(button,input,textarea){font-family:inherit}

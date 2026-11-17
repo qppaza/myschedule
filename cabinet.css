@@ -33,3 +33,42 @@
 @media(max-width:700px){.cabinet-dialog.study-dialog{width:100%;max-width:100%;height:94dvh;max-height:94dvh;margin:auto auto 0;border-radius:31px 31px 0 0;padding-bottom:env(safe-area-inset-bottom)}.cabinet-dialog .study-handle{display:block}.cabinet-dialog .study-dialog-top{padding:12px 18px 17px}.cabinet-dialog .study-body{padding:18px 17px calc(26px + env(safe-area-inset-bottom))}.cabinet-dialog .study-dialog-title h2{font-size:23px}.cab-picker.study-dialog{max-width:100%;width:100%;margin:auto auto 0;border-radius:29px 29px 0 0;max-height:85dvh}.cab-picker .study-handle{display:block}.cab-picker .study-dialog-top{padding:12px 19px 16px}.cab-picker .study-body{padding-bottom:calc(25px + env(safe-area-inset-bottom))}.cab-grid{gap:9px}.cab-tile{min-height:118px;padding:15px}.cab-profile{gap:12px}.cab-profile h3{font-size:18px}.cab-profile .cab-avatar{width:52px;height:52px;border-radius:19px}.cab-toolbar .cab-action{font-size:11px;padding:9px 11px}.cab-attendance th:first-child,.cab-attendance td:first-child{min-width:142px;max-width:160px;font-size:11px}.cabinet-entry{gap:9px;padding:11px 12px}.cabinet-entry strong{font-size:12px}.cabinet-entry small{font-size:10px}.cabinet-entry svg{width:20px;height:20px}}
 @media(max-width:360px){.cabinet-dialog .study-body{padding-left:13px;padding-right:13px}.cab-form-grid{grid-template-columns:1fr}.cab-form-grid>.cab-wide{grid-column:auto}.cabinet-entry{padding:10px}.cabinet-entry small{font-size:9px}.cab-segments>button{padding:8px 11px}.cab-stat{padding:12px 10px}.cab-stat strong{font-size:22px}}
 @media(prefers-reduced-motion:reduce){.cab-loading:before{animation:none}.cab-switch:before{transition:none}}
+
+/* The same text and controls as the public timetable. */
+:root :is(.cabinet-dialog,.cab-picker,.cabinet-entry){font-family:var(--app-font-family,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)}
+:root :is(.cabinet-dialog,.cab-picker) .study-body{font-size:var(--app-text-size,14px)}
+:root :is(.cab-action,.cab-picker-trigger,.cab-pick-option,.cab-switch-row,.cab-study-note,.cab-tile strong,.cabinet-entry strong,.cab-card p,.cab-field input,.cab-field textarea){font-size:var(--app-text-size,14px)}
+:root :is(.cab-segments>button,.cab-toolbar .cab-action,.cab-card-actions .cab-action){font-size:var(--app-control-size,14px)}
+:root :is(.cab-note,.cab-card small,.cab-meta,.cab-section-title>span,.cab-stat span,.cab-role,.cab-badge,.cab-field>span,.cab-switch-row small,.cab-pick-option small,.cab-tile small,.cabinet-entry small,.cab-profile p,.cab-view-label,.cab-inline-error){font-size:var(--app-caption-size,12px)}
+:root .cab-taken{font-size:var(--app-caption-size,12px);min-height:33px;padding:6px 10px;line-height:1.35}
+.cab-taken:disabled{opacity:.7;cursor:default}.cab-taken svg{width:14px;height:14px}
+.cab-pick-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:sticky;top:-15px;z-index:2;padding:10px 0 12px;margin-top:-8px;margin-bottom:5px;background:var(--sheet-fill);border-bottom:1px solid var(--liquid-edge)}
+.cab-pick-toolbar .cab-note{grid-column:1/-1;margin:2px 2px 0}.cab-pick-toolbar .cab-action{padding:9px 8px}
+
+/* Date selection shares the public calendar's movable glass lens. */
+:root .cab-picker.cab-calendar-picker{width:min(384px,calc(100% - 24px));height:auto;max-width:384px;max-height:calc(100dvh - 24px);margin:auto;border-radius:28px}
+.cab-calendar-picker .study-body{padding:14px 16px 18px}.cab-calendar-picker .study-dialog-top{padding:17px 18px 15px}.cab-calendar-picker .study-dialog-title h2{font-size:21px}
+.cab-calendar-month{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px}.cab-calendar-month h3{flex:1;font-size:18px;line-height:1.3;font-weight:600;text-align:center;margin:0}.cab-calendar-month .study-round{width:42px;height:42px;min-height:42px}
+.cab-calendar-picker .date-weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:0 0 8px;text-align:center;color:var(--muted);font-size:var(--app-caption-size,12px)}
+:root .cab-date-grid{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0;touch-action:none;cursor:grab}
+:root .cab-date-grid>button{position:relative;z-index:1;min-width:0;height:44px;min-height:44px;margin:0;padding:0;border:1px solid transparent;border-radius:14px;background:transparent;color:var(--text);font-size:16px;line-height:1;font-weight:500;touch-action:none;cursor:inherit;transform:none;font-variant-numeric:tabular-nums}
+:root .cab-date-grid>button[data-offday=true]{color:var(--offday,#d79bb0)}
+:root .cab-date-grid>button[aria-pressed=true]{font-weight:650}
+:root .cab-date-grid.has-date-rail>button[aria-pressed=true]{background:transparent;border-color:transparent;box-shadow:none}
+:root .cab-date-grid>button.is-preview{font-weight:650}
+:root .cab-date-grid>button[data-today=true]:after{content:'';position:absolute;bottom:4px;left:calc(50% - 2px);width:4px;height:4px;border-radius:50%;background:var(--control-ink)}
+.cab-date-grid>.date-thumb{position:absolute;left:0;top:0;z-index:0;min-height:0;pointer-events:none;border-radius:14px;background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow);transition:transform .28s var(--ui-ease),width .2s,height .2s,opacity .2s}
+.cab-date-grid.is-dragging>.date-thumb{transition:none}.cab-calendar-picker .date-calendar-note{font-size:var(--app-caption-size,12px);line-height:1.5;color:var(--muted);margin:13px 0}.cab-calendar-picker .date-calendar-note>span{color:var(--offday,#d79bb0)}.cab-calendar-footer{margin-top:14px}
+
+/* Compact dated lesson cards, with a stable color per assessment kind. */
+.cab-exam-days{display:grid;gap:5px}.cab-exam-day>.cab-section-title{margin-top:17px}.cab-exam-day>.cab-section-title h3{font-size:16px;text-transform:none}
+.cab-exam-card{--assessment-ink:#c8b0ee;display:grid;grid-template-columns:47px minmax(0,1fr);gap:14px;position:relative;padding:15px 14px 15px 17px;overflow:hidden}
+.cab-exam-card:before{content:'';position:absolute;left:0;top:18px;width:3px;height:28px;border-radius:3px;background:var(--assessment-ink)}
+.cab-exam-card[data-exam-type=credit]{--assessment-ink:#dfbd83}.cab-exam-card[data-exam-type=consultation]{--assessment-ink:#aac7f1}
+[data-theme=light] .cab-exam-card[data-exam-type=exam]{--assessment-ink:#8962af}[data-theme=light] .cab-exam-card[data-exam-type=credit]{--assessment-ink:#97703b}[data-theme=light] .cab-exam-card[data-exam-type=consultation]{--assessment-ink:#557fba}
+.cab-exam-time{display:flex;flex-direction:column;gap:4px;padding-top:2px;font-variant-numeric:tabular-nums}.cab-exam-time strong{font-size:17px;font-weight:550;letter-spacing:-.35px}.cab-exam-time>span{font-size:var(--app-caption-size,12px);color:var(--muted)}
+.cab-exam-copy{min-width:0}.cab-exam-head{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-height:25px}.cab-exam-head .cab-exam-kind{color:var(--assessment-ink);border-color:color-mix(in srgb,var(--assessment-ink) 25%,transparent);background:color-mix(in srgb,var(--assessment-ink) 10%,transparent)}
+.cab-exam-copy h3{margin:8px 0 7px;font-size:16px;line-height:1.4;font-weight:550}.cab-exam-details{display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--muted);font-size:var(--app-text-size,14px);line-height:1.5}.cab-exam-details>span{overflow-wrap:anywhere}
+.cab-exam-source{display:grid;place-items:center;flex:none;width:28px;height:28px;min-height:28px;border-radius:50%;color:var(--muted);margin-left:auto;text-decoration:none}.cab-exam-source svg{width:15px;height:15px;transform:rotate(-45deg)}
+.cab-exam-segments{margin-top:10px;font-size:var(--app-caption-size,12px);color:var(--muted)}.cab-exam-segments summary{display:flex;align-items:center;gap:6px;list-style:none;cursor:pointer;min-height:28px}.cab-exam-segments summary::-webkit-details-marker{display:none}.cab-exam-segments summary svg{width:14px;height:14px;transition:transform .2s}.cab-exam-segments[open] summary svg{transform:rotate(180deg)}.cab-exam-segments>div{display:grid;gap:5px;margin-top:7px}.cab-exam-segments>div>span{display:flex;justify-content:space-between;gap:12px}.cab-exam-segments b{font-weight:500;font-variant-numeric:tabular-nums}
+@media(prefers-reduced-motion:reduce){.cab-date-grid>.date-thumb,.cab-exam-segments summary svg{transition:none}}

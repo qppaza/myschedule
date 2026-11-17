@@ -98,7 +98,7 @@
       }
     }
     const whole = verifiedFor(subject, kind, lesson.theme || '');
-    if (whole.length) return { subject, kind, sets: whole, missing, fallback, requested: lesson.theme || '' };
+    if (whole.length) return { subject, kind, sets: whole, missing, fallback, requested: lesson.theme || '', lesson: { ...lesson } };
     // Keep combined sublesson codes intact until their verified lookup runs.
     // Expanding 17-18/2 first would lose the shared 17.2,18.2 mapping.
     for (const segment of String(lesson.theme || '').split(',').map(value => value.trim()).filter(Boolean)) {
@@ -399,7 +399,7 @@
       body.querySelectorAll('[data-study-switch]').forEach(button => button.addEventListener('click', () => {
         // A lesson keeps its subtopic when changing kind. Catalog views stay whole-topic.
         const active = view?.type === 'questions' ? view.match : match;
-        const selected = active.topic ? null : resolve({ subject: subject.name, type: button.dataset.studySwitch, theme: active.requested });
+        const selected = active.topic && !active.lesson ? null : resolve({ ...active.lesson, subject: subject.name, type: button.dataset.studySwitch, theme: active.requested });
         if (selected) showQuestions(selected);
         else showTopic(subject, topic, button.dataset.studySwitch);
         body.querySelector(`[data-study-switch="${button.dataset.studySwitch}"]`)?.focus({ preventScroll: true });
@@ -421,6 +421,9 @@
       else setTimeout(reflow, 0);
     }
     window.AmiaCabinet?.decorateQuestions?.(body, match);
+  }
+  function refreshQuestionClaims(force = false) {
+    if (dialog?.open && view?.type === 'questions' && !document.hidden) window.AmiaCabinet?.decorateQuestions?.(body, view.match, { force });
   }
   function fallbackCopy(text) {
     const selection = window.getSelection(), ranges = selection ? Array.from({ length: selection.rangeCount }, (_, index) => selection.getRangeAt(index).cloneRange()) : [];
@@ -602,6 +605,10 @@
       if (questionButton) copyQuestion(questionButton);
     });
     byId('studyOpen')?.addEventListener('click', openLibraryRoot);
+    document.addEventListener('amia-cabinet-auth', () => refreshQuestionClaims(true));
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshQuestionClaims(true); });
+    window.addEventListener('online', () => refreshQuestionClaims(true));
+    window.setInterval(() => refreshQuestionClaims(), 30000);
     const count = byId('studySubjectCount');
     if (count) count.textContent = `${subjects.length} дисциплин · Вопросы и планы занятий`;
     if (window.GlassUI?.mountSheet) {

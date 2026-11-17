@@ -40,7 +40,8 @@
   const safeRead = key => { try{return localStorage.getItem(key);}catch{return null;} };
   const safeWrite = (key,value) => { try{value===null?localStorage.removeItem(key):localStorage.setItem(key,value);}catch{} };
   let token=safeRead(TOKEN_KEY)||'', me=null, main=null, view={page:'home'}, frames=[], serial=0, renderEpoch=0, loginEpoch=0, contextGroup='', contextPerson='', refreshTimer=0;
-  const groups=new Map(), questionCache=new Map();
+  const groups=new Map(), questionCache=new Map(), claimViews=new WeakMap();
+  let claimSerial=0;
   const apiError = (message,status=0,code='')=>Object.assign(new Error(message),{status,code});
   const schedule=()=>window.AmiaSchedule||{};
   const selectedGroup=()=>contextGroup||me?.person?.group||schedule().getGroup?.()||safeRead('sched_group')||'4502';
@@ -97,25 +98,34 @@
 
   function openChoice(title,items,{selected,multiple=false,onPick,description=''}={}){
     const chosen=new Set(multiple?(Array.isArray(selected)?selected:[]):[String(selected??'')]);
-    const picker=makeSheet(title,`${description?note(escape(description)):''}<div class="cab-pick-list" role="${multiple?'group':'listbox'}" aria-label="${escape(title)}">${items.map(item=>`<button type="button" class="cab-pick-option" data-value="${escape(item.value)}" ${item.disabled?'disabled':''} ${multiple?'aria-pressed':'aria-selected'}="${chosen.has(String(item.value))}"><span>${escape(item.label)}${item.detail?`<small>${escape(item.detail)}</small>`:''}</span>${icons.check}</button>`).join('')}</div>${multiple?`<div class="cab-actions" style="margin-top:16px">${action('Выбрать всё','all')}${action('Готово','done','', 'primary')}</div>`:''}`);
+    const picker=makeSheet(title,`${description?note(escape(description)):''}${multiple?`<div class="cab-pick-toolbar">${action('Выбрать всё','all')}${action('Снять выбор','none')}${note('Выбор сохраняется при закрытии списка.')}</div>`:''}<div class="cab-pick-list" role="${multiple?'group':'listbox'}" aria-label="${escape(title)}">${items.map(item=>`<button type="button" class="cab-pick-option" data-value="${escape(item.value)}" ${item.disabled?'disabled':''} ${multiple?'aria-pressed':'aria-selected'}="${chosen.has(String(item.value))}"><span>${escape(item.label)}${item.detail?`<small>${escape(item.detail)}</small>`:''}</span>${icons.check}</button>`).join('')}</div>`,{onClose:()=>{if(multiple)onPick?.([...chosen]);}});
     picker.body.onclick=e=>{
       const option=e.target.closest('[data-value]');
       if(option&&!option.disabled){const value=option.dataset.value;if(!multiple){picker.close();onPick?.(value);return;}chosen.has(value)?chosen.delete(value):chosen.add(value);option.setAttribute('aria-pressed',String(chosen.has(value)));}
       const command=e.target.closest('[data-cab-action]')?.dataset.cabAction;
       if(command==='all'){items.filter(item=>!item.disabled).forEach(item=>chosen.add(String(item.value)));picker.body.querySelectorAll('[data-value]').forEach(button=>button.setAttribute('aria-pressed',String(chosen.has(button.dataset.value))));}
-      if(command==='done'){picker.close();onPick?.([...chosen]);}
+      if(command==='none'){chosen.clear();picker.body.querySelectorAll('[data-value]').forEach(button=>button.setAttribute('aria-pressed','false'));}
     };
     return picker;
   }
 
   function chooseDate(value,onPick){
     let current=/^\d{4}-\d{2}-\d{2}$/.test(value||'')?value:today(),month=current.slice(0,7)+'-01';
-    const picker=makeSheet('Выберите дату','');
-    function draw(){
-      const weekday=(new Date(month+'T12:00:00Z').getUTCDay()+6)%7,start=shiftDay(month,-weekday);
-      picker.body.innerHTML=`<div class="cab-date-nav"><button type="button" class="study-round" data-month="-1" aria-label="Предыдущий месяц">${icons.back}</button><strong style="flex:1;text-align:center;font-size:15px">${escape(dateLabel(month,{month:'long',year:'numeric'}))}</strong><button type="button" class="study-round" data-month="1" aria-label="Следующий месяц">${icons.next}</button></div><div class="cab-date-grid">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d=>`<span>${d}</span>`).join('')}${Array.from({length:42},(_,i)=>{const date=shiftDay(start,i);return`<button type="button" data-date="${date}" aria-label="${escape(dateLabel(date))}" aria-pressed="${date===current}" data-other="${date.slice(0,7)!==month.slice(0,7)}" data-today="${date===today()}">${+date.slice(8)}</button>`;}).join('')}</div><div class="cab-actions" style="margin-top:14px">${action('Сегодня','today')}${action('Отмена','cancel')}</div>`;
+    let rail=null;
+    const picker=makeSheet('Выберите дату','',{onClose:()=>rail?.destroy?.()});
+    picker.dialog.classList.add('cab-calendar-picker');
+    const choose=date=>{picker.close();onPick(date);};
+    function draw(focusDate){
+      rail?.destroy?.();rail=null;
+      const weekday=(new Date(month+'T12:00:00Z').getUTCDay()+6)%7,count=new Date(Date.UTC(+month.slice(0,4),+month.slice(5,7),0)).getUTCDate(),label=dateLabel(month,{month:'long',year:'numeric'});
+      const offday=date=>window.offdayLabel?.(date)||(new Date(date+'T12:00:00Z').getUTCDay()===0?'Воскресенье — выходной':'');
+      picker.body.innerHTML=`<div class="date-month-nav cab-calendar-month"><button type="button" class="study-round" data-month="-1" aria-label="Предыдущий месяц">${icons.back}</button><h3>${escape(label.charAt(0).toUpperCase()+label.slice(1))}</h3><button type="button" class="study-round" data-month="1" aria-label="Следующий месяц">${icons.next}</button></div><div class="date-weekdays" aria-hidden="true">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(day=>`<span>${day}</span>`).join('')}</div><div class="cab-date-grid date-grid">${'<span aria-hidden="true"></span>'.repeat(weekday)}${Array.from({length:count},(_,i)=>{const date=month.slice(0,8)+String(i+1).padStart(2,'0'),holiday=offday(date);return`<button type="button" data-date="${date}" aria-label="${escape(dateLabel(date,{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}${holiday?', '+escape(holiday):''}" aria-pressed="${date===current}" data-offday="${!!holiday}" data-today="${date===today()}" ${date===today()?'aria-current="date"':''}>${i+1}</button>`;}).join('')}</div><p class="date-calendar-note"><span>Розовым</span> — воскресенья и нерабочие праздники</p><div class="cab-actions cab-calendar-footer">${action('Сегодня','today')}${action('Закрыть','cancel')}</div>`;
+      const grid=picker.body.querySelector('.cab-date-grid');
+      if(window.mountDragRail){grid.classList.add('has-date-rail');rail=window.mountDragRail(grid,{thumbSelector:'.date-thumb',thumbClass:'date-thumb',axis:'both',keyboard:false,commit:button=>choose(button.dataset.date)});}
+      if(focusDate)grid.querySelector(`[data-date="${focusDate}"]`)?.focus({preventScroll:true});
     }
-    picker.body.onclick=e=>{const date=e.target.closest('[data-date]')?.dataset.date;if(date){picker.close();onPick(date);return;}const step=e.target.closest('[data-month]')?.dataset.month;if(step){const d=new Date(month+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+Number(step));month=d.toISOString().slice(0,10);draw();}const command=e.target.closest('[data-cab-action]')?.dataset.cabAction;if(command==='today'){picker.close();onPick(today());}if(command==='cancel')picker.close();};
+    picker.body.onclick=e=>{const date=e.target.closest('[data-date]')?.dataset.date;if(date){choose(date);return;}const step=e.target.closest('[data-month]')?.dataset.month;if(step){const d=new Date(month+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+Number(step));month=d.toISOString().slice(0,10);draw();}const command=e.target.closest('[data-cab-action]')?.dataset.cabAction;if(command==='today')choose(today());if(command==='cancel')picker.close();};
+    picker.body.addEventListener('keydown',e=>{const date=e.target.closest('[data-date]')?.dataset.date,delta={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[e.key];if(!date||delta===undefined)return;e.preventDefault();const next=shiftDay(date,delta);month=next.slice(0,7)+'-01';draw(next);});
     draw();return picker;
   }
 
@@ -230,9 +240,11 @@
     }catch(error){popup?.close();if(epoch===loginEpoch&&region.isConnected)region.innerHTML=`<div class="cab-error"><p>${escape(error.message)}</p>${action('Попробовать снова','begin-login',icons.refresh)}</div>`;}
   }
 
-  async function questionsData(group=selectedGroup(),force=false){
-    const cache=questionCache.get(group);if(cache&&!force&&Date.now()-cache.at<30000)return cache.data;
-    const data=await api('/questions?group='+encodeURIComponent(group));questionCache.set(group,{at:Date.now(),data});return data;
+  async function questionsData(group=selectedGroup(),force=false,context=null){
+    const params=new URLSearchParams({group});
+    if(context){params.set('date',context.date);params.set('subjectId',context.subjectId);params.set('type',context.type);if(context.num!==undefined&&context.num!==null&&context.num!=='')params.set('num',String(context.num));}
+    const key=context?params.toString():group,cache=questionCache.get(key);if(cache&&!force&&Date.now()-cache.at<30000)return cache.data;
+    const data=await api('/questions?'+params);questionCache.set(key,{at:Date.now(),data});return data;
   }
   async function questionsPage(){
     const group=await groupData();let html=controls(group,{person:true});
@@ -309,21 +321,36 @@
     form.elements.scope.addEventListener('change',()=>{form.querySelector('[data-note-subject]').hidden=form.elements.scope.value==='day';form.querySelector('[data-note-date]').hidden=form.elements.scope.value!=='day';});
   }
 
-  function localExams(group){return(schedule().getEvents?.(group)||[]).filter(e=>e.type==='credit'||e.type==='exam').map(e=>({id:'local:'+e.date+':'+e.num,group,subject:e.subject,date:e.date,time:timeLabel(e.start),type:e.type==='credit'?'credit':'exam',confirmed:e.confirmed===true,source:'schedule'}));}
+  const examKinds={credit:'Зачёт',exam:'Экзамен',consultation:'Консультация'};
+  function localExams(group){
+    const merged=new Map();
+    for(const event of schedule().getEvents?.(group)||[]){
+      if(!Object.hasOwn(examKinds,event.type))continue;
+      const key=JSON.stringify([group,event.date,event.subject,event.type,event.teacher||'',event.room||'']);
+      if(!merged.has(key))merged.set(key,{id:'local:'+key,group,subject:event.subject,date:event.date,time:'',endTime:'',type:event.type,teacher:event.teacher||'',room:event.room||'',sourceUrl:event.sourceUrl||'',confirmed:true,source:'schedule',segments:[]});
+      const entry=merged.get(key);entry.confirmed=entry.confirmed&&event.confirmed===true;
+      entry.segments.push({num:String(event.num??''),start:event.start,end:event.end,time:timeLabel(event.start),endTime:Number.isFinite(event.end)?timeLabel(event.end):''});
+    }
+    for(const entry of merged.values()){entry.segments.sort((a,b)=>(a.start??1440)-(b.start??1440));entry.time=entry.segments[0].time;entry.endTime=entry.segments.at(-1).endTime;}
+    return[...merged.values()];
+  }
+  function examSegments(entry){const items=entry.segments||[];if(items.length<2)return'';return`<details class="cab-exam-segments"><summary>${items.length} ${plural(items.length,'пара','пары','пар')} по расписанию ${icons.down}</summary><div>${items.map(item=>`<span>${escape(item.num?item.num+'-я пара':'Занятие')}<b>${escape(item.time||'—')}${item.endTime?'–'+escape(item.endTime):''}</b></span>`).join('')}</div></details>`;}
+  function officialExamLink(value){try{const url=new URL(value);return url.protocol==='https:'&&(url.hostname==='amia.by'||url.hostname.endsWith('.amia.by'))?url.href:'';}catch{return'';}}
   async function examsPage(){
     const group=selectedGroup();let data,offline=false;
     try{data=await api('/exams?group='+encodeURIComponent(group),{auth:!!me});}catch(error){const entries=localExams(group);if(!entries.length&&navigator.onLine!==false)throw error;data={entries,canEdit:false};offline=true;}
-    view.exams=data;const history=view.segment==='history',entries=list(data).filter(e=>history?e.date<today():e.date>=today()).sort((a,b)=>history?b.date.localeCompare(a.date):a.date.localeCompare(b.date));
+    view.exams=data;const history=view.segment==='history',entries=list(data).filter(e=>Object.hasOwn(examKinds,e.type)&&(history?e.date<today():e.date>=today())).sort((a,b)=>(history?b.date.localeCompare(a.date):a.date.localeCompare(b.date))||String(a.time||'').localeCompare(String(b.time||''))||String(a.subject||'').localeCompare(String(b.subject||''),'ru'));
     let html=`<div class="cab-toolbar"><button type="button" class="cab-picker-trigger" data-cab-action="exam-group"><span>Группа ${escape(group)}</span>${icons.down}</button>${data.canEdit?action('Добавить дату','exam-add',icons.plus,'primary'):''}</div>${segments([['upcoming','Ближайшие'],['history','Прошедшие']],history?'history':'upcoming','Контрольные даты')}`;
     if(offline)html+=note('Показаны сохранённые даты из расписания. Дополнительные даты появятся после подключения к кабинету.');
     if(!entries.length)return html+empty(history?'Прошедших дат нет':'Ближайшие даты пока не добавлены','Даты появятся из опубликованного расписания или после добавления старостой. Проверьте официальное расписание.',icons.exam)+note('<a href="https://www.amia.by/obuchayushchimsya/schedule" target="_blank" rel="noopener noreferrer">Официальное расписание академии ↗</a>');
-    return html+`<div class="cab-list">${entries.map(entry=>{const days=Math.ceil((Date.parse(entry.date+'T12:00:00Z')-Date.parse(today()+'T12:00:00Z'))/86400000);return`<article class="cab-card"><div class="cab-card-top"><small>${escape(dateLabel(entry.date,{weekday:'short',day:'numeric',month:'long'}))}${entry.time?' · '+escape(entry.time):''}</small>${badge(entry.type==='exam'?'Экзамен':'Зачёт',entry.confirmed?'':'warning')}</div><h3>${escape(entry.subject||entry.subjectName||entry.subjectId)}</h3><small>${entry.confirmed?(days===0?'Сегодня':days===1?'Завтра':days>1?'Через '+days+' дн.':'Занятие прошло'):'Предварительная дата'} · ${entry.source==='schedule'?'Из расписания':'Добавлено в группе'}</small>${entry.note?`<p>${escape(entry.note)}</p>`:''}${data.canEdit&&entry.source!=='schedule'?`<div class="cab-card-actions">${action('Изменить','exam-edit',icons.note,'',`data-id="${escape(entry.id)}"`)}${action('Удалить','exam-delete','','subtle',`data-id="${escape(entry.id)}"`)}</div>`:''}</article>`;}).join('')}</div>${note('Даты следует сверять с официальным расписанием. Предварительные записи выделены отдельно.')}`;
+    const days=new Map();for(const entry of entries){if(!days.has(entry.date))days.set(entry.date,[]);days.get(entry.date).push(entry);}
+    return html+`<div class="cab-exam-days">${[...days].map(([date,items])=>{const distance=Math.round((Date.parse(date+'T12:00:00Z')-Date.parse(today()+'T12:00:00Z'))/86400000),relative=distance===0?'Сегодня':distance===1?'Завтра':distance>1?'Через '+distance+' дн.':'';return`<section class="cab-exam-day"><div class="cab-section-title"><h3>${escape(dateLabel(date,{weekday:'short',day:'numeric',month:'long'}))}</h3>${relative?`<span>${escape(relative)}</span>`:''}</div><div class="cab-list">${items.map(entry=>{const source=officialExamLink(entry.sourceUrl),teacher=Array.isArray(entry.teacher)?entry.teacher.join(', '):entry.teacher,room=Array.isArray(entry.room)?entry.room.join(' · '):entry.room;return`<article class="cab-card cab-exam-card" data-exam-type="${escape(entry.type)}"><div class="cab-exam-time"><strong>${escape(entry.time||'—')}</strong>${entry.endTime?`<span>${escape(entry.endTime)}</span>`:''}</div><div class="cab-exam-copy"><div class="cab-exam-head">${badge(examKinds[entry.type],'cab-exam-kind')}${!entry.confirmed?badge('Предварительно','warning'):''}${source?`<a class="cab-exam-source" href="${escape(source)}" target="_blank" rel="noopener noreferrer" aria-label="Официальное расписание: ${escape(entry.subject||entry.subjectName||entry.subjectId)}">${icons.next}</a>`:''}</div><h3>${escape(entry.subject||entry.subjectName||entry.subjectId)}</h3>${teacher||room?`<div class="cab-exam-details">${teacher?`<span>${escape(teacher)}</span>`:''}${room?`<span>${escape(room)}</span>`:''}</div>`:''}${entry.note?`<p>${escape(entry.note)}</p>`:''}${examSegments(entry)}${data.canEdit&&entry.source==='manual'?`<div class="cab-card-actions">${action('Изменить','exam-edit',icons.note,'',`data-id="${escape(entry.id)}"`)}${action('Удалить','exam-delete','','subtle',`data-id="${escape(entry.id)}"`)}</div>`:''}</div></article>`;}).join('')}</div></section>`;}).join('')}</div>${note('Даты и аудитории сверяйте с официальным расписанием. Предварительные записи отмечены отдельно.')}`;
   }
   async function editExam(id=''){
     const group=await groupData(),subjects=list(group,'subjects'),entry=list(view.exams).find(e=>String(e.id)===String(id)),subjectId=entry?.subjectId||subjects[0]?.id||'';
-    const picker=makeSheet(entry?'Изменить дату':'Зачёт или экзамен',`<form class="cab-form">${pickerField('subjectId','Учебная дисциплина',subjectId,subjects.find(s=>s.id===subjectId)?.name)}${pickerField('type','Вид',entry?.type||'credit',entry?.type==='exam'?'Экзамен':'Зачёт')}<div class="cab-form-grid">${pickerField('date','Дата',entry?.date||today(),dateLabel(entry?.date||today()))}${field('time','Время',entry?.time||'','ЧЧ:ММ',{maxLength:5})}</div>${field('note','Примечание',entry?.note||'','Необязательно',{maxLength:500})}<div class="cab-switch-row"><span>Дата подтверждена<small>Выключите, если дата пока предварительная</small></span><button type="button" class="cab-switch" aria-pressed="${!!entry?.confirmed}" data-exam-confirmed aria-label="Дата подтверждена"></button><input type="hidden" name="confirmed" value="${entry?.confirmed?'1':'0'}"></div><p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить дату</button></form>`);
+    const picker=makeSheet(entry?'Изменить дату':'Учебная дата',`<form class="cab-form">${pickerField('subjectId','Учебная дисциплина',subjectId,subjects.find(s=>s.id===subjectId)?.name)}${pickerField('type','Вид',entry?.type||'credit',examKinds[entry?.type]||'Зачёт')}<div class="cab-form-grid">${pickerField('date','Дата',entry?.date||today(),dateLabel(entry?.date||today()))}${field('time','Время',entry?.time||'','ЧЧ:ММ',{maxLength:5})}</div>${field('note','Примечание',entry?.note||'','Необязательно',{maxLength:500})}<div class="cab-switch-row"><span>Дата подтверждена<small>Выключите, если дата пока предварительная</small></span><button type="button" class="cab-switch" aria-pressed="${!!entry?.confirmed}" data-exam-confirmed aria-label="Дата подтверждена"></button><input type="hidden" name="confirmed" value="${entry?.confirmed?'1':'0'}"></div><p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить дату</button></form>`);
     const form=submitForm(picker,async form=>{const time=form.elements.time.value.trim();if(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))throw apiError('Укажите время в формате ЧЧ:ММ.');await api('/exams',{method:'POST',body:{...(entry?{id:entry.id,version:entry.version}:{}),group:selectedGroup(),subjectId:form.elements.subjectId.value,date:form.elements.date.value,time,type:form.elements.type.value,confirmed:form.elements.confirmed.value==='1',note:form.elements.note.value}});toast('Дата сохранена');});
-    attachChoice(form,'subjectId','Учебная дисциплина',subjects.map(s=>({value:s.id,label:s.name})));attachChoice(form,'type','Вид контроля',[{value:'credit',label:'Зачёт'},{value:'exam',label:'Экзамен'}]);attachDate(form,'date');
+    attachChoice(form,'subjectId','Учебная дисциплина',subjects.map(s=>({value:s.id,label:s.name})));attachChoice(form,'type','Вид занятия',Object.entries(examKinds).map(([value,label])=>({value,label})));attachDate(form,'date');
     form.querySelector('[data-exam-confirmed]').onclick=e=>{const b=e.currentTarget,value=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(value));form.elements.confirmed.value=value?'1':'0';};
   }
 
@@ -375,28 +402,42 @@
     }catch(error){toast(error.message);}
   }
 
-  async function decorateQuestions(container,match){
-    if(!container||!me)return;
+  async function decorateQuestions(container,match,{force=false}={}){
+    if(!container||!match)return;
+    const epoch=++claimSerial;claimViews.set(container,epoch);
+    if(!me){
+      container.querySelectorAll('.cab-taken,.cab-study-note').forEach(element=>element.remove());
+      if(match.lesson?.date&&['seminar','practice','practical'].includes(match.kind||match.lesson.type)&&!container.querySelector('.cab-claims-hint')){const button=document.createElement('button');button.type='button';button.className='cab-study-note cab-claims-hint';button.textContent='Войти, чтобы увидеть, кто взял вопросы';button.onclick=()=>open('login');container.append(button);}
+      return;
+    }
+    container.querySelector('.cab-claims-hint')?.remove();
     if(!container.querySelector('.cab-study-note')){
       const button=document.createElement('button');button.type='button';button.className='cab-study-note';button.innerHTML=icons.note+'Моя заметка к предмету';button.onclick=()=>editNote('',{scope:'subject',subjectId:match.subject.id});container.append(button);
     }
-    if(!match?.lesson?.date)return;
+    if(!match?.lesson?.date||!['seminar','practice','practical'].includes(match.kind||match.lesson.type))return;
     const lesson=match.lesson,group=lesson.group||schedule().getGroup?.()||selectedGroup();
     if(!me.owner&&group!==me.person.group)return;
+    const rows=[...container.querySelectorAll('.study-questions li')],kind=value=>value==='practical'?'practice':value;
+    const setChip=(row,label,claimed,callback)=>{
+      const text=row.querySelector('.study-question-text');if(!text)return;
+      let chip=row.querySelector('.cab-taken');if(!chip){chip=document.createElement('button');chip.type='button';chip.className='cab-taken';let wrapper=text.parentElement;if(!wrapper.classList.contains('cab-question-with-claim')){wrapper=document.createElement('span');wrapper.className='cab-question-with-claim';text.replaceWith(wrapper);wrapper.append(text);}wrapper.append(chip);}
+      chip.dataset.claimed=String(claimed);chip.innerHTML=icons.user+escape(label);chip.disabled=!callback;chip.onclick=callback||null;return chip;
+    };
+    rows.forEach(row=>{if(!row.querySelector('.cab-taken'))setChip(row,'Проверяем…',false,null);});
     try{
-      const data=await questionsData(group),candidates=list(data,'lessons').filter(l=>l.date===lesson.date&&l.subject===match.subject.name&&String(l.theme||'').replace(/\s/g,'')===String(lesson.theme||match.requested||'').replace(/\s/g,'')&&((lesson.type==='practical'?'practice':lesson.type)===(l.type==='practical'?'practice':l.type)));
+      const data=await questionsData(group,force,{date:lesson.date,num:lesson.num,subjectId:match.subject.id,type:kind(match.kind||lesson.type)}),candidates=list(data,'lessons').filter(l=>l.date===lesson.date&&(l.subjectId===match.subject.id||l.subject===match.subject.name)&&String(l.theme||'').replace(/\s/g,'')===String(lesson.theme||match.requested||'').replace(/\s/g,'')&&kind(match.kind||lesson.type)===kind(l.type));
       const exact=candidates.find(l=>String(l.num)===String(lesson.num))||candidates.find(l=>l.start===lesson.start)||(candidates.length===1?candidates[0]:null);
-      if(!exact||!container.isConnected)return;
-      const rows=[...container.querySelectorAll('.study-questions li')],questions=exact.questions||[];
+      if(!container.isConnected||claimViews.get(container)!==epoch||!me)return;
+      if(!exact){rows.forEach(row=>setChip(row,'Нет данных',false,()=>makeSheet('Выбор вопроса',note('Для этого занятия пока нет синхронизированного опроса.'))));return;}
+      const questions=exact.questions||[];
       rows.forEach((row,index)=>{
-        if(row.querySelector('.cab-taken'))return;const text=row.querySelector('.study-question-text');if(!text)return;
-        const item=questions[index];if(!item||String(item.text).trim()!==text.textContent.trim())return;
-        const people=item.takers||[],claimed=people.length>0||item.claimed===true,unknown=item.claimed===null||item.claimed===undefined&&exact.coverage!=='complete',chip=document.createElement('button');chip.type='button';chip.className='cab-taken';chip.dataset.claimed=String(claimed);chip.innerHTML=icons.user+escape(claimed?'Взяли'+(people.length>1?' · '+people.length:''):(unknown?'Нет данных':'Свободен'));
+        const text=row.querySelector('.study-question-text');if(!text)return;
+        const item=questions[index];if(!item||String(item.text).trim()!==text.textContent.trim()){setChip(row,'Нет данных',false,()=>makeSheet('Выбор вопроса',note('Вопросы опроса и программы пока не совпадают. Сверьте выбранное занятие.')));return;}
+        const people=item.takers||[],claimed=people.length>0||item.claimed===true,unknown=item.claimed===null||item.claimed===undefined&&exact.coverage!=='complete';
+        const chip=setChip(row,claimed?'Взяли'+(people.length>1?' · '+people.length:''):(unknown?'Нет данных':'Свободен'),claimed,()=>{makeSheet('Вопрос '+item.number,`${note(escape(item.text))}${people.length?`<div class="cab-pick-list">${people.map(p=>`<div class="cab-pick-option" style="cursor:default"><span>${escape(shortName(p))}</span></div>`).join('')}</div>`:note(claimed?'Вопрос выбрали в опросе. Имена пока не синхронизированы.':unknown?'Бот пока не сохранил полные данные об этом голосовании.':'Этот вопрос пока никто не выбрал в опросе бота.')}${note('Выбор вопроса меняется в опросе Telegram. Отметка не означает, что участника уже вызвали отвечать.')}`);});
         chip.setAttribute('aria-label',claimed?'Кто взял вопрос '+item.number:'Статус вопроса '+item.number);
-        let wrapper=text.parentElement;if(!wrapper.classList.contains('cab-question-with-claim')){wrapper=document.createElement('span');wrapper.className='cab-question-with-claim';text.replaceWith(wrapper);wrapper.append(text);}wrapper.append(chip);
-        chip.onclick=()=>{makeSheet('Вопрос '+item.number,`${note(escape(item.text))}${people.length?`<div class="cab-pick-list">${people.map(p=>`<div class="cab-pick-option" style="cursor:default"><span>${escape(shortName(p))}</span></div>`).join('')}</div>`:note(claimed?'Вопрос выбрали в опросе. Имена пока не синхронизированы.':unknown?'Бот пока не сохранил полные данные об этом голосовании.':'Этот вопрос пока никто не выбрал в опросе бота.')}${note('Выбор вопроса меняется в опросе Telegram. Отметка не означает, что участника уже вызвали отвечать.')}`);};
       });
-    }catch{}
+    }catch{if(container.isConnected&&claimViews.get(container)===epoch)rows.forEach(row=>setChip(row,'Нет связи',false,()=>makeSheet('Статус вопроса',`${note('Сейчас не удалось получить данные опроса. Подключение проверится после возвращения в расписание.')}<div class="cab-actions">${action('Повторить','retry-claim')}</div>`,{onMount:picker=>{picker.body.querySelector('[data-cab-action=retry-claim]').onclick=()=>{picker.close();decorateQuestions(container,match,{force:true});};}})));}
   }
 
   function initialize(){
