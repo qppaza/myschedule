@@ -376,7 +376,7 @@
   document.addEventListener('pointerdown', event => {
     if (event.isPrimary === false || event.button !== 0) return;
     clearPress(); const element = pressTarget(event.target); if (!element) return;
-    const rail = element.closest('.days,.segmented,.glass-segmented,#dateGrid');
+    const rail = element.closest('.days,.segmented,.glass-segmented,#dateGrid,.cab-date-grid');
     pressed = { element, rail, id: event.pointerId, x: event.clientX, y: event.clientY }; element.setAttribute('data-ui-pressed', 'true'); rail?.classList.add('is-touching');
   }, { capture: true, passive: true });
   document.addEventListener('pointermove', event => {
@@ -385,7 +385,7 @@
   for (const name of ['pointerup', 'pointercancel']) document.addEventListener(name, clearPress, { capture: true, passive: true });
   document.addEventListener('keydown', event => {
     if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
-      const element = pressTarget(event.target); if (element) { clearPress(); const rail = element.closest('.days,.segmented,.glass-segmented,#dateGrid'); pressed = { element, rail }; element.setAttribute('data-ui-pressed', 'true'); rail?.classList.add('is-touching'); }
+      const element = pressTarget(event.target); if (element) { clearPress(); const rail = element.closest('.days,.segmented,.glass-segmented,#dateGrid,.cab-date-grid'); pressed = { element, rail }; element.setAttribute('data-ui-pressed', 'true'); rail?.classList.add('is-touching'); }
     }
   }, true);
   document.addEventListener('keyup', clearPress, true);

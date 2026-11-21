@@ -326,25 +326,50 @@
     const merged=new Map();
     for(const event of schedule().getEvents?.(group)||[]){
       if(!Object.hasOwn(examKinds,event.type))continue;
-      const key=JSON.stringify([group,event.date,event.subject,event.type,event.teacher||'',event.room||'']);
-      if(!merged.has(key))merged.set(key,{id:'local:'+key,group,subject:event.subject,date:event.date,time:'',endTime:'',type:event.type,teacher:event.teacher||'',room:event.room||'',sourceUrl:event.sourceUrl||'',confirmed:true,source:'schedule',segments:[]});
+      const key=JSON.stringify([group,event.date,event.subject,event.type,event.teachers??event.teacher??'',event.rooms??event.room??'']);
+      if(!merged.has(key))merged.set(key,{id:'local:'+key,group,subject:event.subject,date:event.date,time:'',endTime:'',type:event.type,teachers:event.teachers??event.teacher,rooms:event.rooms??event.room,confirmed:true,source:'schedule',segments:[]});
       const entry=merged.get(key);entry.confirmed=entry.confirmed&&event.confirmed===true;
       entry.segments.push({num:String(event.num??''),start:event.start,end:event.end,time:timeLabel(event.start),endTime:Number.isFinite(event.end)?timeLabel(event.end):''});
     }
     for(const entry of merged.values()){entry.segments.sort((a,b)=>(a.start??1440)-(b.start??1440));entry.time=entry.segments[0].time;entry.endTime=entry.segments.at(-1).endTime;}
     return[...merged.values()];
   }
-  function examSegments(entry){const items=entry.segments||[];if(items.length<2)return'';return`<details class="cab-exam-segments"><summary>${items.length} ${plural(items.length,'пара','пары','пар')} по расписанию ${icons.down}</summary><div>${items.map(item=>`<span>${escape(item.num?item.num+'-я пара':'Занятие')}<b>${escape(item.time||'—')}${item.endTime?'–'+escape(item.endTime):''}</b></span>`).join('')}</div></details>`;}
-  function officialExamLink(value){try{const url=new URL(value);return url.protocol==='https:'&&(url.hostname==='amia.by'||url.hostname.endsWith('.amia.by'))?url.href:'';}catch{return'';}}
+  function assessmentCard(entry, canEdit, history) {
+    const subject = entry.subject || entry.subjectName || entry.subjectId;
+    const num = entry.segments?.[0]?.num ?? entry.num;
+    const provisional = entry.type !== 'credit' && !entry.confirmed;
+    const status = provisional ? badge('Предварительно', 'warning')
+      : history ? '<span class="status">✓ Завершено</span>' : '';
+    const actions = canEdit && entry.source === 'manual'
+      ? `<div class="cab-card-actions">
+          ${action('Изменить', 'exam-edit', icons.note, '', `data-id="${escape(entry.id)}"`)}
+          ${action('Удалить', 'exam-delete', '', 'subtle', `data-id="${escape(entry.id)}"`)}
+        </div>` : '';
+    return window.AmiaLessonCard.render({...entry, subject, num}, {
+      label:examKinds[entry.type], status, actions, cabinet:true, state:history?'past':'upcoming'
+    });
+  }
   async function examsPage(){
     const group=selectedGroup();let data,offline=false;
     try{data=await api('/exams?group='+encodeURIComponent(group),{auth:!!me});}catch(error){const entries=localExams(group);if(!entries.length&&navigator.onLine!==false)throw error;data={entries,canEdit:false};offline=true;}
     view.exams=data;const history=view.segment==='history',entries=list(data).filter(e=>Object.hasOwn(examKinds,e.type)&&(history?e.date<today():e.date>=today())).sort((a,b)=>(history?b.date.localeCompare(a.date):a.date.localeCompare(b.date))||String(a.time||'').localeCompare(String(b.time||''))||String(a.subject||'').localeCompare(String(b.subject||''),'ru'));
     let html=`<div class="cab-toolbar"><button type="button" class="cab-picker-trigger" data-cab-action="exam-group"><span>Группа ${escape(group)}</span>${icons.down}</button>${data.canEdit?action('Добавить дату','exam-add',icons.plus,'primary'):''}</div>${segments([['upcoming','Ближайшие'],['history','Прошедшие']],history?'history':'upcoming','Контрольные даты')}`;
     if(offline)html+=note('Показаны сохранённые даты из расписания. Дополнительные даты появятся после подключения к кабинету.');
-    if(!entries.length)return html+empty(history?'Прошедших дат нет':'Ближайшие даты пока не добавлены','Даты появятся из опубликованного расписания или после добавления старостой. Проверьте официальное расписание.',icons.exam)+note('<a href="https://www.amia.by/obuchayushchimsya/schedule" target="_blank" rel="noopener noreferrer">Официальное расписание академии ↗</a>');
-    const days=new Map();for(const entry of entries){if(!days.has(entry.date))days.set(entry.date,[]);days.get(entry.date).push(entry);}
-    return html+`<div class="cab-exam-days">${[...days].map(([date,items])=>{const distance=Math.round((Date.parse(date+'T12:00:00Z')-Date.parse(today()+'T12:00:00Z'))/86400000),relative=distance===0?'Сегодня':distance===1?'Завтра':distance>1?'Через '+distance+' дн.':'';return`<section class="cab-exam-day"><div class="cab-section-title"><h3>${escape(dateLabel(date,{weekday:'short',day:'numeric',month:'long'}))}</h3>${relative?`<span>${escape(relative)}</span>`:''}</div><div class="cab-list">${items.map(entry=>{const source=entry.type==="exam"?"":officialExamLink(entry.sourceUrl),teacher=Array.isArray(entry.teacher)?entry.teacher.join(', '):entry.teacher,room=Array.isArray(entry.room)?entry.room.join(' · '):entry.room;return`<article class="cab-card cab-exam-card" data-exam-type="${escape(entry.type)}"><div class="cab-exam-time"><strong>${escape(entry.time||'—')}</strong>${entry.endTime?`<span>${escape(entry.endTime)}</span>`:''}</div><div class="cab-exam-copy"><div class="cab-exam-head">${badge(examKinds[entry.type],'cab-exam-kind')}${entry.type!=='credit'&&!entry.confirmed?badge('Предварительно','warning'):''}${source?`<a class="cab-exam-source" href="${escape(source)}" target="_blank" rel="noopener noreferrer" aria-label="Официальное расписание: ${escape(entry.subject||entry.subjectName||entry.subjectId)}">${icons.next}</a>`:''}</div><h3>${escape(entry.subject||entry.subjectName||entry.subjectId)}</h3>${teacher||room?`<div class="cab-exam-details">${teacher?`<span>${escape(teacher)}</span>`:''}${room?`<span>${escape(room)}</span>`:''}</div>`:''}${entry.note?`<p>${escape(entry.note)}</p>`:''}${examSegments(entry)}${data.canEdit&&entry.source==='manual'?`<div class="cab-card-actions">${action('Изменить','exam-edit',icons.note,'',`data-id="${escape(entry.id)}"`)}${action('Удалить','exam-delete','','subtle',`data-id="${escape(entry.id)}"`)}</div>`:''}</div></article>`;}).join('')}</div></section>`;}).join('')}</div>${note('Даты и аудитории могут меняться.')}`;
+    if(!entries.length)return html+empty(history?'Прошедших дат нет':'Ближайшие даты пока не добавлены','Даты появятся из опубликованного расписания или после добавления старостой.',icons.exam);
+    const days=new Map();
+    for(const entry of entries){
+      if(!days.has(entry.date))days.set(entry.date,[]);
+      days.get(entry.date).push(entry);
+    }
+    const cards=[...days].map(([date,items])=>{
+      const distance=Math.round((Date.parse(date+'T12:00:00Z')-Date.parse(today()+'T12:00:00Z'))/86400000);
+      const relative=distance===0?'Сегодня':distance===1?'Завтра':distance>1?'Через '+distance+' дн.':'';
+      return `<section class="cab-exam-day">
+        <div class="cab-section-title"><h3>${escape(dateLabel(date,{weekday:'short',day:'numeric',month:'long'}))}</h3>${relative?`<span>${escape(relative)}</span>`:''}</div>
+        <div class="lesson-list">${items.map(entry=>assessmentCard(entry,data.canEdit,history)).join('')}</div>
+      </section>`;
+    });
+    return html+`<div class="cab-exam-days">${cards.join('')}</div>${note('Даты и аудитории могут меняться.')}`;
   }
   async function editExam(id=''){
     const group=await groupData(),subjects=list(group,'subjects'),entry=list(view.exams).find(e=>String(e.id)===String(id)),subjectId=entry?.subjectId||subjects[0]?.id||'';
