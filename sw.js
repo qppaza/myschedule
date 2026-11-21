@@ -1,10 +1,10 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v53-liquid-glass.3';
+const VERSION = 'myschedule-offline-v54-clear-controls.1';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const REQUIRED = ['ui.js?v=52', 'polish.css?v=53.3', 'liquid-glass.js?v=53.3', 'curriculum.js?v=52', 'study.js?v=52', 'study.css?v=52', 'install.js?v=52', 'install.css?v=52', 'cabinet.js?v=52', 'cabinet.css?v=52'].map(path => new URL(path, BASE).href);
+const REQUIRED = ['ui.js?v=52', 'polish.css?v=54.1', 'curriculum.js?v=52', 'study.js?v=52', 'study.css?v=52', 'install.js?v=52', 'install.css?v=52', 'cabinet.js?v=54', 'cabinet.css?v=52'].map(path => new URL(path, BASE).href);
 const ASSETS = [...REQUIRED, ...['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href)];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

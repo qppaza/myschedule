@@ -155,110 +155,126 @@ body,button,input,textarea,select{font-family:var(--app-font-family)}
 :root[data-theme=light] .assessment-card[data-assessment=credit]{--color:#9a6b36!important}
 :root[data-theme=light] .assessment-card[data-assessment=consultation]{--color:#537ca0!important}
 
-/* Optical glass: two refracting surfaces, with matching CSS glass elsewhere. */
+/* Calm content surfaces hold the timetable. The moving selection is the lens. */
 :root{
- --glass-wash:radial-gradient(ellipse at 0% 0%,#efd8ff20,transparent 55%),radial-gradient(ellipse at 100% 100%,#a9e9d515,transparent 55%);
- --glass-plate:linear-gradient(145deg,#fff5fc17,#ecdafc0b 49%,#dcf5eb13);
- --glass-card:linear-gradient(145deg,#fff5fc14,#eee3fa0a 67%,#dafff10e);
- --glass-plate-edge:#f7e5ff3a;
- --glass-plate-shadow:inset 0 1px 1px #fff3,inset 0 -1px 1px #c9f0de1d,0 12px 34px #100b1826;
- --glass-sheet:radial-gradient(ellipse at 0% 0%,#c3a0ec28,transparent 51%),radial-gradient(ellipse at 112% 103%,#77cab324,transparent 55%),linear-gradient(155deg,#38313ded,#2f2936f5 59%,#2a3534f2);
- --glass-thumb-light:linear-gradient(180deg,#fff7 0%,#fff1 24%,transparent 53%,#d3f7e721 100%);
- --glass-thumb-shadow:inset 0 1px 2px #fff6,inset 0 -1px 2px #e1fdf03d,0 4px 13px #0e0b1c29;
- --glass-thumb-outline:linear-gradient(145deg,#fff9,#f5e1ff2b 42%,#d7ffeb30 62%,#e1ffed78);
- --ambient-bloom:radial-gradient(ellipse at 26% 47%,#5756a270,transparent 52%),radial-gradient(ellipse at 77% 62%,#39897465,transparent 54%),radial-gradient(ellipse at 50% 8%,#b2759158,transparent 45%);
+ --surface-glass:linear-gradient(145deg,#fbf0ff12,#e8dff509 60%,#b7f4dc0d);
+ --surface-line:#f0e8fc29;
+ --surface-depth:inset 0 1px 0 #fff1,0 10px 28px #110b2126;
+ --surface-sheet:linear-gradient(145deg,#383141f5,#302b38f7 64%,#2b3535f5);
+ --glass-button:radial-gradient(ellipse at 20% -18%,#f5e8ff26,transparent 74%),linear-gradient(156deg,#fffcff0a,#261f3714 69%,#b5f3e014);
+ --glass-button-line:#faf1ff33;
+ --glass-button-depth:inset 0 1px 0 #fff2,0 4px 12px #130d211a;
+ --selector-tray:#130e201a;
+ --selector-fill:radial-gradient(ellipse at 14% -18%,#f9edff43,transparent 69%),linear-gradient(148deg,#e9dcff15,#e6deff12 52%,#c2f0db2c);
+ --selector-line:#f5eaff4d;
+ --selector-depth:inset 0 1px 0 #fff4,inset 0 -1px 0 #defff126,0 3px 10px #0a061f33;
+ --selector-glint:radial-gradient(ellipse at 26% 0%,#fff7ff43,transparent 66%),radial-gradient(ellipse at 95% 100%,#c7f8e82b,transparent 69%);
+ --ambient-bloom:radial-gradient(ellipse at 26% 47%,#6157a94f,transparent 52%),radial-gradient(ellipse at 77% 62%,#39897441,transparent 54%),radial-gradient(ellipse at 50% 8%,#a9749140,transparent 45%);
 }
 :root[data-theme=light]{
- --glass-wash:radial-gradient(ellipse at 0% 0%,#ffffffe0,transparent 55%),radial-gradient(ellipse at 100% 100%,#d8efe481,transparent 55%);
- --glass-plate:linear-gradient(145deg,#ffffff69,#f6eef93a 55%,#e7f3ef52);
- --glass-card:linear-gradient(145deg,#ffffff96,#f9f3fb79 60%,#ecf5f073);
- --glass-plate-edge:#9987b055;
- --glass-plate-shadow:inset 0 1px 1px #fff,inset 0 -1px 1px #b2bdb736,0 10px 28px #50366213;
- --glass-sheet:radial-gradient(ellipse at 0% 0%,#ffffffd9,transparent 52%),radial-gradient(ellipse at 106% 104%,#c6e9dc80,transparent 58%),linear-gradient(150deg,#faf4fbee,#e8dff0f5 60%,#edf1edf5);
- --glass-thumb-light:linear-gradient(180deg,#fffc 0%,#fff6 21%,transparent 56%,#f8fffbb0 100%);
- --glass-thumb-shadow:inset 0 1px 2px #fff,inset 0 -1px 2px #fff9,0 4px 12px #694e7e2b;
- --glass-thumb-outline:linear-gradient(145deg,#fff,#fff6 40%,#9f8ca650 67%,#fff9);
- --ambient-bloom:radial-gradient(ellipse at 26% 47%,#aeaae675,transparent 52%),radial-gradient(ellipse at 77% 62%,#96d0c171,transparent 54%),radial-gradient(ellipse at 50% 8%,#eec0c852,transparent 45%);
+ --surface-glass:linear-gradient(145deg,#ffffff75,#f5eff948 60%,#edf8f252);
+ --surface-line:#8f809c29;
+ --surface-depth:inset 0 1px 0 #fff9,0 9px 25px #46324f12;
+ --surface-sheet:linear-gradient(145deg,#faf6fdfb,#eae5f0fa 64%,#edf4effa);
+ --glass-button:radial-gradient(ellipse at 16% -20%,#fffffff0,transparent 76%),linear-gradient(150deg,#f7f2fcad,#f8f5f9a1 61%,#e8f2edc1);
+ --glass-button-line:#9786aa45;
+ --glass-button-depth:inset 0 1px 0 #fffc,0 3px 10px #4a355315;
+ --selector-tray:#ac9db423;
+ --selector-fill:radial-gradient(ellipse at 16% -25%,#fff,transparent 72%),linear-gradient(145deg,#fffcfff4,#efe7f8bf 60%,#eaf6eff0);
+ --selector-line:#9986aa66;
+ --selector-depth:inset 0 1px 0 #fffe,inset 0 -1px 0 #fff9,0 3px 10px #49345f21;
+ --selector-glint:radial-gradient(ellipse at 23% 0%,#fffc,transparent 67%),radial-gradient(ellipse at 98% 100%,#fff9,transparent 67%);
+ --ambient-bloom:radial-gradient(ellipse at 26% 47%,#aeaae65e,transparent 52%),radial-gradient(ellipse at 77% 62%,#96d0c154,transparent 54%),radial-gradient(ellipse at 50% 8%,#eec0c841,transparent 45%);
 }
 
-/* Paint the colour field once. The compositor moves the parent and blends
-   the extra tint independently, with no extra animation loop in JS. */
 .ambient-bloom{
  position:absolute;
  inset:0;
  z-index:1;
  background:var(--ambient-bloom);
  pointer-events:none;
- opacity:.42;
+ opacity:.38;
  animation:ambient-tint-cycle 44s ease-in-out -9s infinite;
 }
 .ambient[data-paused] .ambient-bloom{animation-play-state:paused}
 @keyframes ambient-tint-cycle{
  0%,100%{opacity:.12}
- 44%{opacity:.87}
- 72%{opacity:.38}
+ 44%{opacity:.8}
+ 72%{opacity:.35}
 }
-
-.liquid-optics{
- position:absolute;
- inset:0;
- display:block;
- width:100%;
- height:100%;
- opacity:0;
- pointer-events:none;
- transition:opacity .24s ease-out;
-}
-.liquid-optics[data-active]{opacity:1}
-.ambient[data-paused]>.liquid-optics{opacity:0;transition:none}
 
 :root[data-theme] :is(#summaryCard,#weekCalendar){
- background:var(--glass-wash),var(--glass-plate);
- border-color:var(--glass-plate-edge);
- box-shadow:var(--glass-plate-shadow);
- backdrop-filter:none;
- -webkit-backdrop-filter:none;
-}
-:root[data-theme] .lesson:not(.past):not(.current),
-:root[data-theme] :is(.study-library-entry,.install-prompt,.cabinet-entry){
- background:var(--glass-card);
- border-color:var(--glass-plate-edge);
- box-shadow:inset 0 1px 0 #fff2,0 5px 20px #110d1910;
- backdrop-filter:none;
- -webkit-backdrop-filter:none;
+ background:var(--surface-glass);
+ border-color:var(--surface-line);
+ box-shadow:var(--surface-depth);
 }
 :root[data-theme] :is(.study-dialog,.install-dialog,.academy-dialog,#datePopover.date-popover),
 :root[data-theme] #groupOverlay #groupDialog{
- background:var(--glass-sheet);
- border-color:var(--glass-plate-edge);
- box-shadow:var(--glass-plate-shadow),0 20px 62px #140e282b;
+ background:var(--surface-sheet);
+ border-color:var(--glass-button-line);
+ box-shadow:var(--surface-depth),0 18px 58px #140e2830;
+}
+:root[data-theme] :is(#groupBtn,#themeToggle.theme-toggle,#todayBtn,#dateOpen,#prev,#next){
+ background:var(--glass-button);
+ border-color:var(--glass-button-line);
+ box-shadow:var(--glass-button-depth);
+}
+:root[data-theme] #groupBtn .group-chevron{
+ background:#ffffff12;
+ border-color:var(--surface-line);
+ box-shadow:inset 0 1px 0 #fff1;
+}
+:root[data-theme] :is(.toolbar>.segmented,.glass-segmented){
+ background:var(--selector-tray);
+ border-color:var(--surface-line);
+ box-shadow:inset 0 1px 2px #130e2012;
 }
 
-:root[data-theme] :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){
- background:var(--glass-thumb-light),var(--liquid-selected);
- box-shadow:var(--glass-thumb-shadow);
+:root[data-theme] :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb),
+:root[data-theme] .segmented>#segThumb{
+ background:var(--selector-fill);
+ border-color:var(--selector-line);
+ box-shadow:var(--selector-depth);
 }
+/* Keep the contour thin. The directional reflection is inside the lens,
+   so it follows the selection without covering neighbours. */
 :root[data-theme] :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb)::before{
- background:var(--glass-thumb-outline);
- box-shadow:none;
- padding:1px;
- -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
- -webkit-mask-composite:xor;
- mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
- mask-composite:exclude;
- opacity:1;
+ background:var(--selector-glint);
+ opacity:.34;
 }
-:root[data-theme] :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){
- box-shadow:var(--glass-thumb-shadow),0 3px 12px #9d7fc52e;
+:root[data-theme] :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb)::after{
+ inset:1px;
+ border:0;
+ box-shadow:none;
+ background:var(--selector-glint);
+ transform:scale(.94);
+}
+:root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){
+ box-shadow:var(--selector-depth);
+}
+:root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb)::after{
+ opacity:.72;
 }
 
+/* Limit native backdrop sampling to the two small resting selectors. */
+@supports (backdrop-filter:blur(3px)) or (-webkit-backdrop-filter:blur(3px)){
+ :root[data-theme] :is(.segmented:not(.is-dragging)>#segThumb,#weekCalendar .days:not(.is-dragging)>.day-thumb){
+  -webkit-backdrop-filter:blur(3px) saturate(135%)!important;
+  backdrop-filter:blur(3px) saturate(135%)!important;
+ }
+}
 @media(prefers-reduced-transparency:reduce){
- .liquid-optics{display:none}
  :root[data-theme] :is(.study-dialog,.install-dialog,.academy-dialog,#datePopover.date-popover),
  :root[data-theme] #groupOverlay #groupDialog{background:var(--overlay-solid)}
  :root[data-theme] :is(#summaryCard,#weekCalendar){background:var(--liquid-solid)}
+ :root[data-theme] :is(.segmented:not(.is-dragging)>#segThumb,#weekCalendar .days:not(.is-dragging)>.day-thumb){
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+ }
+ :root[data-theme] :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb),
+ :root[data-theme] .segmented>#segThumb{background:var(--liquid-solid)}
 }
 @media(prefers-reduced-motion:reduce){
- :root[data-theme] .ambient-wash{animation:none!important}
- .ambient-bloom{animation:none!important}
+ :root[data-theme] .ambient-wash,.ambient-bloom{animation:none!important}
+ :root[data-theme] :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb)::after{transition:none}
 }
