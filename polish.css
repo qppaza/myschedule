@@ -154,3 +154,111 @@ body,button,input,textarea,select{font-family:var(--app-font-family)}
 :root[data-theme=light] .assessment-card[data-assessment=exam]{--color:#84619f!important}
 :root[data-theme=light] .assessment-card[data-assessment=credit]{--color:#9a6b36!important}
 :root[data-theme=light] .assessment-card[data-assessment=consultation]{--color:#537ca0!important}
+
+/* Optical glass: two refracting surfaces, with matching CSS glass elsewhere. */
+:root{
+ --glass-wash:radial-gradient(ellipse at 0% 0%,#efd8ff20,transparent 55%),radial-gradient(ellipse at 100% 100%,#a9e9d515,transparent 55%);
+ --glass-plate:linear-gradient(145deg,#fff5fc17,#ecdafc0b 49%,#dcf5eb13);
+ --glass-card:linear-gradient(145deg,#fff5fc14,#eee3fa0a 67%,#dafff10e);
+ --glass-plate-edge:#f7e5ff3a;
+ --glass-plate-shadow:inset 0 1px 1px #fff3,inset 0 -1px 1px #c9f0de1d,0 12px 34px #100b1826;
+ --glass-sheet:radial-gradient(ellipse at 0% 0%,#c3a0ec28,transparent 51%),radial-gradient(ellipse at 112% 103%,#77cab324,transparent 55%),linear-gradient(155deg,#38313ded,#2f2936f5 59%,#2a3534f2);
+ --glass-thumb-light:linear-gradient(180deg,#fff7 0%,#fff1 24%,transparent 53%,#d3f7e721 100%);
+ --glass-thumb-shadow:inset 0 1px 2px #fff6,inset 0 -1px 2px #e1fdf03d,0 4px 13px #0e0b1c29;
+ --glass-thumb-outline:linear-gradient(145deg,#fff9,#f5e1ff2b 42%,#d7ffeb30 62%,#e1ffed78);
+ --ambient-bloom:radial-gradient(ellipse at 26% 47%,#5756a270,transparent 52%),radial-gradient(ellipse at 77% 62%,#39897465,transparent 54%),radial-gradient(ellipse at 50% 8%,#b2759158,transparent 45%);
+}
+:root[data-theme=light]{
+ --glass-wash:radial-gradient(ellipse at 0% 0%,#ffffffe0,transparent 55%),radial-gradient(ellipse at 100% 100%,#d8efe481,transparent 55%);
+ --glass-plate:linear-gradient(145deg,#ffffff69,#f6eef93a 55%,#e7f3ef52);
+ --glass-card:linear-gradient(145deg,#ffffff96,#f9f3fb79 60%,#ecf5f073);
+ --glass-plate-edge:#9987b055;
+ --glass-plate-shadow:inset 0 1px 1px #fff,inset 0 -1px 1px #b2bdb736,0 10px 28px #50366213;
+ --glass-sheet:radial-gradient(ellipse at 0% 0%,#ffffffd9,transparent 52%),radial-gradient(ellipse at 106% 104%,#c6e9dc80,transparent 58%),linear-gradient(150deg,#faf4fbee,#e8dff0f5 60%,#edf1edf5);
+ --glass-thumb-light:linear-gradient(180deg,#fffc 0%,#fff6 21%,transparent 56%,#f8fffbb0 100%);
+ --glass-thumb-shadow:inset 0 1px 2px #fff,inset 0 -1px 2px #fff9,0 4px 12px #694e7e2b;
+ --glass-thumb-outline:linear-gradient(145deg,#fff,#fff6 40%,#9f8ca650 67%,#fff9);
+ --ambient-bloom:radial-gradient(ellipse at 26% 47%,#aeaae675,transparent 52%),radial-gradient(ellipse at 77% 62%,#96d0c171,transparent 54%),radial-gradient(ellipse at 50% 8%,#eec0c852,transparent 45%);
+}
+
+/* Paint the colour field once. The compositor moves the parent and blends
+   the extra tint independently, with no extra animation loop in JS. */
+.ambient-bloom{
+ position:absolute;
+ inset:0;
+ z-index:1;
+ background:var(--ambient-bloom);
+ pointer-events:none;
+ opacity:.42;
+ animation:ambient-tint-cycle 44s ease-in-out -9s infinite;
+}
+.ambient[data-paused] .ambient-bloom{animation-play-state:paused}
+@keyframes ambient-tint-cycle{
+ 0%,100%{opacity:.12}
+ 44%{opacity:.87}
+ 72%{opacity:.38}
+}
+
+.liquid-optics{
+ position:absolute;
+ inset:0;
+ display:block;
+ width:100%;
+ height:100%;
+ opacity:0;
+ pointer-events:none;
+ transition:opacity .24s ease-out;
+}
+.liquid-optics[data-active]{opacity:1}
+.ambient[data-paused]>.liquid-optics{opacity:0;transition:none}
+
+:root[data-theme] :is(#summaryCard,#weekCalendar){
+ background:var(--glass-wash),var(--glass-plate);
+ border-color:var(--glass-plate-edge);
+ box-shadow:var(--glass-plate-shadow);
+ backdrop-filter:none;
+ -webkit-backdrop-filter:none;
+}
+:root[data-theme] .lesson:not(.past):not(.current),
+:root[data-theme] :is(.study-library-entry,.install-prompt,.cabinet-entry){
+ background:var(--glass-card);
+ border-color:var(--glass-plate-edge);
+ box-shadow:inset 0 1px 0 #fff2,0 5px 20px #110d1910;
+ backdrop-filter:none;
+ -webkit-backdrop-filter:none;
+}
+:root[data-theme] :is(.study-dialog,.install-dialog,.academy-dialog,#datePopover.date-popover),
+:root[data-theme] #groupOverlay #groupDialog{
+ background:var(--glass-sheet);
+ border-color:var(--glass-plate-edge);
+ box-shadow:var(--glass-plate-shadow),0 20px 62px #140e282b;
+}
+
+:root[data-theme] :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){
+ background:var(--glass-thumb-light),var(--liquid-selected);
+ box-shadow:var(--glass-thumb-shadow);
+}
+:root[data-theme] :is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb)::before{
+ background:var(--glass-thumb-outline);
+ box-shadow:none;
+ padding:1px;
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+ -webkit-mask-composite:xor;
+ mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+ mask-composite:exclude;
+ opacity:1;
+}
+:root[data-theme] :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){
+ box-shadow:var(--glass-thumb-shadow),0 3px 12px #9d7fc52e;
+}
+
+@media(prefers-reduced-transparency:reduce){
+ .liquid-optics{display:none}
+ :root[data-theme] :is(.study-dialog,.install-dialog,.academy-dialog,#datePopover.date-popover),
+ :root[data-theme] #groupOverlay #groupDialog{background:var(--overlay-solid)}
+ :root[data-theme] :is(#summaryCard,#weekCalendar){background:var(--liquid-solid)}
+}
+@media(prefers-reduced-motion:reduce){
+ :root[data-theme] .ambient-wash{animation:none!important}
+ .ambient-bloom{animation:none!important}
+}
