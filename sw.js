@@ -1,10 +1,10 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v59-stable-controls';
+const VERSION = 'myschedule-offline-v60-smooth-refraction';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const REQUIRED = ['ui.js?v=57', 'lesson-card.js?v=58', 'lens.js?v=59', 'polish.css?v=59','glass-motion.css?v=58', 'curriculum.js?v=52', 'study.js?v=59', 'study.css?v=52', 'install.js?v=52', 'install.css?v=52', 'cabinet.js?v=59', 'cabinet.css?v=58'].map(path => new URL(path, BASE).href);
+const REQUIRED = ['ui.js?v=57', 'lesson-card.js?v=58', 'lens.js?v=60', 'polish.css?v=60','glass-motion.css?v=58', 'curriculum.js?v=52', 'study.js?v=59', 'study.css?v=52', 'install.js?v=52', 'install.css?v=52', 'cabinet.js?v=59', 'cabinet.css?v=58'].map(path => new URL(path, BASE).href);
 const ASSETS = [...REQUIRED, ...['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href)];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

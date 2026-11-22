@@ -152,7 +152,8 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  --glass-lens-face:radial-gradient(ellipse 73% 59% at 18% 0%,#f5faff55,transparent 79%),linear-gradient(166deg,#e5eef825,#cadbea1c 48%,#1e283821 72%,#c3dbfd3a);
  --glass-lens-line:#edf4ff66;
  --glass-lens-depth:inset 0 1px 1px #fff5,inset 0 -2px 3px #d5e8ff36,0 5px 12px #080d1651;
- --glass-lens-glint:radial-gradient(ellipse at 16% -22%,#f7faffb5,transparent 64%),radial-gradient(ellipse at 76% 128%,#d5e8feb9,transparent 61%);
+ --glass-glint-top:#f7faffb5;
+ --glass-glint-bottom:#d5e8feb9;
  --ambient-bloom:radial-gradient(ellipse at 34% 32%,#3d547536,transparent 59%),radial-gradient(ellipse at 83% 80%,#303d512d,transparent 54%);
  --control-glass:var(--glass-face);
  --control-edge:var(--glass-line);
@@ -183,7 +184,8 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  --glass-lens-face:radial-gradient(ellipse 70% 58% at 15% -4%,#ffffffe7,transparent 78%),linear-gradient(157deg,#fffaffae,#b3a4ca41 47%,#d4eadc56 70%,#fffef6ca);
  --glass-lens-line:#85749384;
  --glass-lens-depth:inset 0 1px 1px #fff,inset 0 -2px 2px #fffc,0 5px 11px #55416839;
- --glass-lens-glint:radial-gradient(ellipse at 16% -19%,#fff,transparent 67%),radial-gradient(ellipse at 77% 126%,#fffef9,transparent 61%);
+ --glass-glint-top:#fff;
+ --glass-glint-bottom:#fffef9;
  --ambient-bloom:radial-gradient(ellipse at 26% 47%,#aeaae65e,transparent 52%),radial-gradient(ellipse at 77% 62%,#96d0c154,transparent 54%),radial-gradient(ellipse at 50% 8%,#eec0c841,transparent 45%);
 }
 
@@ -266,8 +268,13 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 }
 :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::after{
  z-index:2;
- background:var(--glass-lens-glint);
+ background:radial-gradient(ellipse at var(--lens-highlight-x,16%) -21%,var(--glass-glint-top),transparent 65%),
+  radial-gradient(ellipse at 76% 127%,var(--glass-glint-bottom),transparent 61%);
  opacity:var(--lens-glint-opacity);
+}
+.rail-optics-defs{position:absolute;pointer-events:none}
+:root[data-theme] :is(.is-dragging)>:is(#segThumb,.glass-choice-thumb,.day-thumb,.date-thumb)[data-liquid-drag]::after{
+ opacity:.86;
 }
 .glass-contact-host{position:relative}
 .glass-contact{
@@ -292,7 +299,8 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
   --glass-panel:var(--glass-sheet-solid);
   --glass-sheet:var(--glass-sheet-solid);
   --glass-lens-face:var(--glass-sheet-solid);
-  --glass-lens-glint:none;
+  --glass-glint-top:transparent;
+  --glass-glint-bottom:transparent;
  }
  :root[data-theme] .ambient-wash{animation:none!important}
  .ambient-bloom{display:none}
@@ -333,7 +341,7 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  :root .study-resource-links .study-drive-copy small{font-size:.75rem;line-height:1.35}
 }
 
-/* The thumb follows the track; the text has a single, stationary layer. */
+/* The thumb follows the track; each label retains its own layout. */
 :root :is(.study-kind-switch,.cab-segments){
  display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);
  width:min(100%,420px);box-sizing:border-box;
