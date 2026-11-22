@@ -149,8 +149,12 @@
     const picker=makeSheet(title,`${note(escape(text))}<div class="cab-actions">${action('Отмена','cancel')}${action('Подтвердить','confirm','', 'primary')}</div><p class="cab-inline-error" role="alert"></p>`);
     picker.body.onclick=async e=>{const b=e.target.closest('[data-cab-action]');if(!b)return;if(b.dataset.cabAction==='cancel')picker.close();if(b.dataset.cabAction==='confirm'){b.disabled=true;try{await callback();picker.close();await draw();}catch(error){picker.body.querySelector('.cab-inline-error').textContent=error.message;b.disabled=false;}}};
   }
+  const mountedSegments=new WeakMap();
   function mountSegments(container){
-    container.querySelectorAll('.cab-segments').forEach(rail=>{if(window.GlassUI?.mountSegmented){rail.classList.add('has-glass-segments');window.GlassUI.mountSegmented(rail,{onSelect:button=>button.click()});}});
+    container.querySelectorAll('.cab-segments').forEach(rail=>{if(window.GlassUI?.mountSegmented&&!mountedSegments.has(rail)){
+      const api=window.GlassUI.mountSegmented(rail,{onSelect:button=>button.click()});
+      if(api){rail.classList.add('has-glass-segments');mountedSegments.set(rail,api);}
+    }});
   }
   const segments=(items,selected,name)=>`<div class="cab-segments glass-segmented" role="group" aria-label="${escape(name)}">${items.map(([id,label])=>`<button type="button" data-cab-action="segment" data-segment="${escape(id)}" aria-pressed="${id===selected}">${escape(label)}</button>`).join('')}</div>`;
 
@@ -216,17 +220,41 @@
     main.body.onclick=handleClick;draw();
     refreshTimer=setInterval(()=>{if(main&&!document.hidden&&['attendance','questions','exams'].includes(view.page))draw({quiet:true});},30000);
   }
+  function replaceCabinetBody(body,html,previousRail){
+    if(previousRail){
+      const template=document.createElement('template');template.innerHTML=html;
+      const rail=template.content.querySelector('.cab-segments');
+      const buttons=[...previousRail.querySelectorAll('[data-segment]')];
+      const next=rail?[...rail.querySelectorAll('[data-segment]')]:[];
+      if(rail?.parentNode===template.content&&buttons.length===next.length&&
+        buttons.every((button,i)=>button.dataset.segment===next[i].dataset.segment)){
+        for(const node of [...body.childNodes])if(node!==previousRail)node.remove();
+        for(const node of [...template.content.childNodes]){
+          if(node===rail)break;
+          body.insertBefore(node,previousRail);
+        }
+        while(rail.nextSibling)body.append(rail.nextSibling);
+        buttons.forEach((button,i)=>button.setAttribute('aria-pressed',next[i].getAttribute('aria-pressed')));
+        mountedSegments.get(previousRail)?.reflow?.(true);
+        return;
+      }
+    }
+    body.innerHTML=html;
+  }
   async function draw({quiet=false}={}){
     if(!main)return;const epoch=++renderEpoch,page=view.page;
+    const retained=main.body.dataset.cabinetPage===page?main.body.querySelector(':scope > .cab-segments'):null;
     main.heading.textContent=pageNames[page]||pageNames.home;
     main.dialog.querySelector('.cab-back').hidden=!frames.length;
-    if(!quiet)main.body.innerHTML='<div class="cab-loading" role="status">Открываем раздел</div>';
+    if(!quiet&&!retained)main.body.innerHTML='<div class="cab-loading" role="status">Открываем раздел</div>';
     try{
       let html;
       if(!me&&!['home','login','exams'].includes(page))html=guestPage();
       else html=await ({home:homePage,login:loginPage,questions:questionsPage,attendance:attendancePage,grades:gradesPage,notes:notesPage,exams:examsPage,preferences:preferencesPage}[page]||homePage)();
       if(epoch!==renderEpoch||!main)return;
-      const scroll=quiet?main.body.scrollTop:0;main.body.innerHTML=html;main.body.scrollTop=scroll;mountSegments(main.body);
+      const scroll=quiet||retained?main.body.scrollTop:0;
+      replaceCabinetBody(main.body,html,retained);main.body.dataset.cabinetPage=page;
+      main.body.scrollTop=scroll;mountSegments(main.body);
       if(page==='home')paintAvatar();
       if(page==='preferences')bindPreferences();
       if(page==='login')bindLoginPage();

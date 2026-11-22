@@ -379,7 +379,7 @@
       return heading + (code ? `Занятие ${code}\n` : '') + questionsFor(set).map((question, index) => `${index + 1}. ${question}`).join('\n');
     }).join('\n\n');
     const heading = topic && (topic.number != null || match.requested) ? `<div class="study-topic-heading"><span>${escape(match.requested ? 'Тема ' + match.requested : topicLabel(topic))}</span>${topic.number != null ? `<h3>${escape(topic.title)}</h3>` : ''}</div>` : '';
-    const switches = available.length > 1 ? `<div class="study-kind-switch glass-segmented" role="group" aria-label="Вид занятия">${available.map(item => `<button type="button" data-study-switch="${item}" aria-pressed="${item === kind}">${kinds[item].label}</button>`).join('')}</div>` : '';
+    const switches = available.length > 1 ? `<div class="study-kind-switch glass-segmented" role="group" aria-label="Вид занятия">${available.map(item => `<button type="button" data-study-switch="${item}" aria-pressed="${item === kind}" aria-label="${kinds[item].label}">${item === 'practical'?'<span class="study-kind-full">Практическое</span><span class="study-kind-short" aria-hidden="true">Практика</span>':kinds[item].label}</button>`).join('')}</div>` : '';
     const notice = match.fallback ? '<p class="study-notice">Показана тема целиком: точная привязка подпункта пока не подтверждена.</p>' : '';
     const missing = sets.length && match.missing.length ? `<p class="study-notice">Вопросы к теме ${escape(match.missing.join(', '))} пока не добавлены.</p>` : '';
     const questions = sets.length ? `<div class="study-copy-bar"><button type="button" class="study-copy-primary" data-study-copy="plain">${icons.copy}<span>Скопировать все</span></button><button type="button" class="study-copy-ai" data-study-copy="ai" title="Скопировать вопросы с запросом для подготовки">Для ИИ ${icons.copy}</button></div><div class="study-question-groups">${sets.map((set, groupIndex) => {
@@ -407,7 +407,7 @@
     }
     const rail = body.querySelector('.study-kind-switch');
     rail?.querySelectorAll('[data-study-switch]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.studySwitch === kind)));
-    body.scrollTop = 0;
+    if (!retainedRail) body.scrollTop = 0;
     announce('');
     open({ preserveFocus: !!retainedRail });
     updateBackControl();
