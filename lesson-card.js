@@ -4,9 +4,13 @@
 
   const assessmentColors = Object.freeze({
     credit: '#efb77d',
+    diff_credit: '#e9cf72',
     exam: '#c2a0e5',
     consultation: '#8cb9e5'
   });
+  const assessmentType = (type, raw) => type === 'credit' &&
+    /(?:^|\s)(?:диф(?:ф)?\.?\s*|дифференцированный\s+)зач[её]т(?=$|[\s.,])/i.test(raw || '')
+      ? 'diff_credit' : type;
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
@@ -53,5 +57,5 @@
     </article>`;
   }
 
-  window.AmiaLessonCard = Object.freeze({ assessmentColors, render });
+  window.AmiaLessonCard = Object.freeze({ assessmentColors, assessmentType, render });
 })();

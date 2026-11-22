@@ -7,9 +7,6 @@
   const FILTER_ID = 'amia-live-lens';
   const THUMB = '#segThumb,.glass-choice-thumb,.day-thumb,.date-thumb';
   const reduced = window.matchMedia?.('(prefers-reduced-transparency: reduce), (forced-colors: active)') || { matches: false };
-  const chromium = navigator.userAgentData?.brands?.some(v => v.brand === 'Chromium') ??
-    (/Chrome\//.test(navigator.userAgent) && !/iPhone|iPad|Firefox/.test(navigator.userAgent));
-  const nativeBackdrop = chromium && window.CSS?.supports('backdrop-filter', 'url("#amia-live-lens")');
   let current = null, scratch = null, defs = null;
 
   function svg(tag, attrs = {}) {
@@ -43,7 +40,7 @@
     const ctx = scratch.getContext('2d');
     if (!ctx) return null;
     const image = ctx.createImageData(w, h);
-    const maxShift = Math.min(14, h * .31);
+    const maxShift = Math.min(9, h * .21);
     const scale = 2 * maxShift + 2;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
@@ -85,47 +82,46 @@
     defs.replaceChildren(filter);
   }
 
-  // Browser engines without SVG backdrop filters use a one-time, local
-  // bitmap of the real rail contents. No page clone or network assets.
-  function captureRail(rail, g) {
+  // The lens redraws only labels and dots, as vectors. The original glyphs
+  // are clipped by the same rounded aperture before the refracted layer shows.
+  function measureRail(rail, g) {
     if (g.width < 1 || g.height < 1 || g.width > 1200 || g.height > 580) return null;
-    const resolution = Math.min(1.5, Math.sqrt(215000 / (g.width * g.height)));
-    const bitmap = canvas(g.width * resolution, g.height * resolution);
-    const ctx = bitmap.getContext('2d');
-    if (!ctx) return null;
-    ctx.scale(resolution, resolution);
     const x = value => (value - g.outer.left) / g.scaleX - g.left;
     const y = value => (value - g.outer.top) / g.scaleY - g.top;
-    const cells = [];
+    const contents = svg('g'), cells = [];
     for (const button of rail.querySelectorAll(':scope > button:not(:disabled)')) {
-      const bounds = button.getBoundingClientRect(), width = bounds.width / g.scaleX, height = bounds.height / g.scaleY;
-      cells.push({ button, x: x(bounds.left), y: y(bounds.top), width, height, clip: button.style.clipPath });
+      const bounds = button.getBoundingClientRect();
+      cells.push({ button, x: x(bounds.left), y: y(bounds.top), width: bounds.width / g.scaleX,
+        height: bounds.height / g.scaleY, clip: button.style.clipPath });
       const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);
       for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-        const text = node.textContent.trim();
-        if (!text) continue;
-        const element = node.parentElement;
-        const style = getComputedStyle(element);
+        const value = node.textContent.trim();
+        if (!value) continue;
+        const style = getComputedStyle(node.parentElement);
         if (style.display === 'none' || style.visibility === 'hidden') continue;
         const range = document.createRange();
         range.selectNodeContents(node);
         const rect = range.getBoundingClientRect();
         if (!rect.width || !rect.height) continue;
-        ctx.fillStyle = style.color;
-        ctx.font = style.fontWeight + ' ' + style.fontSize + ' ' + style.fontFamily;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(text, x(rect.left), y(rect.top + rect.height / 2));
+        const text = svg('text', {
+          x: x(rect.left), y: y(rect.top + rect.height / 2) - parseFloat(style.fontSize) * .02,
+          fill: style.color, 'text-anchor': 'start', 'dominant-baseline': 'central',
+          'font-family': style.fontFamily, 'font-size': style.fontSize, 'font-weight': style.fontWeight,
+          textLength: rect.width / g.scaleX, lengthAdjust: 'spacingAndGlyphs'
+        });
+        text.textContent = value;
+        contents.append(text);
       }
       const dot = button.querySelector('.dot');
       if (dot) {
         const r = dot.getBoundingClientRect();
-        ctx.fillStyle = getComputedStyle(dot).backgroundColor;
-        ctx.beginPath();
-        ctx.ellipse(x(r.left + r.width / 2), y(r.top + r.height / 2), r.width / g.scaleX / 2, r.height / g.scaleY / 2, 0, 0, 2 * Math.PI);
-        ctx.fill();
+        if (r.width && r.height) contents.append(svg('ellipse', {
+          cx: x(r.left + r.width / 2), cy: y(r.top + r.height / 2), rx: r.width / g.scaleX / 2,
+          ry: r.height / g.scaleY / 2, fill: getComputedStyle(dot).backgroundColor
+        }));
       }
     }
-    return { url: bitmap.toDataURL('image/png'), cells };
+    return contents.childElementCount ? { contents, cells } : null;
   }
 
   function clearCut(cell) {
@@ -140,9 +136,10 @@
       if (x2 <= x1 || y2 <= y1) { clearCut(c); continue; }
       const l=left-c.x,t=top-c.y,r=l+state.w,b=t+state.h,k=state.radius;
       const perimeter='M0 0H'+c.width+'V'+c.height+'H0Z';
-      const hole='M'+(l+k)+' '+t+'H'+(r-k)+'Q'+r+' '+t+' '+r+' '+(t+k)+
-        'V'+(b-k)+'Q'+r+' '+b+' '+(r-k)+' '+b+'H'+(l+k)+'Q'+l+' '+b+' '+l+' '+(b-k)+
-        'V'+(t+k)+'Q'+l+' '+t+' '+(l+k)+' '+t+'Z';
+      const corner='A'+k+' '+k+' 0 0 1 ';
+      const hole='M'+(l+k)+' '+t+'H'+(r-k)+corner+r+' '+(t+k)+
+        'V'+(b-k)+corner+(r-k)+' '+b+'H'+(l+k)+corner+l+' '+(b-k)+
+        'V'+(t+k)+corner+(l+k)+' '+t+'Z';
       c.button.style.clipPath='path(evenodd,"'+perimeter+hole+'")';
       c.cut = true;
     }
@@ -154,47 +151,42 @@
     current = null;
     if (old.frame) cancelAnimationFrame(old.frame);
     old.thumb.removeAttribute('data-optics');
-    old.thumb.classList.remove('ready-optics');
     old.layer?.remove();
     old.cells?.forEach(clearCut);
   }
 
   function begin(thumb, rail, size, geometry) {
-    if (reduced.matches || !thumb.matches(THUMB) || size.w <= 0 || size.h <= 0) return;
+    if (reduced.matches || !thumb.matches(THUMB) || size.w <= 0 || size.h <= 0 ||
+      !window.CSS?.supports('clip-path', 'path(evenodd,"M0 0H1V1Z")')) return;
     end();
     const outset = thumb.matches('#segThumb,.glass-choice-thumb') ? 3 : 0;
-    const w = Math.round(size.w + outset * 2), h = Math.round(size.h + outset * 2);
+    const w = size.w + outset * 2, h = size.h + outset * 2;
     if (w > 220 || h > 116 || w < 14 || h < 14) return;
     try {
       const radius = Math.min(w / 2, h / 2, parseFloat(getComputedStyle(thumb).borderTopLeftRadius) || 18);
-      const map = makeMap(w, h, radius);
+      const map = makeMap(Math.round(w), Math.round(h), radius);
       if (!map) return;
       attachFilter(w, h, map);
       const state = { thumb, w, h, radius, outset, frame: 0, x: size.x, y: size.y };
       current = state;
-      if (nativeBackdrop) {
-        thumb.dataset.optics = 'native';
-        return;
-      }
-      const capture = captureRail(rail, geometry);
-      if (!capture) return end(thumb);
+      const labels = measureRail(rail, geometry);
+      if (!labels) return end(thumb);
       const layer = svg('svg', {class:'rail-live-capture', 'aria-hidden':'true', focusable:'false', viewBox:'0 0 ' + w + ' ' + h, preserveAspectRatio:'none'});
       const shifted = svg('g', {filter:'url(#' + FILTER_ID + ')'});
-      const contents = svg('image', {href:capture.url, width:geometry.width, height:geometry.height, preserveAspectRatio:'none'});
-      shifted.append(contents);
+      shifted.append(labels.contents);
       layer.append(shifted);
       thumb.append(layer);
-      Object.assign(state, { layer, contents, cells: capture.cells });
-      const image = new Image();
-      image.onload = () => {
-        if (state !== current) return;
-        thumb.dataset.optics = 'capture';
-        thumb.classList.add('ready-optics');
-        move(thumb,state.x,state.y);
-      };
-      image.onerror = () => { if(state === current)end(thumb); };
-      image.src = capture.url;
+      Object.assign(state, { layer, ...labels });
+      layer.style.borderRadius=radius+'px';
+      paintLens(state);
+      thumb.dataset.optics = 'vector';
     } catch { end(thumb); }
+  }
+
+  function paintLens(state) {
+    const left = state.x - state.outset, top = state.y - state.outset;
+    state.contents.setAttribute('transform', 'translate(' + -left + ' ' + -top + ')');
+    cutLabels(state, left, top);
   }
 
   function move(thumb, x, y) {
@@ -202,14 +194,10 @@
     const state = current;
     state.x = x;
     state.y = y;
-    if (!state.contents || !thumb.classList.contains('ready-optics') || state.frame) return;
+    if (state.frame) return;
     state.frame = requestAnimationFrame(() => {
       state.frame = 0;
-      if (state !== current) return;
-      const left = state.x - state.outset, top = state.y - state.outset;
-      state.contents.setAttribute('x', -left);
-      state.contents.setAttribute('y', -top);
-      cutLabels(state, left, top);
+      if (state === current) paintLens(state);
     });
   }
 
@@ -267,5 +255,5 @@
   }, {passive:true});
   window.addEventListener('blur',()=>releaseLight(true));
   reduced.addEventListener?.('change', () => { if (reduced.matches) end(); });
-  window.AmiaRailOptics = Object.freeze({ begin, move, end, canPreviewPress: nativeBackdrop });
+  window.AmiaRailOptics = Object.freeze({ begin, move, end });
 })();

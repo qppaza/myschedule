@@ -1,10 +1,10 @@
 :root[data-theme] {
-  --sheet-rim: #f3e6ff47;
-  --sheet-highlight: #fff6ff38;
-  --sheet-reflection: #f2dfff09;
-  --sheet-depth: #150d263e;
-  --sheet-separator: #f7eaff1e;
-  --sheet-scrollmark: #eedcff54;
+  --sheet-rim: #e4eefb48;
+  --sheet-highlight: #f5f9ff38;
+  --sheet-reflection: #f2f7ff09;
+  --sheet-depth: #070b143e;
+  --sheet-separator: #e7effc23;
+  --sheet-scrollmark: #d6e3f454;
 }
 
 :root[data-theme=light] {
