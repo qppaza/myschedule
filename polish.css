@@ -152,8 +152,8 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  --glass-lens-face:radial-gradient(ellipse 73% 59% at 18% 0%,#f5faff55,transparent 79%),linear-gradient(166deg,#e5eef825,#cadbea1c 48%,#1e283821 72%,#c3dbfd3a);
  --glass-lens-line:#edf4ff66;
  --glass-lens-depth:inset 0 1px 1px #fff5,inset 0 -2px 3px #d5e8ff36,0 5px 12px #080d1651;
- --glass-glint-top:#f7faffb5;
- --glass-glint-bottom:#d5e8feb9;
+ --glass-lens-glint:radial-gradient(ellipse at 16% -22%,#f7faffb5,transparent 64%),radial-gradient(ellipse at 76% 128%,#d5e8feb9,transparent 61%);
+ --glass-live-face:linear-gradient(160deg,#fff3,transparent 35% 77%,#deefff27);
  --ambient-bloom:radial-gradient(ellipse at 34% 32%,#3d547536,transparent 59%),radial-gradient(ellipse at 83% 80%,#303d512d,transparent 54%);
  --control-glass:var(--glass-face);
  --control-edge:var(--glass-line);
@@ -184,8 +184,8 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  --glass-lens-face:radial-gradient(ellipse 70% 58% at 15% -4%,#ffffffe7,transparent 78%),linear-gradient(157deg,#fffaffae,#b3a4ca41 47%,#d4eadc56 70%,#fffef6ca);
  --glass-lens-line:#85749384;
  --glass-lens-depth:inset 0 1px 1px #fff,inset 0 -2px 2px #fffc,0 5px 11px #55416839;
- --glass-glint-top:#fff;
- --glass-glint-bottom:#fffef9;
+ --glass-lens-glint:radial-gradient(ellipse at 16% -19%,#fff,transparent 67%),radial-gradient(ellipse at 77% 126%,#fffef9,transparent 61%);
+ --glass-live-face:linear-gradient(160deg,#fff8,transparent 33% 78%,#fff5);
  --ambient-bloom:radial-gradient(ellipse at 26% 47%,#aeaae65e,transparent 52%),radial-gradient(ellipse at 77% 62%,#96d0c154,transparent 54%),radial-gradient(ellipse at 50% 8%,#eec0c841,transparent 45%);
 }
 
@@ -248,11 +248,12 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  border:0;
  box-shadow:none;
 }
-:root[data-theme] :is(.segmented>#segThumb,.glass-choice-thumb){--lens-inset:0;border-radius:999px}
-:root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(#segThumb,.glass-choice-thumb){--lens-shape:scale(1);--lens-glint-opacity:.68}
+:root[data-theme] :is(.segmented>#segThumb,.glass-choice-thumb){--lens-inset:-3px;border-radius:999px}
+:root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(#segThumb,.glass-choice-thumb){--lens-shape:scale(calc(1.035 + var(--drag-stretch,0)),1.12);--lens-glint-opacity:.68}
 :root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(.day-thumb,.date-thumb){--lens-shape:scale(1,1.035);--lens-glint-opacity:.67}
 :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::before,
-:root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::after{
+:root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::after,
+.rail-live-capture{
  content:'';
  position:absolute;
  inset:var(--lens-inset);
@@ -268,13 +269,8 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 }
 :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::after{
  z-index:2;
- background:radial-gradient(ellipse at var(--lens-highlight-x,16%) -21%,var(--glass-glint-top),transparent 65%),
-  radial-gradient(ellipse at 76% 127%,var(--glass-glint-bottom),transparent 61%);
+ background:var(--glass-lens-glint);
  opacity:var(--lens-glint-opacity);
-}
-.rail-optics-defs{position:absolute;pointer-events:none}
-:root[data-theme] :is(.is-dragging)>:is(#segThumb,.glass-choice-thumb,.day-thumb,.date-thumb)[data-liquid-drag]::after{
- opacity:.86;
 }
 .glass-contact-host{position:relative}
 .glass-contact{
@@ -284,13 +280,25 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 }
 :root[data-theme]{--contact-glow:#ecf5ff2a;--contact-rim:#ffffff45}
 :root[data-theme=light]{--contact-glow:#ffffff93;--contact-rim:#ffffffce}
+.rail-optics-defs{position:absolute;pointer-events:none}
+:root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics]{z-index:4;pointer-events:none;isolation:auto}
+:root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics]::before{background:var(--glass-live-face);transform:none}
+:root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics]::after{transform:none}
+.rail-live-capture{
+ z-index:1;
+ width:calc(100% - var(--lens-inset) - var(--lens-inset));
+ height:calc(100% - var(--lens-inset) - var(--lens-inset));
+ overflow:hidden;
+ transform:none;
+}
 :root[data-theme=light] #summary .summary-clock>span{color:color-mix(in srgb,var(--clock-target) 36%,#382c42)}
 
 @media(prefers-reduced-motion:reduce){
  :root[data-theme] .ambient-wash,.ambient-bloom{animation:none!important}
  :root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(#segThumb,.glass-choice-thumb,.day-thumb,.date-thumb){--lens-shape:scale(1)}
  :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::before,
- :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::after{transition:none!important}
+ :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::after,
+ .rail-live-capture{transition:none!important}
  :root[data-theme] .cab-switch::before{scale:1}
 }
 @media(prefers-reduced-transparency:reduce),(forced-colors:active){
@@ -299,9 +307,9 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
   --glass-panel:var(--glass-sheet-solid);
   --glass-sheet:var(--glass-sheet-solid);
   --glass-lens-face:var(--glass-sheet-solid);
-  --glass-glint-top:transparent;
-  --glass-glint-bottom:transparent;
+  --glass-lens-glint:none;
  }
+ .rail-live-capture{display:none}
  :root[data-theme] .ambient-wash{animation:none!important}
  .ambient-bloom{display:none}
 }
@@ -341,7 +349,7 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  :root .study-resource-links .study-drive-copy small{font-size:.75rem;line-height:1.35}
 }
 
-/* The thumb follows the track; each label retains its own layout. */
+/* Stable segment widths with long or short labels. */
 :root :is(.study-kind-switch,.cab-segments){
  display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);
  width:min(100%,420px);box-sizing:border-box;
