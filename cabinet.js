@@ -153,8 +153,6 @@
     picker.body.onclick=async e=>{const b=e.target.closest('[data-cab-action]');if(!b)return;if(b.dataset.cabAction==='cancel')picker.close();if(b.dataset.cabAction==='confirm'){b.disabled=true;try{await callback();picker.close();await draw();}catch(error){picker.body.querySelector('.cab-inline-error').textContent=error.message;b.disabled=false;}}};
   }
   const mountedSegments=new WeakMap();
-  let stopGradeVisual;
-  function clearGradeVisual(){stopGradeVisual?.();stopGradeVisual=undefined;}
   function mountSegments(container){
     container.querySelectorAll('.cab-segments').forEach(rail=>{if(window.GlassUI?.mountSegmented&&!mountedSegments.has(rail)){
       const api=window.GlassUI.mountSegmented(rail,{onSelect:button=>button.click()});
@@ -223,7 +221,7 @@
   function open(page='home',extra={}){
     if(main){navigate(page,extra);return;}
     view={page,...extra};frames=[];
-    main=makeSheet(pageNames[page]||pageNames.home,'<div class="cab-loading">Открываем раздел</div>',{large:true,onClose:()=>{clearGradeVisual();main=null;frames=[];renderEpoch++;stopLogin();clearInterval(refreshTimer);refreshTimer=0;}});
+    main=makeSheet(pageNames[page]||pageNames.home,'<div class="cab-loading">Открываем раздел</div>',{large:true,onClose:()=>{main=null;frames=[];renderEpoch++;stopLogin();clearInterval(refreshTimer);refreshTimer=0;}});
     main.dialog.querySelector('.cab-back').onclick=back;
     main.body.onclick=handleClick;main.body.oninput=updateGradeForecast;draw();
     refreshTimer=setInterval(()=>{if(main&&!document.hidden&&['attendance','questions','exams'].includes(view.page))draw({quiet:true});},30000);
@@ -254,10 +252,7 @@
     const retained=main.body.dataset.cabinetPage===page?main.body.querySelector(':scope > .cab-segments'):null;
     main.heading.textContent=pageNames[page]||pageNames.home;
     main.dialog.querySelector('.cab-back').hidden=!frames.length;
-    if(!quiet&&!retained){
-      clearGradeVisual();
-      main.body.innerHTML='<div class="cab-loading" role="status">Открываем раздел</div>';
-    }
+    if(!quiet&&!retained)main.body.innerHTML='<div class="cab-loading" role="status">Открываем раздел</div>';
     try{
       let html;
       if(!me&&!['home','login','exams'].includes(page))html=guestPage();
@@ -265,9 +260,7 @@
       else html=await ({home:homePage,login:loginPage,questions:questionsPage,attendance:attendancePage,notes:notesPage,exams:examsPage,preferences:preferencesPage}[page]||homePage)();
       if(epoch!==renderEpoch||!main)return;
       const scroll=quiet||retained?main.body.scrollTop:0;
-      clearGradeVisual();
       replaceCabinetBody(main.body,html,retained);main.body.dataset.cabinetPage=page;
-      if(page==='grades')stopGradeVisual=window.AmiaGradeVisual?.mount(main.body);
       if(page==='grades'&&view.gradeSubject)main.heading.textContent=view.gradeSubject;
       main.body.scrollTop=scroll;mountSegments(main.body);
       if(page==='home')paintAvatar();
@@ -373,15 +366,9 @@
     if(!entries.length)return'';
     const counts=Array.from({length:10},()=>0);
     for(const {value} of entries)if(Number.isInteger(value)&&value>=1&&value<=10)counts[value-1]++;
-    const samples=entries.slice(-36).map(({date,value})=>[date,value]),last=samples.at(-1);
-    const hint=samples.length<entries.length?'Последние '+samples.length+' отметок':'За текущий семестр';
-    return `<section class="cab-grade-visual" data-grade-visual data-graph-mode="timeline" data-samples="${escape(JSON.stringify(samples))}" data-counts="${escape(JSON.stringify(counts))}">
-      <div class="cab-chart-head"><div><h3>Динамика отметок</h3><small>${hint}</small></div><div class="cab-chart-meter"><output>${escape(last[1])}</output><small>${escape(dateLabel(last[0]))}</small></div></div>
-      <div class="cab-chart-tabs" role="group" aria-label="Вид диаграммы"><button type="button" data-graph-tab="timeline" aria-pressed="true">По датам</button><button type="button" data-graph-tab="distribution" aria-pressed="false">Распределение</button></div>
-      <canvas class="cab-chart-canvas" role="slider" tabindex="0" aria-label="Выбрать точку на диаграмме" aria-valuemin="1" aria-valuemax="${samples.length}" aria-valuenow="${samples.length}"></canvas>
-      <div class="cab-chart-axis" aria-hidden="true"></div>
-      <div class="sr-only cab-grade-chart" role="list" aria-label="Распределение отметок">${counts.map((count,index)=>`<div role="listitem" aria-label="Отметка ${index+1}, количество ${count}"></div>`).join('')}</div>
-    </section>`;
+    const max=Math.max(1,...counts);
+    return section('Распределение отметок')+`<div class="cab-card cab-grade-chart" role="list">${counts.map((count,index)=>
+      `<div class="cab-grade-column" role="listitem" aria-label="Отметка ${index+1}, количество ${count}"><span aria-hidden="true">${count||''}</span><div aria-hidden="true" class="cab-grade-bar" style="--grade-height:${count/max*100}%"><i></i></div><small aria-hidden="true">${index+1}</small></div>`).join('')}</div>`;
   }
   function gradeForecast(entries,sum){
     if(!entries.length)return'';

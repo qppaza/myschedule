@@ -201,11 +201,11 @@
     if (librarySubject) { showLibrary(); updateBackControl(); return; }
     close();
   }
-  function openLibraryRoot(origin) {
+  function openLibraryRoot() {
     if (navigationFrames.length) window.GlassUI?.navigationStepClosed?.(dialog, navigationFrames[0].key);
     navigationFrames = [];
     entryOrigin = 'library';
-    showLibrary('', false, origin); updateBackControl();
+    showLibrary(); updateBackControl();
   }
   function openSubjectLibrary(subjectId, keepQuery = false) {
     if (!dialog.open) openLibraryRoot();
@@ -273,11 +273,11 @@
       }
     });
   }
-  function open({ preserveFocus = false, origin } = {}) {
-    if (dialog.open) { if (!preserveFocus) byId('studyClose').focus({preventScroll:true}); return; }
+  function open({ preserveFocus = false } = {}) {
+    if (dialog.open) { if (!preserveFocus) byId('studyClose').focus(); return; }
     sheetOpen = true;
     sheetClosing = false;
-    lastFocus = origin || document.activeElement;
+    lastFocus = document.activeElement;
     previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     if (dialog.showModal) dialog.showModal();
@@ -288,14 +288,14 @@
     }
     if (window.GlassUI?.panelOpened) window.GlassUI.panelOpened(dialog, { close });
     if (window.GlassUI?.openSheet) window.GlassUI.openSheet(dialog);
-    byId('studyClose').focus({preventScroll:true});
+    byId('studyClose').focus();
   }
   function restore() {
     closeSubjectPicker();
     document.body.style.overflow = previousOverflow;
     inertElements.forEach(([element, inert]) => { element.inert = inert; });
     inertElements = [];
-    if (lastFocus?.isConnected) lastFocus.focus({preventScroll:true});
+    if (lastFocus?.isConnected) lastFocus.focus();
   }
   function finalizeClose() {
     if (!sheetOpen) return;
@@ -323,7 +323,7 @@
     status.textContent = useToast ? '' : text;
     if (useToast && text) window.GlassUI.toast(text, { duration });
   }
-  function showLibrary(subjectId = '', keepQuery = false, origin) {
+  function showLibrary(subjectId = '', keepQuery = false) {
     materialRail = null;
     view = { type: 'library' };
     librarySubject = subjectId;
@@ -337,7 +337,7 @@
     setupSubjectPicker();
     drawResults();
     body.scrollTop = 0;
-    open({origin});
+    open();
     updateBackControl();
   }
   function drawResults() {
@@ -605,7 +605,7 @@
       const questionButton = event.target.closest('[data-study-question]');
       if (questionButton) copyQuestion(questionButton);
     });
-    byId('studyOpen')?.addEventListener('click', event => openLibraryRoot(event.currentTarget));
+    byId('studyOpen')?.addEventListener('click', openLibraryRoot);
     document.addEventListener('amia-cabinet-auth', () => refreshQuestionClaims(true));
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshQuestionClaims(true); });
     window.addEventListener('online', () => refreshQuestionClaims(true));
