@@ -150,29 +150,41 @@
     panel.removeAttribute('data-sheet-dragging');
     panel.removeAttribute('data-sheet-closing');
   }
-  function openSheet(panel) {
-    if (!panel) return;
-    cancelJob(panel); clearSheetStyle(panel);
-    if (reduced() || typeof panel.animate !== 'function') return;
-    const animation = panel.animate([
-      { opacity: 0, transform: mobile() ? 'translateY(44px) scale(.985)' : 'translateY(12px) scale(.975)' },
-      { opacity: 1, transform: 'translateY(0) scale(1)' }
-    ], { duration: mobile() ? 420 : 280, easing: 'cubic-bezier(.18,.9,.22,1)', fill: 'both' });
+  const rest = 'translateY(0) scale(1)';
+  function settleSheet(panel, frames, duration) {
+    const animation = panel.animate(frames, { duration, fill: 'both' });
     const job = { animation };
     jobs.set(panel, job);
     animation.finished?.then(() => {
       if (jobs.get(panel) !== job) return;
-      animation.cancel(); jobs.delete(panel);
+      clearSheetStyle(panel); jobs.delete(panel); animation.cancel();
     }, () => {});
+  }
+  function openSheet(panel) {
+    if (!panel) return;
+    cancelJob(panel); clearSheetStyle(panel);
+    if (reduced() || typeof panel.animate !== 'function') return;
+    const bottomSheet = mobile();
+    settleSheet(panel, [
+      { opacity: 0, transform: bottomSheet ? 'translateY(36px) scale(.99)' : 'translateY(12px) scale(.98)', easing: 'cubic-bezier(.19,.82,.23,1)' },
+      { opacity: 1, transform: bottomSheet ? 'translateY(-3px) scale(1)' : 'translateY(-2px) scale(1.004)', offset: .72, easing: 'ease-out' },
+      { opacity: 1, transform: rest }
+    ], bottomSheet ? 360 : 285);
   }
   function closeSheet(panel, finalize) {
     if (!panel || panel.hasAttribute('data-sheet-closing')) return;
+    if (reduced() || typeof panel.animate !== 'function') {
+      cancelJob(panel); clearSheetStyle(panel); finalize(); return;
+    }
+    const pose = getComputedStyle(panel);
+    const from = pose.transform === 'none' ? rest : pose.transform;
+    const opacity = pose.opacity;
+    const bottomSheet = mobile();
+    const distance = bottomSheet ? window.innerHeight - panel.getBoundingClientRect().top + 20 : 12;
     cancelJob(panel);
     panel.setAttribute('data-sheet-closing', '');
-    if (reduced() || typeof panel.animate !== 'function') { clearSheetStyle(panel); finalize(); return; }
-    const from = panel.style.transform || 'translateY(0) scale(1)';
-    const distance = Math.max(window.innerHeight - panel.getBoundingClientRect().top + 32, panel.offsetHeight + 32);
-    const duration = mobile() ? 280 : 180;
+    const target = bottomSheet ? Math.max(distance, panel.offsetHeight) : distance;
+    const duration = bottomSheet ? 270 : 175;
     let done = false, job;
     const finish = () => {
       if (done || jobs.get(panel) !== job) return; done = true;
@@ -182,25 +194,47 @@
       job?.animation?.cancel();
     };
     const animation = panel.animate([
-      { opacity: 1, transform: from },
-      { opacity: mobile() ? .12 : 0, transform: mobile() ? `translateY(${distance}px) scale(.985)` : 'translateY(10px) scale(.98)' }
-    ], { duration, easing: 'cubic-bezier(.32,0,.72,.35)', fill: 'both' });
+      { opacity, transform: from },
+      { opacity: 0, transform: `translateY(${target}px) scale(${bottomSheet ? .995 : .98})` }
+    ], { duration, easing: 'cubic-bezier(.35,0,.78,.46)', fill: 'both' });
     job = { animation, timer: setTimeout(finish, duration + 70) };
     jobs.set(panel, job);
     animation.finished?.then(finish, finish);
   }
   function springBack(panel) {
     panel.removeAttribute('data-sheet-dragging');
-    const from = panel.style.transform || 'translateY(0)';
+    const from = panel.style.transform || rest;
+    cancelJob(panel);
     if (reduced() || typeof panel.animate !== 'function') { clearSheetStyle(panel); return; }
-    const animation = panel.animate([{ transform: from }, { transform: 'translateY(0)' }], {
-      duration: 380, easing: 'cubic-bezier(.2,1.22,.3,1)', fill: 'both'
-    });
-    const job = { animation }; jobs.set(panel, job);
-    animation.finished?.then(() => {
-      if (jobs.get(panel) !== job) return;
-      clearSheetStyle(panel); jobs.delete(panel); animation.cancel();
-    }, () => {});
+    settleSheet(panel, [
+      { transform: from, easing: 'cubic-bezier(.18,.8,.24,1)' },
+      { transform: 'translateY(-4px)', offset: .72, easing: 'ease-out' },
+      { transform: rest }
+    ], 330);
+  }
+
+  // Some WebViews lose capture when the moving panel changes position. Keep
+  // one capture-phase dispatcher for both persistent and short-lived sheets.
+  let sheetDrag = null;
+  window.addEventListener('pointermove', event => sheetDrag?.move(event), { passive: false, capture: true });
+  window.addEventListener('pointerup', event => sheetDrag?.finish(event), { capture: true });
+  window.addEventListener('pointercancel', event => sheetDrag?.finish(event, true), { capture: true });
+  window.addEventListener('blur', () => sheetDrag?.cancel());
+  function touchPoint(event, touch) {
+    return {
+      pointerId: touch.identifier, pointerType: 'touch', button: 0,
+      clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => event.preventDefault()
+    };
+  }
+  if (!window.PointerEvent) {
+    window.addEventListener('touchmove', event => {
+      const touch = Array.from(event.changedTouches).find(item => item.identifier === sheetDrag?.id);
+      if (touch) sheetDrag.move(touchPoint(event, touch));
+    }, { passive: false, capture: true });
+    for (const type of ['touchend', 'touchcancel']) window.addEventListener(type, event => {
+      const touch = Array.from(event.changedTouches).find(item => item.identifier === sheetDrag?.id);
+      if (touch) sheetDrag.finish(touchPoint(event, touch), type === 'touchcancel');
+    }, { capture: true });
   }
   function mountSheet(panel, { handle, close }) {
     if (!panel || sheets.has(panel)) return sheets.get(panel);
@@ -211,7 +245,7 @@
     grab.setAttribute('aria-label', 'Закрыть панель. Можно потянуть вниз');
     grab.removeAttribute('aria-hidden');
     panel.classList.add('shared-sheet');
-    let drag = null, suppressClickUntil = 0;
+    let drag = null, frame = 0, suppressClickUntil = 0;
     const release = id => { try { if (grab.hasPointerCapture?.(id)) grab.releasePointerCapture(id); } catch (_) {} };
     grab.style.touchAction = 'none';
     // Some legacy decorative handles opt out of hit testing. Once mounted,
@@ -219,49 +253,57 @@
     grab.style.pointerEvents = 'auto';
     function begin(event) {
       if (event.isPrimary === false || event.pointerType !== 'touch' && event.button !== 0 || panel.hasAttribute('data-sheet-closing')) return;
-      cancelJob(panel); clearSheetStyle(panel);
-      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, time: now(), dy: 0, active: false };
+      sheetDrag?.cancel();
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, time: now(), dy: 0, active: false, move, finish, cancel };
+      sheetDrag = drag;
       try { grab.setPointerCapture(event.pointerId); } catch (_) {}
+    }
+    function setOffset(dy) {
+      const offset = dy > 76 ? 76 + (dy - 76) * .84 : dy;
+      panel.style.transform = `translateY(${offset}px)`;
     }
     function move(event) {
       if (!drag || drag.id !== event.pointerId) return;
       const dy = Math.max(0, event.clientY - drag.y), dx = event.clientX - drag.x;
-      if (!drag.active && Math.abs(dx) > dy + 8) { release(drag.id); drag = null; return; }
+      if (!drag.active && Math.abs(dx) > dy + 8) { cancel(); return; }
       if (!drag.active && dy < 4) return;
-      event.preventDefault(); drag.active = true; drag.dy = dy;
-      panel.setAttribute('data-sheet-dragging', '');
-      panel.style.transform = `translateY(${dy}px)`;
+      event.preventDefault();
+      if (!drag.active) {
+        cancelJob(panel); clearSheetStyle(panel);
+        drag.active = true;
+        panel.setAttribute('data-sheet-dragging', '');
+      }
+      drag.dy = dy;
+      if (!frame) frame = requestAnimationFrame(() => { frame = 0; if (drag) setOffset(drag.dy); });
     }
-    grab.addEventListener('pointerdown', begin);
-    // Track on window as well: WebViews can lose capture as a dialog is transformed.
-    window.addEventListener('pointermove', move, { passive: false, capture: true });
+    function endDrag() {
+      const ended = drag;
+      if (sheetDrag === ended) sheetDrag = null;
+      drag = null;
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0; release(ended.id);
+      return ended;
+    }
     function finish(event, cancelled = false) {
       if (!drag || drag.id !== event.pointerId) return;
-      const ended = drag; drag = null; release(ended.id);
-      const dy = Math.max(ended.dy, event.clientY - ended.y, 0);
-      const active = ended.active || dy >= 4;
-      if (!active) return;
+      const ended = endDrag();
+      if (!ended.active) return;
+      const dy = cancelled ? ended.dy : Math.max(0, event.clientY - ended.y);
       event.preventDefault(); suppressClickUntil = Date.now() + 450;
+      setOffset(dy);
       const velocity = dy / Math.max(1, now() - ended.time);
       const threshold = Math.min(120, Math.max(64, panel.offsetHeight * .2));
-      if (!cancelled && (dy >= threshold || dy > 36 && velocity > .55)) { panel.style.transform = `translateY(${dy}px)`; close(); }
+      if (!cancelled && (dy >= threshold || dy > 36 && velocity > .55)) close();
       else springBack(panel);
     }
-    window.addEventListener('pointerup', event => finish(event), { capture: true });
-    window.addEventListener('pointercancel', event => finish(event, true), { capture: true });
-    window.addEventListener('blur', () => {
+    function cancel() {
       if (!drag) return;
-      const id = drag.id; drag = null; release(id); springBack(panel);
-    });
+      const { active } = endDrag();
+      if (active && panel.isConnected && !panel.hasAttribute('data-sheet-closing')) springBack(panel);
+    }
+    grab.addEventListener('pointerdown', begin);
     if (!window.PointerEvent) {
-      const touchEvent = (event, touch) => ({ pointerId: touch.identifier, pointerType: 'touch', isPrimary: true, button: 0, clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => event.preventDefault() });
-      grab.addEventListener('touchstart', event => { if (event.touches.length === 1) begin(touchEvent(event, event.touches[0])); }, { passive: true });
-      window.addEventListener('touchmove', event => {
-        const touch = [...event.changedTouches].find(touch => touch.identifier === drag?.id); if (touch) move(touchEvent(event, touch));
-      }, { passive: false, capture: true });
-      for (const type of ['touchend', 'touchcancel']) window.addEventListener(type, event => {
-        const touch = [...event.changedTouches].find(touch => touch.identifier === drag?.id); if (touch) finish(touchEvent(event, touch), type === 'touchcancel');
-      }, { capture: true });
+      grab.addEventListener('touchstart', event => { if (event.touches.length === 1) begin(touchPoint(event, event.touches[0])); }, { passive: true });
     }
     grab.addEventListener('click', event => {
       if (event.detail !== 0 && Date.now() < suppressClickUntil) { event.preventDefault(); event.stopPropagation(); return; }
@@ -270,7 +312,7 @@
     grab.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); close(); }
     });
-    const api = { cancel() { if (drag) release(drag.id); drag = null; springBack(panel); } };
+    const api = { cancel };
     sheets.set(panel, api); return api;
   }
 

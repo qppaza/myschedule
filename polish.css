@@ -1,9 +1,10 @@
 /* Shared glass palette and motion. v36 keeps scrolling surfaces painted without nested blur. */
 :root{
- --app-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
- --app-text-size:14px;
- --app-control-size:14px;
- --app-caption-size:12px;
+ --app-font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,"Segoe UI",sans-serif;
+ --app-display-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,"Segoe UI",sans-serif;
+ --app-text-size:1rem;
+ --app-control-size:.9375rem;
+ --app-caption-size:.8125rem;
  --ui-spring:cubic-bezier(.18,1.12,.28,1);
  --ui-ease:cubic-bezier(.22,.8,.25,1);
  --sheet-backdrop:rgba(14,10,21,.36);
@@ -120,7 +121,10 @@
 @media(max-width:700px){.academy-dialog{width:100%;max-width:520px;margin:auto auto 0;padding:4px 22px calc(23px + env(safe-area-inset-bottom));border-radius:30px 30px 0 0}.academy-dialog-head{margin-top:3px}}
 
 /* Keep the timetable's typography across study sheets and personal tools. */
-body,button,input,textarea,select{font-family:var(--app-font-family)}
+body,button,input,textarea,select{font-family:var(--app-font-family);font-optical-sizing:auto}
+:root :is(h1,h2,h3,.study-topic-title,.summary-time){font-family:var(--app-display-family);font-weight:600;letter-spacing:-.025em;text-wrap:pretty}
+:root :is(.study-question-text,.academy-dialog p){line-height:1.47;letter-spacing:-.012em}
+:root :is(.time,.date,.summary-clock>span){font-variant-numeric:tabular-nums}
 :root :is(.teacher,.meta,.academy-dialog p,.study-question-text,.study-dialog input,.study-dialog textarea){font-size:var(--app-text-size)}
 :root :is(.group,.today-btn span,.segmented button,.study-kind-switch button,.study-copy-primary,.study-copy-secondary,.study-subject-option,.study-search,.install-action,.academy-actions button,.academy-actions a){font-size:var(--app-control-size)}
 :root :is(.type,.time small,.study-topic-row small,.study-subject-row small,.study-count,.study-note,.study-notice,.install-dialog-note){font-size:var(--app-caption-size)}
@@ -133,18 +137,17 @@ body,button,input,textarea,select{font-family:var(--app-font-family)}
  --glass-face:radial-gradient(ellipse 92% 88% at 13% -24%,#f9f1ff48,transparent 87%),linear-gradient(147deg,#eee8ff14,#c6bce90b 54%,#a8e3d01c);
  --glass-line:#f6eaff47;
  --glass-depth:inset 0 1px 0 #fff3,inset 0 -1px 1px #ecfff117,0 3px 12px #100b1e28;
- --glass-panel:linear-gradient(145deg,#f7ebff13,#e8dff50a 55%,#c2f8e00f);
+ --glass-panel:radial-gradient(ellipse 75% 100% at 0% -44%,#f8f2ff24,transparent 86%),linear-gradient(145deg,#eceaff16,#d8d4e709 51%,#bfeddf13);
  --glass-panel-line:#eee6fa30;
- --glass-panel-depth:inset 0 1px 0 #fff2,0 8px 23px #130d201b;
- --glass-sheet:linear-gradient(141deg,#3b3248f7,#2d2937f8 63%,#283733f9);
+ --glass-panel-depth:inset 0 1px 0 #ffffff35,inset 0 -1px 0 #c5f8ee13,0 4px 12px #100e1917;
+ --glass-sheet:radial-gradient(ellipse 79% 40% at 6% -15%,#f9eaff22,transparent 92%),linear-gradient(141deg,#363140ea,#272731ed 63%,#263431f0);
  --glass-sheet-solid:#312b3a;
  --glass-tray:#140e201f;
  --glass-lens-face:radial-gradient(ellipse 73% 59% at 18% 0%,#fbf6ff57,transparent 79%),linear-gradient(166deg,#e5dcf525,#c6bee722 48%,#21313a21 72%,#c3e6e752);
  --glass-lens-line:#eee4ff67;
  --glass-lens-depth:inset 0 1px 1px #fff5,inset 0 -2px 3px #d5ffed33,0 5px 12px #0d091f51;
  --glass-lens-glint:radial-gradient(ellipse at 16% -22%,#fff8ffd1,transparent 64%),radial-gradient(ellipse at 76% 128%,#d5efeec2,transparent 61%);
- --glass-rail-ink:#ded1f57a;
- --glass-rail-fill:#1c152c26;
+ --glass-live-face:linear-gradient(160deg,#fff3,transparent 35% 77%,#d1fff227);
  --ambient-bloom:radial-gradient(ellipse at 26% 47%,#6157a94f,transparent 52%),radial-gradient(ellipse at 77% 62%,#39897441,transparent 54%),radial-gradient(ellipse at 50% 8%,#a9749140,transparent 45%);
  --control-glass:var(--glass-face);
  --control-edge:var(--glass-line);
@@ -161,21 +164,20 @@ body,button,input,textarea,select{font-family:var(--app-font-family)}
  --overlay-solid:var(--glass-sheet-solid);
 }
 :root[data-theme=light]{
- --glass-face:radial-gradient(ellipse 90% 83% at 14% -20%,#fffffff2,transparent 86%),linear-gradient(154deg,#ffffff58,#d9cfe647 55%,#ecfbf2aa);
- --glass-line:#8c7b9f50;
- --glass-depth:inset 0 1px 0 #fff,inset 0 -1px 1px #bfabc135,0 3px 11px #503d6220;
- --glass-panel:linear-gradient(143deg,#ffffff79,#f4eff950 57%,#e4f6eb5a);
+ --glass-face:radial-gradient(ellipse 87% 68% at 14% -24%,#fff,transparent 78%),linear-gradient(155deg,#ffffff5e,#f9f6fc24 50%,#e9fcf24d);
+ --glass-line:#9384a343;
+ --glass-depth:inset 0 1px 0 #fff,inset 0 -1px 0 #fff9,0 2px 6px #503d621a;
+ --glass-panel:radial-gradient(ellipse 82% 86% at 4% -40%,#ffffffb5,transparent 91%),linear-gradient(141deg,#ffffff63,#f9f8ff3b 52%,#effff34b);
  --glass-panel-line:#8b799e30;
- --glass-panel-depth:inset 0 1px 0 #fffc,0 8px 20px #49375516;
- --glass-sheet:linear-gradient(145deg,#faf7fdfd,#ebe5f2fc 63%,#e9f3edf9);
+ --glass-panel-depth:inset 0 1px 0 #fffffff0,inset 0 -1px 0 #e7f8f980,0 4px 12px #49375510;
+ --glass-sheet:radial-gradient(ellipse 83% 40% at 7% -17%,#fff9,transparent 96%),linear-gradient(145deg,#fcfbffec,#eeeaf3ed 63%,#edf6f1ed);
  --glass-sheet-solid:#f0ebf4;
  --glass-tray:#79698724;
  --glass-lens-face:radial-gradient(ellipse 70% 58% at 15% -4%,#ffffffe7,transparent 78%),linear-gradient(157deg,#fffaffae,#b3a4ca41 47%,#d4eadc56 70%,#fffef6ca);
  --glass-lens-line:#85749384;
  --glass-lens-depth:inset 0 1px 1px #fff,inset 0 -2px 2px #fffc,0 5px 11px #55416839;
  --glass-lens-glint:radial-gradient(ellipse at 16% -19%,#fff,transparent 67%),radial-gradient(ellipse at 77% 126%,#fffef9,transparent 61%);
- --glass-rail-ink:#6253737c;
- --glass-rail-fill:#8f809f27;
+ --glass-live-face:linear-gradient(160deg,#fff8,transparent 33% 78%,#fff5);
  --ambient-bloom:radial-gradient(ellipse at 26% 47%,#aeaae65e,transparent 52%),radial-gradient(ellipse at 77% 62%,#96d0c154,transparent 54%),radial-gradient(ellipse at 50% 8%,#eec0c841,transparent 45%);
 }
 
@@ -239,11 +241,11 @@ body,button,input,textarea,select{font-family:var(--app-font-family)}
  box-shadow:none;
 }
 :root[data-theme] :is(.segmented>#segThumb,.glass-choice-thumb){--lens-inset:-3px;border-radius:999px}
-:root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(#segThumb,.glass-choice-thumb){--lens-shape:scale(1.045,1.22);--lens-glint-opacity:.68}
+:root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(#segThumb,.glass-choice-thumb){--lens-shape:scale(calc(1.035 + var(--drag-stretch,0)),1.12);--lens-glint-opacity:.68}
 :root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(.day-thumb,.date-thumb){--lens-shape:scale(1,1.035);--lens-glint-opacity:.67}
 :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::before,
 :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::after,
-.rail-glass-optics{
+.rail-live-capture{
  content:'';
  position:absolute;
  inset:var(--lens-inset);
@@ -262,15 +264,29 @@ body,button,input,textarea,select{font-family:var(--app-font-family)}
  background:var(--glass-lens-glint);
  opacity:var(--lens-glint-opacity);
 }
-.rail-glass-optics{
- z-index:1;
- width:calc(100% + 6px);
- height:calc(100% + 6px);
- overflow:hidden;
- opacity:.33;
+.glass-contact-host{position:relative}
+.glass-contact{
+ position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+ background:radial-gradient(ellipse 135px 83px at var(--beam-x) var(--beam-y),var(--contact-glow),transparent 90%);
+ box-shadow:inset 0 1px 0 var(--contact-rim);
 }
-:is(.is-touching,.is-dragging,.has-preview) .rail-glass-optics{opacity:.62}
-.rail-glass-trace{fill:var(--glass-rail-fill);stroke:var(--glass-rail-ink);stroke-width:1;transition-property:transform;transition-timing-function:var(--ui-ease)}
+:root[data-theme]{--contact-glow:#ecf5ff2a;--contact-rim:#ffffff45}
+:root[data-theme=light]{--contact-glow:#ffffff93;--contact-rim:#ffffffce}
+.rail-optics-defs{position:absolute;pointer-events:none}
+:root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics]{z-index:4;pointer-events:none;isolation:auto}
+:root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics]::before{background:var(--glass-live-face)}
+:root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics=native]{
+ backdrop-filter:url("#amia-live-lens") saturate(115%)!important;
+ -webkit-backdrop-filter:url("#amia-live-lens") saturate(115%)!important;
+}
+.rail-live-capture{
+ z-index:1;
+ width:calc(100% - var(--lens-inset) - var(--lens-inset));
+ height:calc(100% - var(--lens-inset) - var(--lens-inset));
+ overflow:hidden;
+ visibility:hidden;
+}
+.ready-optics .rail-live-capture{visibility:visible;transform:none}
 :root[data-theme=light] #summary .summary-clock>span{color:color-mix(in srgb,var(--clock-target) 36%,#382c42)}
 
 @media(prefers-reduced-motion:reduce){
@@ -278,7 +294,7 @@ body,button,input,textarea,select{font-family:var(--app-font-family)}
  :root[data-theme] :is(.is-touching,.is-dragging,.has-preview)>:is(#segThumb,.glass-choice-thumb,.day-thumb,.date-thumb){--lens-shape:scale(1)}
  :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::before,
  :root[data-theme] :is(.day-thumb,.date-thumb,.glass-choice-thumb,#segThumb)::after,
- .rail-glass-optics,.rail-glass-trace{transition:none!important}
+ .rail-live-capture{transition:none!important}
  :root[data-theme] .cab-switch::before{scale:1}
 }
 @media(prefers-reduced-transparency:reduce),(forced-colors:active){
@@ -289,7 +305,7 @@ body,button,input,textarea,select{font-family:var(--app-font-family)}
   --glass-lens-face:var(--glass-sheet-solid);
   --glass-lens-glint:none;
  }
- .rail-glass-optics{display:none}
+ .rail-live-capture{display:none}
  :root[data-theme] .ambient-wash{animation:none!important}
  .ambient-bloom{display:none}
 }

@@ -1,10 +1,10 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v56-shared-glass';
+const VERSION = 'myschedule-offline-v57-optical-rails';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const REQUIRED = ['ui.js?v=56', 'lesson-card.js?v=56', 'lens.js?v=56', 'polish.css?v=56', 'curriculum.js?v=52', 'study.js?v=52', 'study.css?v=52', 'install.js?v=52', 'install.css?v=52', 'cabinet.js?v=55', 'cabinet.css?v=56'].map(path => new URL(path, BASE).href);
+const REQUIRED = ['ui.js?v=57', 'lesson-card.js?v=56', 'lens.js?v=57', 'polish.css?v=57','glass-motion.css?v=57', 'curriculum.js?v=52', 'study.js?v=52', 'study.css?v=52', 'install.js?v=52', 'install.css?v=52', 'cabinet.js?v=57', 'cabinet.css?v=56'].map(path => new URL(path, BASE).href);
 const ASSETS = [...REQUIRED, ...['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href)];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

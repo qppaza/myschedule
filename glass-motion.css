@@ -1,0 +1,109 @@
+:root[data-theme] {
+  --sheet-rim: #f3e6ff47;
+  --sheet-highlight: #fff6ff38;
+  --sheet-reflection: #f2dfff09;
+  --sheet-depth: #150d263e;
+  --sheet-separator: #f7eaff1e;
+  --sheet-scrollmark: #eedcff54;
+}
+
+:root[data-theme=light] {
+  --sheet-rim: #fffdffeb;
+  --sheet-highlight: #fffeffed;
+  --sheet-reflection: #fff9ff7a;
+  --sheet-depth: #432e5627;
+  --sheet-separator: #6a548824;
+  --sheet-scrollmark: #65527760;
+}
+
+/* Specular edges share the panel tint. The scroll surfaces themselves do not
+   need an additional live backdrop or duplicate content layer. */
+:root[data-theme] :is(.shared-sheet,#datePopover.date-popover,#groupOverlay #groupDialog,#themeOptions,.study-subject-menu) {
+  border-color: var(--sheet-rim);
+  box-shadow: inset 0 1px 0 var(--sheet-highlight),
+    inset 0 0 0 1px var(--sheet-reflection), 0 18px 52px var(--sheet-depth);
+}
+
+:root .study-dialog-top {
+  border-block-end-color: var(--sheet-separator);
+  box-shadow: 0 1px 0 var(--sheet-reflection);
+}
+
+:root :is(.study-body,.study-subject-menu,.cab-attendance-wrap,#groupDialog,#datePopover.date-popover) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sheet-scrollmark) transparent;
+  scroll-padding-block: 14px;
+}
+
+.shared-sheet [data-sheet-grab] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.shared-sheet [data-sheet-grab]::before,
+.shared-sheet [data-sheet-grab]::after {
+  transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.85,.28,1.28);
+}
+
+.shared-sheet[data-sheet-dragging] [data-sheet-grab] {
+  cursor: grabbing;
+}
+
+.shared-sheet[data-sheet-dragging] [data-sheet-grab]::before,
+.shared-sheet[data-sheet-dragging] [data-sheet-grab]::after {
+  opacity: .85;
+  scale: 1.16 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root :is(#datePopover.date-popover,#themeOptions,.study-subject-menu):not([hidden]) {
+    animation: glass-menu-reveal 245ms both;
+  }
+
+  @keyframes glass-menu-reveal {
+    0% { opacity: 0; transform: translateY(-5px) scale(.968); animation-timing-function: cubic-bezier(.2,.78,.24,1); }
+    74% { opacity: 1; transform: translateY(0) scale(1.004); animation-timing-function: ease-out; }
+    100% { opacity: 1; transform: none; }
+  }
+}
+
+@supports (animation-timeline: scroll(self block)) {
+  @property --sheet-fade-start {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+  }
+
+  @property --sheet-fade-end {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (prefers-reduced-transparency: no-preference) and (forced-colors: none) {
+    .study-body:not(:has(:focus-visible,.study-subject-menu:not([hidden]))) {
+      mask-image: linear-gradient(to bottom, transparent, #000 var(--sheet-fade-start),
+        #000 calc(100% - var(--sheet-fade-end)), transparent);
+      animation: glass-scroll-edges linear both;
+      animation-timeline: scroll(self block);
+    }
+  }
+
+  @keyframes glass-scroll-edges {
+    0% { --sheet-fade-start: 0px; --sheet-fade-end: 7px; }
+    8%, 92% { --sheet-fade-start: 7px; --sheet-fade-end: 7px; }
+    100% { --sheet-fade-start: 7px; --sheet-fade-end: 0px; }
+  }
+}
+
+@media (max-width: 700px) {
+  :root[data-theme] :is(.shared-sheet,#groupOverlay #groupDialog) {
+    box-shadow: inset 0 1px 0 var(--sheet-highlight),
+      inset 0 0 0 1px var(--sheet-reflection), 0 -9px 38px var(--sheet-depth);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shared-sheet [data-sheet-grab]::before,
+  .shared-sheet [data-sheet-grab]::after { transition: none; }
+}

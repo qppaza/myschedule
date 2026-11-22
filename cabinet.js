@@ -334,28 +334,23 @@
     for(const entry of merged.values()){entry.segments.sort((a,b)=>(a.start??1440)-(b.start??1440));entry.time=entry.segments[0].time;entry.endTime=entry.segments.at(-1).endTime;}
     return[...merged.values()];
   }
-  function assessmentCard(entry, canEdit, history) {
+  function assessmentCard(entry, history) {
     const subject = entry.subject || entry.subjectName || entry.subjectId;
     const num = entry.segments?.[0]?.num ?? entry.num;
     const provisional = entry.type !== 'credit' && !entry.confirmed;
     const status = provisional ? badge('Предварительно', 'warning')
       : history ? '<span class="status">✓ Завершено</span>' : '';
-    const actions = canEdit && entry.source === 'manual'
-      ? `<div class="cab-card-actions">
-          ${action('Изменить', 'exam-edit', icons.note, '', `data-id="${escape(entry.id)}"`)}
-          ${action('Удалить', 'exam-delete', '', 'subtle', `data-id="${escape(entry.id)}"`)}
-        </div>` : '';
     return window.AmiaLessonCard.render({...entry, subject, num}, {
-      label:examKinds[entry.type], status, actions, cabinet:true, state:history?'past':'upcoming'
+      label:examKinds[entry.type], status, cabinet:true, state:history?'past':'upcoming'
     });
   }
   async function examsPage(){
     const group=selectedGroup();let data,offline=false;
-    try{data=await api('/exams?group='+encodeURIComponent(group),{auth:!!me});}catch(error){const entries=localExams(group);if(!entries.length&&navigator.onLine!==false)throw error;data={entries,canEdit:false};offline=true;}
-    view.exams=data;const history=view.segment==='history',entries=list(data).filter(e=>Object.hasOwn(examKinds,e.type)&&(history?e.date<today():e.date>=today())).sort((a,b)=>(history?b.date.localeCompare(a.date):a.date.localeCompare(b.date))||String(a.time||'').localeCompare(String(b.time||''))||String(a.subject||'').localeCompare(String(b.subject||''),'ru'));
-    let html=`<div class="cab-toolbar"><button type="button" class="cab-picker-trigger" data-cab-action="exam-group"><span>Группа ${escape(group)}</span>${icons.down}</button>${data.canEdit?action('Добавить дату','exam-add',icons.plus,'primary'):''}</div>${segments([['upcoming','Ближайшие'],['history','Прошедшие']],history?'history':'upcoming','Контрольные даты')}`;
+    try{data=await api('/exams?group='+encodeURIComponent(group),{auth:!!me});}catch(error){const entries=localExams(group);if(!entries.length&&navigator.onLine!==false)throw error;data={entries};offline=true;}
+    const history=view.segment==='history',entries=list(data).filter(e=>Object.hasOwn(examKinds,e.type)&&(history?e.date<today():e.date>=today())).sort((a,b)=>(history?b.date.localeCompare(a.date):a.date.localeCompare(b.date))||String(a.time||'').localeCompare(String(b.time||''))||String(a.subject||'').localeCompare(String(b.subject||''),'ru'));
+    let html=`<div class="cab-toolbar"><button type="button" class="cab-picker-trigger" data-cab-action="exam-group"><span>Группа ${escape(group)}</span>${icons.down}</button></div>${segments([['upcoming','Ближайшие'],['history','Прошедшие']],history?'history':'upcoming','Контрольные даты')}`;
     if(offline)html+=note('Показаны сохранённые даты из расписания. Дополнительные даты появятся после подключения к кабинету.');
-    if(!entries.length)return html+empty(history?'Прошедших дат нет':'Ближайшие даты пока не добавлены','Даты появятся из опубликованного расписания или после добавления старостой.',icons.exam);
+    if(!entries.length)return html+empty(history?'Прошедших дат нет':'Ближайших дат пока нет','Даты появляются после обновления расписания.',icons.exam);
     const days=new Map();
     for(const entry of entries){
       if(!days.has(entry.date))days.set(entry.date,[]);
@@ -366,17 +361,10 @@
       const relative=distance===0?'Сегодня':distance===1?'Завтра':distance>1?'Через '+distance+' дн.':'';
       return `<section class="cab-exam-day">
         <div class="cab-section-title"><h3>${escape(dateLabel(date,{weekday:'short',day:'numeric',month:'long'}))}</h3>${relative?`<span>${escape(relative)}</span>`:''}</div>
-        <div class="lesson-list">${items.map(entry=>assessmentCard(entry,data.canEdit,history)).join('')}</div>
+        <div class="lesson-list">${items.map(entry=>assessmentCard(entry,history)).join('')}</div>
       </section>`;
     });
     return html+`<div class="cab-exam-days">${cards.join('')}</div>${note('Даты и аудитории могут меняться.')}`;
-  }
-  async function editExam(id=''){
-    const group=await groupData(),subjects=list(group,'subjects'),entry=list(view.exams).find(e=>String(e.id)===String(id)),subjectId=entry?.subjectId||subjects[0]?.id||'';
-    const picker=makeSheet(entry?'Изменить дату':'Учебная дата',`<form class="cab-form">${pickerField('subjectId','Учебная дисциплина',subjectId,subjects.find(s=>s.id===subjectId)?.name)}${pickerField('type','Вид',entry?.type||'credit',examKinds[entry?.type]||'Зачёт')}<div class="cab-form-grid">${pickerField('date','Дата',entry?.date||today(),dateLabel(entry?.date||today()))}${field('time','Время',entry?.time||'','ЧЧ:ММ',{maxLength:5})}</div>${field('note','Примечание',entry?.note||'','Необязательно',{maxLength:500})}<div class="cab-switch-row"><span>Дата подтверждена<small>Выключите, если дата пока предварительная</small></span><button type="button" class="cab-switch" aria-pressed="${!!entry?.confirmed}" data-exam-confirmed aria-label="Дата подтверждена"></button><input type="hidden" name="confirmed" value="${entry?.confirmed?'1':'0'}"></div><p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить дату</button></form>`);
-    const form=submitForm(picker,async form=>{const time=form.elements.time.value.trim();if(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))throw apiError('Укажите время в формате ЧЧ:ММ.');await api('/exams',{method:'POST',body:{...(entry?{id:entry.id,version:entry.version}:{}),group:selectedGroup(),subjectId:form.elements.subjectId.value,date:form.elements.date.value,time,type:form.elements.type.value,confirmed:form.elements.confirmed.value==='1',note:form.elements.note.value}});toast('Дата сохранена');});
-    attachChoice(form,'subjectId','Учебная дисциплина',subjects.map(s=>({value:s.id,label:s.name})));attachChoice(form,'type','Вид занятия',Object.entries(examKinds).map(([value,label])=>({value,label})));attachDate(form,'date');
-    form.querySelector('[data-exam-confirmed]').onclick=e=>{const b=e.currentTarget,value=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(value));form.elements.confirmed.value=value?'1':'0';};
   }
 
   const defaultPreferences={questionReminder:false,questionBeforeMinutes:60,examReminder:false,examDaysBefore:1,absenceReminder:false,absenceThreshold:72,absenceSteps:[48,60,68,72],quietStart:'22:00',quietEnd:'08:00'};
@@ -416,8 +404,6 @@
       if(command==='note-add'||command==='note-edit'){await editNote(button.dataset.id);return;}
       if(command==='note-delete'){confirmAction('Удалить заметку?','Заметка будет удалена из вашего кабинета.',()=>api('/notes?id='+encodeURIComponent(button.dataset.id),{method:'DELETE'}));return;}
       if(command==='exam-group'){openChoice('Учебная группа',(me?.groups||['4501','4502','4503']).map(g=>({value:g,label:'Группа '+g})),{selected:selectedGroup(),onPick:g=>{contextGroup=g;contextPerson='';draw();}});return;}
-      if(command==='exam-add'||command==='exam-edit'){await editExam(button.dataset.id);return;}
-      if(command==='exam-delete'){confirmAction('Удалить дату?','Запись исчезнет у всех участников группы.',()=>api('/exams?id='+encodeURIComponent(button.dataset.id),{method:'DELETE'}));return;}
       if(command==='question-materials'||command==='question-note'){
         const item=view.questionItems?.[+button.dataset.index];if(!item)return;const data=await api('/questions?group='+selectedGroup()+personalQuery());
         const lesson=list(data,'lessons').find(l=>l.key===item.lessonKey);
