@@ -113,20 +113,6 @@
 .cab-grade-actions{display:flex;gap:5px;margin-inline-start:auto;flex:none}
 .cab-grade-actions>button{width:40px;height:40px;min-width:40px;min-height:40px}
 .cab-grade-actions svg{width:15px;height:15px}
-.cab-grade-chart{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:clamp(3px,1.3vw,12px)}
-.cab-grade-column{
- display:grid;grid-template-rows:16px 64px auto;align-items:end;gap:5px;text-align:center;
- font-size:var(--app-caption-size,12px);font-variant-numeric:tabular-nums;color:var(--muted);
-}
-.cab-grade-column>span{font-weight:600;color:var(--text)}
-.cab-grade-bar{
- display:flex;align-items:flex-end;justify-content:center;height:100%;
- border-bottom:1px solid var(--glass-panel-line);
-}
-.cab-grade-bar>i{
- display:block;width:min(72%,27px);height:var(--grade-height);
- border-radius:6px 6px 0 0;background:color-mix(in srgb,var(--control-ink),transparent 27%);
-}
 .cab-forecast{margin-block-start:10px}
 .cab-forecast summary{cursor:pointer;font-weight:600}
 .cab-forecast label{display:block;margin:11px 0 5px;color:var(--muted)}

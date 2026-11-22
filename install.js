@@ -150,8 +150,8 @@
     if (!prompt) {
       prompt = document.createElement('section');
       prompt.id = 'installPrompt';
-      const calendar = main.querySelector('.calendar');
-      if (calendar) calendar.after(prompt);
+      const lessons = main.querySelector('#content');
+      if (lessons) lessons.after(prompt);
       else main.prepend(prompt);
     }
     prompt.classList.add('install-prompt');
