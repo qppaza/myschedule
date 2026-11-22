@@ -2,7 +2,8 @@
 (() => {
   'use strict';
   const data = window.CURRICULUM_DATA || { subjects: [] };
-  const subjects = data.subjects;
+  const names = new Intl.Collator('ru', {numeric:true,sensitivity:'base'});
+  const subjects = [...data.subjects].sort((a,b)=>names.compare(a.name,b.name));
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const plain = value => String(value ?? '').toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
   const svg = body => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;

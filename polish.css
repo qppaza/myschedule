@@ -11,23 +11,23 @@
  --toast-fill:linear-gradient(130deg,#343b46fa,#242932fa);
 }
 :root[data-theme=light]{
- --sheet-backdrop:rgba(60,43,75,.22);
- --toast-fill:linear-gradient(130deg,rgba(255,252,255,.97),rgba(236,226,245,.97));
+ --sheet-backdrop:#34465c35;
+ --toast-fill:linear-gradient(130deg,#fff,#e8eef7);
 }
-:root[data-theme=light] .ambient:after{background:radial-gradient(ellipse at 3% 13%,#cab4e25e,transparent 54%),radial-gradient(ellipse at 96% 6%,#e6c8bd58,transparent 49%),radial-gradient(ellipse at 91% 89%,#abd5c75b,transparent 52%),radial-gradient(ellipse at 9% 96%,#bccce34d,transparent 45%),#ece9f1}
-:root[data-theme=light] .teacher{color:#5b5068}
+:root[data-theme=light] .ambient:after{background:radial-gradient(ellipse at 5% 14%,#bfd1eb80,transparent 56%),radial-gradient(ellipse at 98% 8%,#faeedf85,transparent 42%),radial-gradient(ellipse at 90% 94%,#c7e1da74,transparent 55%),#edf1f6}
+:root[data-theme=light] .teacher{color:var(--muted)}
 :root[data-theme=light] :is(.eyebrow,.header-note,.brand-sub,.source-note,.source-note span,footer,footer p,.date-calendar-note,.week-caption){color:var(--muted)}
 :root[data-theme=light] .footer-top a{color:var(--control-ink)}
 :root[data-theme=light] .empty h3{color:var(--text)}
 :root #summary .summary-with-clock .summary-meta .summary-kind{max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
 :root[data-theme=light] :is(.lesson,.calendar,.summary,.study-library-entry,.install-prompt){border-color:var(--liquid-edge)}
-:root[data-theme=light] .lesson.past{background:linear-gradient(135deg,#ffffff73,#f4eef769);border-color:#9580a31f}
-:root[data-theme=light] .lesson.current{background:linear-gradient(135deg,#edf9f2dc,#f4eefbd4);border-color:#64957b66;box-shadow:inset 0 1px 0 #fff,0 5px 22px #395d4910}
-:root[data-theme=light] .empty{background:#ffffff59;border-color:#a58bb247}
-:root[data-theme=light] :is(.study-notice,.study-count){background:#dacde53d;border-color:#a58cb82b}
+:root[data-theme=light] .lesson.past{background:linear-gradient(135deg,#fff9,#e8edf5a3);border-color:#53698229}
+:root[data-theme=light] .lesson.current{background:linear-gradient(135deg,#f2faf6e8,#eef5f9e0);border-color:#64957b66;box-shadow:inset 0 1px 0 #fff,0 5px 22px #395d4910}
+:root[data-theme=light] .empty{background:#ffffff59;border-color:#64789045}
+:root[data-theme=light] :is(.study-notice,.study-count){background:#dae4f64d;border-color:#607a9b35}
 :root[data-theme=light] :is(.study-subject-option,.study-copy-primary,.install-action,.group.glass){color:var(--control-ink)}
-:root[data-theme=light] :is(.segmented,.glass-segmented)>button[aria-pressed=true]{color:#493452}
-:root[data-theme=light] .day.selected :is(.dow,.date){color:#4d375c}
+:root[data-theme=light] :is(.segmented,.glass-segmented)>button[aria-pressed=true]{color:var(--control-ink)}
+:root[data-theme=light] .day.selected :is(.dow,.date){color:var(--control-ink)}
 :root :is(.study-dialog,.install-dialog)::backdrop{background:var(--sheet-backdrop);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
 :root[data-theme=light] .group-overlay{background:var(--sheet-backdrop)}
 
@@ -170,23 +170,23 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  --overlay-solid:var(--glass-sheet-solid);
 }
 :root[data-theme=light]{
- --bg:#ece9f1;--text:#30283b;--muted:#6c6277;--blue:#70538f;--border:#77608c2e;
- --control-ink:#574564;--control-focus:#826295;
- --glass-face:radial-gradient(ellipse 87% 68% at 14% -24%,#fff,transparent 78%),linear-gradient(155deg,#ffffff5e,#f9f6fc24 50%,#e9fcf24d);
- --glass-line:#9384a343;
- --glass-depth:inset 0 1px 0 #fff,inset 0 -1px 0 #fff9,0 2px 6px #503d621a;
- --glass-panel:radial-gradient(ellipse 82% 86% at 4% -40%,#ffffffb5,transparent 91%),linear-gradient(141deg,#ffffff63,#f9f8ff3b 52%,#effff34b);
- --glass-panel-line:#8b799e30;
- --glass-panel-depth:inset 0 1px 0 #fffffff0,inset 0 -1px 0 #e7f8f980,0 4px 12px #49375510;
- --glass-sheet:radial-gradient(ellipse 83% 40% at 7% -17%,#fff9,transparent 96%),linear-gradient(145deg,#fcfbffec,#eeeaf3ed 63%,#edf6f1ed);
- --glass-sheet-solid:#f0ebf4;
- --glass-tray:#79698724;
- --glass-lens-face:radial-gradient(ellipse 70% 58% at 15% -4%,#ffffffe7,transparent 78%),linear-gradient(157deg,#fffaffae,#b3a4ca41 47%,#d4eadc56 70%,#fffef6ca);
- --glass-lens-line:#85749384;
- --glass-lens-depth:inset 0 1px 1px #fff,inset 0 -2px 2px #fffc,0 5px 11px #55416839;
+ --bg:#edf1f6;--text:#202a37;--muted:#4e5d70;--blue:#2f5f8d;--border:#4d658035;
+ --control-ink:#294561;--control-focus:#4c7aa9;
+ --glass-face:radial-gradient(ellipse 87% 68% at 14% -24%,#fff,transparent 78%),linear-gradient(155deg,#ffffffb8,#f8fbff64 50%,#e6eef796);
+ --glass-line:#5a74924f;
+ --glass-depth:inset 0 1px 0 #fff,inset 0 -1px 0 #fff9,0 2px 6px #3049611c;
+ --glass-panel:radial-gradient(ellipse 82% 86% at 4% -40%,#ffffffb5,transparent 91%),linear-gradient(141deg,#ffffffbe,#f6faff84 52%,#edf3f9a8);
+ --glass-panel-line:#5d75913e;
+ --glass-panel-depth:inset 0 1px 0 #fffffff0,inset 0 -1px 0 #e7f8f980,0 4px 12px #344a6516;
+ --glass-sheet:radial-gradient(ellipse 83% 40% at 7% -17%,#fff9,transparent 96%),linear-gradient(145deg,#fcfdfffa,#f2f6faf6 63%,#eaf0f6f7);
+ --glass-sheet-solid:#f4f7fb;
+ --glass-tray:#60799525;
+ --glass-lens-face:radial-gradient(ellipse 70% 58% at 15% -4%,#ffffffe7,transparent 78%),linear-gradient(157deg,#ffffffc9,#9ab5da54 42%,#c4d9f2ab 72%,#fbfdfff2);
+ --glass-lens-line:#5c7b9a81;
+ --glass-lens-depth:inset 0 1px 1px #fff,inset 0 -2px 2px #fffc,0 5px 11px #39567335;
  --glass-lens-glint:radial-gradient(ellipse at 16% -19%,#fff,transparent 67%),radial-gradient(ellipse at 77% 126%,#fffef9,transparent 61%);
  --glass-live-face:linear-gradient(160deg,#fff8,transparent 33% 78%,#fff5);
- --ambient-bloom:radial-gradient(ellipse at 26% 47%,#aeaae65e,transparent 52%),radial-gradient(ellipse at 77% 62%,#96d0c154,transparent 54%),radial-gradient(ellipse at 50% 8%,#eec0c841,transparent 45%);
+ --ambient-bloom:radial-gradient(ellipse at 26% 47%,#a1bfd96b,transparent 52%),radial-gradient(ellipse at 77% 62%,#9fc8c16b,transparent 54%),radial-gradient(ellipse at 50% 8%,#f2dfc569,transparent 45%);
 }
 
 .ambient-bloom{position:absolute;inset:0;z-index:1;pointer-events:none;background:var(--ambient-bloom);opacity:.26;animation:ambient-tint-cycle 44s ease-in-out -9s infinite}

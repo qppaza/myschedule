@@ -8,12 +8,12 @@
 }
 
 :root[data-theme=light] {
-  --sheet-rim: #fffdffeb;
-  --sheet-highlight: #fffeffed;
-  --sheet-reflection: #fff9ff7a;
-  --sheet-depth: #432e5627;
-  --sheet-separator: #6a548824;
-  --sheet-scrollmark: #65527760;
+  --sheet-rim: #8ba3bb59;
+  --sheet-highlight: #fffffff2;
+  --sheet-reflection: #f5fbff9e;
+  --sheet-depth: #2e47622b;
+  --sheet-separator: #4c668332;
+  --sheet-scrollmark: #516d8a70;
 }
 
 /* Specular edges share the panel tint. The scroll surfaces themselves do not

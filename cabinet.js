@@ -24,7 +24,7 @@
     clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
     shield: svg('<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/>'),
   };
-  const pageNames = {home:'Личный кабинет',login:'Вход через Telegram',questions:'Мои вопросы',attendance:'Посещаемость',grades:'Мои оценки',notes:'Личные заметки',exams:'Зачёты и экзамены',preferences:'Напоминания'};
+  const pageNames = {home:'Личный кабинет',login:'Вход через Telegram',questions:'Мои вопросы',attendance:'Посещаемость',grades:'Дневник',notes:'Личные заметки',exams:'Зачёты и экзамены',preferences:'Напоминания'};
   const roles = {student:'Студент',starosta:'Староста',deputy:'Заместитель старосты',owner:'Владелец'};
   const reasonNames = {'Б':'Болезнь','УП':'По заявлению','ПН':'Причина неизвестна','СБ':'Сборы и соревнования','ОМ':'Общественные мероприятия','Ц':'ЦКВР','ПР':'Присутствовал без участия','Н':'Неуважительная причина','ОП':'Опоздание','':'Снять отметку'};
   const today = () => {try{const values={};new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Minsk',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).forEach(p=>{values[p.type]=p.value;});return `${values.year}-${values.month}-${values.day}`;}catch{return new Date(Date.now()+10800000).toISOString().slice(0,10);}};
@@ -35,6 +35,8 @@
   const timeLabel = minutes => typeof minutes === 'number' ? `${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}` : String(minutes||'');
   const shortName = person => person.shortName || (()=>{const [surname,...rest]=String(person.name||'Участник').trim().split(/\s+/);return surname+(rest.length?' '+rest.map(n=>n[0]+'.').join(''):'');})();
   const list = (value,key='entries') => Array.isArray(value)?value:Array.isArray(value?.[key])?value[key]:[];
+  const subjectNames = new Intl.Collator('ru',{numeric:true,sensitivity:'base'});
+  const bySubjectName = (a,b) => subjectNames.compare(a.name,b.name);
   const number = value => new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(value)||0);
   const plural = (value,one,few,many) => value%10===1&&value%100!==11?one:value%10>=2&&value%10<=4&&(value%100<12||value%100>14)?few:many;
   const safeRead = key => { try{return localStorage.getItem(key);}catch{return null;} };
@@ -70,11 +72,13 @@
     finally{clearTimeout(timer);}
   }
 
-  function makeSheet(title,content,{large=false,onClose,onMount}={}){
+  function makeSheet(title,content,{large=false,onClose,onMount,className='',steady=false}={}){
     const dialog=document.createElement('dialog');
     dialog.className=large?'cabinet-dialog study-dialog study-shared-sheet':'cab-picker study-dialog study-shared-sheet';
+    if(className)dialog.classList.add(className);
+    if(steady)dialog.dataset.cabSteady='';
     dialog.id=large?'cabinetDialog':'cabinetPicker'+(++serial);dialog.setAttribute('aria-labelledby',dialog.id+'Title');
-    dialog.innerHTML=`<div class="study-handle"></div><div class="study-dialog-top">${large?`<button type="button" class="study-round cab-back" aria-label="Назад" hidden>${icons.back}</button>`:''}<div class="study-dialog-title"><p>${large?'AMIA · УЧЕБНЫЙ КАБИНЕТ':'ВЫБОР'}</p><h2 id="${dialog.id}Title">${escape(title)}</h2></div><button type="button" class="study-round cab-close" aria-label="Закрыть">${icons.close}</button></div><div class="study-body">${content}</div>`;
+    dialog.innerHTML=`<div class="study-handle"></div><div class="study-dialog-top">${large?`<button type="button" class="study-round cab-back" aria-label="Назад" hidden>${icons.back}</button>`:''}<div class="study-dialog-title"><p>${large?'AMIA · УЧЕБНЫЙ КАБИНЕТ':'ВЫБОР'}</p><h2 id="${dialog.id}Title">${escape(title)}</h2></div><button type="button" class="study-round cab-close" aria-label="Закрыть" autofocus>${icons.close}</button></div><div class="study-body">${content}</div>`;
     document.body.append(dialog);
     const previous=document.activeElement,oldOverflow=document.body.style.overflow;
     let closing=false,closed=false,resolveClosed;
@@ -94,15 +98,15 @@
     if(dialog.showModal)dialog.showModal();else dialog.setAttribute('open','');
     document.body.style.overflow='hidden';window.GlassUI?.panelOpened?.(dialog,{close});window.GlassUI?.openSheet?.(dialog);
     const result={dialog,body:dialog.querySelector('.study-body'),close,heading:dialog.querySelector('h2')};
-    onMount?.(result);dialog.querySelector('.cab-close')?.focus({preventScroll:true});return result;
+    onMount?.(result);if(!dialog.contains(document.activeElement))dialog.querySelector('.cab-close')?.focus({preventScroll:true});return result;
   }
 
-  function openChoice(title,items,{selected,multiple=false,onPick,description=''}={}){
+  function openChoice(title,items,{selected,multiple=false,onPick,description='',steady=false}={}){
     const chosen=new Set(multiple?(Array.isArray(selected)?selected:[]):[String(selected??'')]);
-    const picker=makeSheet(title,`${description?note(escape(description)):''}${multiple?`<div class="cab-pick-toolbar">${action('Выбрать всё','all')}${action('Снять выбор','none')}${note('Выбор сохраняется при закрытии списка.')}</div>`:''}<div class="cab-pick-list" role="${multiple?'group':'listbox'}" aria-label="${escape(title)}">${items.map(item=>`<button type="button" class="cab-pick-option" data-value="${escape(item.value)}" ${item.disabled?'disabled':''} ${multiple?'aria-pressed':'aria-selected'}="${chosen.has(String(item.value))}"><span>${escape(item.label)}${item.detail?`<small>${escape(item.detail)}</small>`:''}</span>${icons.check}</button>`).join('')}</div>`,{onClose:()=>{if(multiple)onPick?.([...chosen]);}});
+    const picker=makeSheet(title,`${description?note(escape(description)):''}${multiple?`<div class="cab-pick-toolbar">${action('Выбрать всё','all')}${action('Снять выбор','none')}${note('Выбор сохраняется при закрытии списка.')}</div>`:''}<div class="cab-pick-list" role="${multiple?'group':'listbox'}" aria-label="${escape(title)}">${items.map(item=>`<button type="button" class="cab-pick-option" data-value="${escape(item.value)}" ${item.disabled?'disabled':''} ${multiple?'aria-pressed':'role="option" aria-selected'}="${chosen.has(String(item.value))}"><span>${escape(item.label)}${item.detail?`<small>${escape(item.detail)}</small>`:''}</span>${icons.check}</button>`).join('')}</div>`,{steady,onClose:()=>{if(multiple)onPick?.([...chosen]);}});
     picker.body.onclick=e=>{
       const option=e.target.closest('[data-value]');
-      if(option&&!option.disabled){const value=option.dataset.value;if(!multiple){picker.close();onPick?.(value);return;}chosen.has(value)?chosen.delete(value):chosen.add(value);option.setAttribute('aria-pressed',String(chosen.has(value)));}
+      if(option&&!option.disabled){const value=option.dataset.value;if(!multiple){const closed=picker.close();if(steady)closed.then(()=>onPick?.(value));else onPick?.(value);return;}chosen.has(value)?chosen.delete(value):chosen.add(value);option.setAttribute('aria-pressed',String(chosen.has(value)));}
       const command=e.target.closest('[data-cab-action]')?.dataset.cabAction;
       if(command==='all'){items.filter(item=>!item.disabled).forEach(item=>chosen.add(String(item.value)));picker.body.querySelectorAll('[data-value]').forEach(button=>button.setAttribute('aria-pressed',String(chosen.has(button.dataset.value))));}
       if(command==='none'){chosen.clear();picker.body.querySelectorAll('[data-value]').forEach(button=>button.setAttribute('aria-pressed','false'));}
@@ -110,12 +114,11 @@
     return picker;
   }
 
-  function chooseDate(value,onPick){
+  function chooseDate(value,onPick,{steady=false}={}){
     let current=/^\d{4}-\d{2}-\d{2}$/.test(value||'')?value:today(),month=current.slice(0,7)+'-01';
     let rail=null;
-    const picker=makeSheet('Выберите дату','',{onClose:()=>rail?.destroy?.()});
-    picker.dialog.classList.add('cab-calendar-picker');
-    const choose=date=>{picker.close();onPick(date);};
+    const picker=makeSheet('Выберите дату','',{className:'cab-calendar-picker',steady,onClose:()=>rail?.destroy?.()});
+    const choose=date=>{const closed=picker.close();if(steady)closed.then(()=>onPick(date));else onPick(date);};
     function draw(focusDate){
       rail?.destroy?.();rail=null;
       const weekday=(new Date(month+'T12:00:00Z').getUTCDay()+6)%7,count=new Date(Date.UTC(+month.slice(0,4),+month.slice(5,7),0)).getUTCDate(),label=dateLabel(month,{month:'long',year:'numeric'});
@@ -137,10 +140,10 @@
     form.querySelector(`[data-field-picker="${name}"]`).onclick=()=>{
       const input=form.elements[name],options=typeof items==='function'?items():items;
       let selected=input.value;if(multiple){try{selected=JSON.parse(selected);}catch{selected=[];}}
-      openChoice(title,options,{selected,multiple,onPick:value=>{input.value=multiple?JSON.stringify(value):value;const values=new Set(multiple?value:[value]);form.querySelector(`[data-field-picker="${name}"]>span`).textContent=options.filter(item=>values.has(String(item.value))).map(item=>item.label).join(', ')||'Выбрать';input.dispatchEvent(new Event('change',{bubbles:true}));}});
+      openChoice(title,options,{selected,multiple,steady:!!form.closest('.cab-note-editor'),onPick:value=>{if(!form.isConnected)return;input.value=multiple?JSON.stringify(value):value;const values=new Set(multiple?value:[value]);form.querySelector(`[data-field-picker="${name}"]>span`).textContent=options.filter(item=>values.has(String(item.value))).map(item=>item.label).join(', ')||'Выбрать';input.dispatchEvent(new Event('change',{bubbles:true}));}});
     };
   }
-  function attachDate(form,name){form.querySelector(`[data-field-picker="${name}"]`).onclick=()=>chooseDate(form.elements[name].value,date=>{form.elements[name].value=date;form.querySelector(`[data-field-picker="${name}"]>span`).textContent=dateLabel(date,{day:'numeric',month:'long',year:'numeric'});form.elements[name].dispatchEvent(new Event('change',{bubbles:true}));});}
+  function attachDate(form,name){form.querySelector(`[data-field-picker="${name}"]`).onclick=()=>chooseDate(form.elements[name].value,date=>{if(!form.isConnected)return;form.elements[name].value=date;form.querySelector(`[data-field-picker="${name}"]>span`).textContent=dateLabel(date,{day:'numeric',month:'long',year:'numeric'});form.elements[name].dispatchEvent(new Event('change',{bubbles:true}));},{steady:!!form.closest('.cab-note-editor')});}
   function setFormError(form,message){const region=form.querySelector('.cab-inline-error');if(region)region.textContent=message;}
   function submitForm(picker,onSubmit,{quiet=false}={}){
     const form=picker.body.querySelector('form');form.addEventListener('submit',async e=>{e.preventDefault();const submit=form.querySelector('[type=submit]');if(submit.disabled||!form.reportValidity())return;submit.disabled=true;setFormError(form,'');try{await onSubmit(form);await picker.close();await draw({quiet});}catch(error){setFormError(form,error.status===409?'Эту запись уже изменили. Закройте окно и обновите табель, чтобы увидеть актуальные данные.':error.message);}finally{submit.disabled=false;}});return form;
@@ -159,7 +162,10 @@
   const segments=(items,selected,name)=>`<div class="cab-segments glass-segmented" role="group" aria-label="${escape(name)}">${items.map(([id,label])=>`<button type="button" data-cab-action="segment" data-segment="${escape(id)}" aria-pressed="${id===selected}">${escape(label)}</button>`).join('')}</div>`;
 
   async function groupData(group=selectedGroup()){
-    if(!groups.has(group))groups.set(group,await api('/group?group='+encodeURIComponent(group)));
+    if(!groups.has(group)){
+      const data=await api('/group?group='+encodeURIComponent(group));
+      groups.set(group,{...data,subjects:[...list(data,'subjects')].sort(bySubjectName)});
+    }
     return groups.get(group);
   }
   function controls(data,{person=false}={}){
@@ -211,13 +217,13 @@
   function close(){stopLogin();clearInterval(refreshTimer);refreshTimer=0;main?.close();}
   function back(){const frame=frames.at(-1);if(frame){restoreFrame(frame);return;}close();}
   function restoreFrame(frame){const index=frames.indexOf(frame);if(index<0)return;frames.splice(index);window.GlassUI?.navigationStepClosed?.(main?.dialog,frame.key);view=frame.previous;stopLogin();draw();}
-  function navigate(page,extra={}){if(!main)return open(page,extra);const next={page,...extra};if(view.page===page&&(view.segment||'')===(next.segment||'')&&(view.date||'')===(next.date||''))return;const frame={key:'cab-view-'+(++serial),previous:{...view}};frames.push(frame);view=next;stopLogin();draw();window.GlassUI?.navigationStep?.(main.dialog,frame.key,{back:()=>restoreFrame(frame)});}
+  function navigate(page,extra={}){if(!main)return open(page,extra);const next={page,...extra};if(view.page===page&&(view.segment||'')===(next.segment||'')&&(view.date||'')===(next.date||'')&&(view.subjectId||'')===(next.subjectId||''))return;const frame={key:'cab-view-'+(++serial),previous:{...view}};frames.push(frame);view=next;stopLogin();draw();window.GlassUI?.navigationStep?.(main.dialog,frame.key,{back:()=>restoreFrame(frame)});}
   function open(page='home',extra={}){
     if(main){navigate(page,extra);return;}
     view={page,...extra};frames=[];
     main=makeSheet(pageNames[page]||pageNames.home,'<div class="cab-loading">Открываем раздел</div>',{large:true,onClose:()=>{main=null;frames=[];renderEpoch++;stopLogin();clearInterval(refreshTimer);refreshTimer=0;}});
     main.dialog.querySelector('.cab-back').onclick=back;
-    main.body.onclick=handleClick;draw();
+    main.body.onclick=handleClick;main.body.oninput=updateGradeForecast;draw();
     refreshTimer=setInterval(()=>{if(main&&!document.hidden&&['attendance','questions','exams'].includes(view.page))draw({quiet:true});},30000);
   }
   function replaceCabinetBody(body,html,previousRail){
@@ -250,10 +256,12 @@
     try{
       let html;
       if(!me&&!['home','login','exams'].includes(page))html=guestPage();
-      else html=await ({home:homePage,login:loginPage,questions:questionsPage,attendance:attendancePage,grades:gradesPage,notes:notesPage,exams:examsPage,preferences:preferencesPage}[page]||homePage)();
+      else if(page==='grades')html=await gradesPage(epoch);
+      else html=await ({home:homePage,login:loginPage,questions:questionsPage,attendance:attendancePage,notes:notesPage,exams:examsPage,preferences:preferencesPage}[page]||homePage)();
       if(epoch!==renderEpoch||!main)return;
       const scroll=quiet||retained?main.body.scrollTop:0;
       replaceCabinetBody(main.body,html,retained);main.body.dataset.cabinetPage=page;
+      if(page==='grades'&&view.gradeSubject)main.heading.textContent=view.gradeSubject;
       main.body.scrollTop=scroll;mountSegments(main.body);
       if(page==='home')paintAvatar();
       if(page==='preferences')bindPreferences();
@@ -268,7 +276,7 @@
   async function homePage(){
     if(!me)return guestPage();
     const person=me.person,initials=person.name.split(/\s+/).slice(0,2).map(n=>n[0]).join('');
-    const tiles=[['questions','Мои вопросы','Взятые вопросы и история подготовки','book'],['attendance','Посещаемость',manages()?'Общий табель и правки группы':'Табель и мои пропуски','calendar'],['grades','Мои оценки','Отметки и средний балл','grades'],['notes','Личные заметки','К предмету или учебному дню','note'],['exams','Зачёты и экзамены','Ближайшие контрольные даты','exam'],['preferences','Напоминания','Вопросы, зачёты и пропуски','bell']];
+    const tiles=[['questions','Мои вопросы','Взятые вопросы и история подготовки','book'],['attendance','Посещаемость',manages()?'Общий табель и правки группы':'Табель и мои пропуски','calendar'],['grades','Дневник','Отметки и средний балл','grades'],['notes','Личные заметки','К предмету или учебному дню','note'],['exams','Зачёты и экзамены','Ближайшие контрольные даты','exam'],['preferences','Напоминания','Вопросы, зачёты и пропуски','bell']];
     return`<div class="cab-profile"><span class="cab-avatar">${escape(initials)}</span><div class="cab-profile-copy"><h3>${escape(person.name)}</h3><p>Группа ${escape(person.group)} · № ${person.number} в журнале</p><span class="cab-role">${escape(roles[person.role]||'Студент')}</span></div></div><div class="cab-grid">${tiles.map(([id,title,description,icon])=>`<button type="button" class="cab-tile" data-cab-action="${id}">${icons[icon]}<strong>${escape(title)}</strong><small>${escape(description)}</small></button>`).join('')}</div>${note(me.owner?'Вам доступно управление всеми группами и кабинетами. Группу и участника можно выбрать внутри раздела.':'Личные записи сохраняются за вашим аккаунтом и доступны вам и владельцу системы. Табель группы видят участники; правки доступны старосте и заместителю.')}<div class="cab-actions" style="margin-top:18px">${action('Вернуться к расписанию','guest',icons.calendar,'subtle')}${action('Выйти','logout','','subtle')}</div>`;
   }
   function loginPage(){return`<div class="cab-welcome"><span class="cab-avatar">${icons.telegram}</span><h3>Ваш профиль Telegram</h3><p>Подтвердите вход в Qdropbot. Бот покажет проверочный код — он должен совпасть с кодом на этой странице.</p><div id="cabLoginState"><div class="cab-actions cab-stack">${action('Продолжить в Telegram','begin-login',icons.telegram,'primary')}${action('Режим гостя','guest','','subtle')}</div></div></div>${note('Вход сохраняется на этом устройстве. На общем устройстве после работы нажмите «Выйти». Смена имени или фотографии Telegram не меняет привязку к группе.')}`;}
@@ -354,15 +362,64 @@
     picker.body.onclick=async e=>{const button=e.target.closest('[data-cab-action=undo]');if(!button)return;const change=changes[+button.dataset.index];button.disabled=true;try{await api('/attendance/undo',{method:'POST',body:{changeId:change.id}});toast('Правка отменена');picker.close();draw();}catch(error){toast(error.status===409?'Запись уже изменена. Обновите историю.':error.message);button.disabled=false;}};
   }
 
-  async function gradesPage(){
-    const group=await groupData(),context=controls(group,{person:true}),data=await api('/grades?'+personalQuery().replace(/^&/,'')),entries=list(data).sort((a,b)=>b.date.localeCompare(a.date));view.grades=data;
-    const subjectMap=new Map(list(group,'subjects').map(s=>[s.id,s.name])),averages=list(data,'averages'),count=entries.length,average=count?entries.reduce((sum,e)=>sum+Number(e.value),0)/count:0;
-    return context+`<div class="cab-summary"><div class="cab-stat"><strong>${count?number(average):'—'}</strong><span>средний по всем отметкам</span></div><div class="cab-stat"><strong>${count}</strong><span>внесено оценок</span></div><div class="cab-stat"><strong>${averages.length}</strong><span>${plural(averages.length,'предмет с оценками','предмета с оценками','предметов с оценками')}</span></div></div><div class="cab-toolbar">${action('Добавить оценку','grade-add',icons.plus,'primary')}</div>${averages.length?section('По предметам')+`<div class="cab-list">${averages.map(item=>`<div class="cab-card cab-card-top"><div><h4>${escape(subjectMap.get(item.subjectId)||item.subject||item.subjectId)}</h4><small>${item.count} ${plural(item.count,'оценка','оценки','оценок')}</small></div>${badge(number(item.average))}</div>`).join('')}</div>`:''}${section('Мои отметки')}${entries.length?`<div class="cab-list">${entries.map((item,index)=>`<article class="cab-card"><div class="cab-card-top"><div><small>${escape(dateLabel(item.date))}</small><h3>${escape(subjectMap.get(item.subjectId)||item.subject||item.subjectId)}</h3></div><span class="cab-avatar" style="width:43px;height:43px;font-size:21px;border-radius:15px">${item.value}</span></div>${item.comment?`<p>${escape(item.comment)}</p>`:''}<div class="cab-card-actions">${action('Изменить','grade-edit',icons.note,'',`data-id="${escape(item.id)}"`)}${action('Удалить','grade-delete','','subtle',`data-id="${escape(item.id)}"`)}</div></article>`).join('')}</div>`:empty('Первую оценку можно добавить сейчас','Это личный учёт. Вносить оценку к каждому взятому вопросу необязательно.',icons.grades)}${note('Средний балл считается по внесённым числовым оценкам. Пропуски и пустые клетки не считаются нулями. Личные оценки не изменяют проверенные данные журнала для жеребьёвки.')}`;
+  function gradeDistribution(entries){
+    if(!entries.length)return'';
+    const counts=Array.from({length:10},()=>0);
+    for(const {value} of entries)if(Number.isInteger(value)&&value>=1&&value<=10)counts[value-1]++;
+    const max=Math.max(1,...counts);
+    return section('Распределение отметок')+`<div class="cab-card cab-grade-chart" role="list">${counts.map((count,index)=>
+      `<div class="cab-grade-column" role="listitem" aria-label="Отметка ${index+1}, количество ${count}"><span aria-hidden="true">${count||''}</span><div aria-hidden="true" class="cab-grade-bar" style="--grade-height:${count/max*100}%"><i></i></div><small aria-hidden="true">${index+1}</small></div>`).join('')}</div>`;
+  }
+  function gradeForecast(entries,sum){
+    if(!entries.length)return'';
+    const estimate=(sum+8)/(entries.length+1);
+    return `<details class="cab-card cab-forecast"><summary>Прогноз среднего</summary><label for="cabForecastMark">Если получить ещё одну отметку <strong data-forecast-mark>8</strong></label><input id="cabForecastMark" type="range" min="1" max="10" value="8" data-forecast-sum="${sum}" data-forecast-count="${entries.length}"><div class="cab-forecast-result"><span>Новый средний балл</span><output for="cabForecastMark">${number(estimate)}</output></div></details>`;
+  }
+  function updateGradeForecast(event){
+    const input=event.target.closest('[data-forecast-sum]');if(!input)return;
+    const card=input.closest('.cab-forecast'),mark=Number(input.value);
+    card.querySelector('[data-forecast-mark]').textContent=mark;
+    card.querySelector('output').textContent=number((Number(input.dataset.forecastSum)+mark)/(Number(input.dataset.forecastCount)+1));
+  }
+  function gradeHistory(entries){
+    if(!entries.length)return empty('Отметок пока нет','Добавьте первую отметку по предмету.',icons.grades);
+    const days=new Map();
+    for(const item of entries){if(!days.has(item.date))days.set(item.date,[]);days.get(item.date).push(item);}
+    return [...days].map(([date,items])=>section(dateLabel(date,{day:'numeric',month:'long',year:'numeric'}))+`<div class="cab-list">${items.map(item=>
+      `<article class="cab-card cab-grade-record"><strong class="cab-grade-value">${escape(item.value)}</strong>${item.comment?`<p>${escape(item.comment)}</p>`:''}<div class="cab-grade-actions"><button type="button" class="study-round" data-cab-action="grade-edit" data-id="${escape(item.id)}" aria-label="Изменить отметку">${icons.note}</button><button type="button" class="study-round" data-cab-action="grade-delete" data-id="${escape(item.id)}" aria-label="Удалить отметку">${icons.close}</button></div></article>`).join('')}</div>`).join('');
+  }
+  async function gradesPage(epoch){
+    const screen=view,group=await groupData();
+    if(epoch!==renderEpoch||screen!==view)return'';
+    const context=controls(group,{person:true}),data=await api('/grades?'+personalQuery().replace(/^&/,''));
+    if(epoch!==renderEpoch||screen!==view)return'';
+    const entries=[...list(data)].reverse(),averages=new Map(list(data,'averages').map(item=>[item.subjectId,item]));
+    const subjects=new Map(list(group,'subjects').map(subject=>[subject.id,subject]));
+    for(const item of entries)if(!subjects.has(item.subjectId))subjects.set(item.subjectId,{id:item.subjectId,name:item.subject||item.subjectId});
+    screen.grades=data;
+    const subject=subjects.get(screen.subjectId);
+    const button=`<div class="cab-toolbar">${action('Добавить оценку','grade-add',icons.plus,'primary')}</div>`;
+    if(subject){
+      screen.gradeSubject=subject.name;
+      const records=entries.filter(item=>item.subjectId===subject.id);
+      const sum=records.reduce((total,item)=>total+Number(item.value),0);
+      return context+`<div class="cab-summary cab-subject-summary"><div class="cab-stat"><strong>${records.length?number(sum/records.length):'—'}</strong><span>средний балл</span></div><div class="cab-stat"><strong>${records.length}</strong><span>внесено отметок</span></div></div>`+button+gradeHistory(records)+gradeDistribution(records)+gradeForecast(records,sum);
+    }
+    screen.gradeSubject='';
+    const sum=entries.reduce((total,item)=>total+Number(item.value),0);
+    const rows=[...subjects.values()].sort(bySubjectName).map(({id,name})=>{
+      const grade=averages.get(id),count=grade?.count||0;
+      const label=count?count+' '+plural(count,'отметка','отметки','отметок'):'Нет отметок';
+      return `<button type="button" class="cab-card cab-diary-subject" data-cab-action="grade-subject" data-subject="${escape(id)}"><span><strong>${escape(name)}</strong><small>${escape(label)}</small></span>${grade?`<span class="cab-grade-value" aria-label="Средний балл ${number(grade.average)}">${number(grade.average)}</span>`:''}${icons.next}</button>`;
+    });
+    return context+`<div class="cab-summary"><div class="cab-stat"><strong>${entries.length?number(sum/entries.length):'—'}</strong><span>общий средний балл</span></div><div class="cab-stat"><strong>${entries.length}</strong><span>внесено отметок</span></div><div class="cab-stat"><strong>${averages.size}</strong><span>${plural(averages.size,'предмет с отметками','предмета с отметками','предметов с отметками')}</span></div></div>`+button+section('Предметы')+`<div class="cab-list">${rows.join('')}</div>`+gradeDistribution(entries);
   }
   async function editGrade(id=''){
-    const group=await groupData(),subjects=list(group,'subjects'),entry=list(view.grades).find(e=>String(e.id)===String(id)),subjectId=entry?.subjectId||subjects[0]?.id||'';
+    const screen=view,target=personId(),group=await groupData();
+    if(!main||screen!==view||target!==personId())return;
+    const subjects=list(group,'subjects'),entry=list(view.grades).find(e=>String(e.id)===String(id)),subjectId=entry?.subjectId||view.subjectId||subjects[0]?.id||'';
     const picker=makeSheet(entry?'Изменить оценку':'Новая оценка',`<form class="cab-form">${pickerField('subjectId','Учебная дисциплина',subjectId,subjects.find(s=>s.id===subjectId)?.name)}<div class="cab-form-grid">${pickerField('date','Дата',entry?.date||today(),dateLabel(entry?.date||today()))}${pickerField('value','Оценка',String(entry?.value||''),entry?.value||'Выбрать')}</div>${textField('comment','Комментарий',entry?.comment||'','За что получена оценка — необязательно')}<p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить оценку</button></form>`);
-    const form=submitForm(picker,async form=>{if(!form.elements.value.value)throw apiError('Выберите оценку от 1 до 10.');await api('/grades',{method:'POST',body:{...(entry?{id:entry.id}:{}),personId:personId(),subjectId:form.elements.subjectId.value,date:form.elements.date.value,value:Number(form.elements.value.value),comment:form.elements.comment.value}});toast('Оценка сохранена');});
+    const form=submitForm(picker,async form=>{if(!form.elements.value.value)throw apiError('Выберите оценку от 1 до 10.');await api('/grades',{method:'POST',body:{...(entry?{id:entry.id}:{}),personId:target,subjectId:form.elements.subjectId.value,date:form.elements.date.value,value:Number(form.elements.value.value),comment:form.elements.comment.value}});toast('Оценка сохранена');});
     attachChoice(form,'subjectId','Учебная дисциплина',subjects.map(s=>({value:s.id,label:s.name})));attachChoice(form,'value','Оценка',Array.from({length:10},(_,i)=>({value:String(i+1),label:String(i+1)})));attachDate(form,'date');
   }
 
@@ -371,10 +428,10 @@
     const subjectMap=new Map(list(group,'subjects').map(s=>[s.id,s.name]));
     return context+`<div class="cab-toolbar">${action('Новая заметка','note-add',icons.plus,'primary')}</div>`+(items.length?`<div class="cab-list">${items.map(item=>`<article class="cab-card"><div class="cab-card-top"><small>${item.scope==='day'?escape(dateLabel(item.date,{weekday:'short',day:'numeric',month:'long'})):escape(subjectMap.get(item.subjectId)||item.subject||'Учебная дисциплина')}</small>${badge(item.scope==='day'?'К дню':'К предмету','muted')}</div><p>${escape(item.text)}</p><div class="cab-card-actions">${action('Изменить','note-edit',icons.note,'',`data-id="${escape(item.id)}"`)}${action('Удалить','note-delete','','subtle',`data-id="${escape(item.id)}"`)}</div></article>`).join('')}</div>`:empty('Место для важных мелочей','Добавьте заметку к предмету или дню: что повторить, что принести и о чём спросить.',icons.note))+note('Заметки сохраняются за вашим аккаунтом и доступны на других устройствах после входа. Владелец системы имеет доступ к записям кабинетов.');
   }
-  async function editNote(id='',preset={}){
+  async function editNote(id='',preset={},caller=document.activeElement){
     if(!me){open('login');return;}
     if(noteEditorPending)return;
-    const caller=document.activeElement,session=token;
+    const session=token;
     noteEditorPending=true;
     try{await openNoteEditor(id,preset,caller,session);}
     finally{noteEditorPending=false;}
@@ -384,8 +441,7 @@
     if(!caller?.isConnected||session!==token||document.querySelector('.cab-note-editor[open]'))return;
     const source=caller.closest('dialog');
     if(source&&(!source.open||source.hasAttribute('data-sheet-closing')))return;
-    const picker=makeSheet(entry?'Изменить заметку':'Новая заметка',`<form class="cab-form">${pickerField('scope','К чему относится заметка',initial.scope,initial.scope==='day'?'К учебному дню':'К предмету')}<div data-note-subject ${initial.scope==='day'?'hidden':''}>${pickerField('subjectId','Учебная дисциплина',initial.subjectId,subjects.find(s=>s.id===initial.subjectId)?.name)}</div><div data-note-date ${initial.scope!=='day'?'hidden':''}>${pickerField('date','Учебный день',initial.date,dateLabel(initial.date))}</div>${textField('text','Заметка',initial.text,'Запишите то, что важно не забыть')}<p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить заметку</button></form>`);
-    picker.dialog.classList.add('cab-note-editor');
+    const picker=makeSheet(entry?'Изменить заметку':'Новая заметка',`<form class="cab-form">${pickerField('scope','К чему относится заметка',initial.scope,initial.scope==='day'?'К учебному дню':'К предмету')}<div data-note-subject ${initial.scope==='day'?'hidden':''}>${pickerField('subjectId','Учебная дисциплина',initial.subjectId,subjects.find(s=>s.id===initial.subjectId)?.name)}</div><div data-note-date ${initial.scope!=='day'?'hidden':''}>${pickerField('date','Учебный день',initial.date,dateLabel(initial.date))}</div>${textField('text','Заметка',initial.text,'Запишите то, что важно не забыть')}<p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить заметку</button></form>`,{className:'cab-note-editor',steady:true});
     const form=submitForm(picker,async form=>{const text=form.elements.text.value.trim();if(!text)throw apiError('Введите текст заметки.');const scope=form.elements.scope.value;await api('/notes',{method:'POST',body:{...(entry?{id:entry.id}:{}),personId:personId(),scope,...(scope==='day'?{date:form.elements.date.value}:{subjectId:form.elements.subjectId.value}),text}});toast('Заметка сохранена');},{quiet:true});
     attachChoice(form,'scope','Заметка', [{value:'subject',label:'К учебной дисциплине'},{value:'day',label:'К учебному дню'}]);attachChoice(form,'subjectId','Учебная дисциплина',subjects.map(s=>({value:s.id,label:s.name})));attachDate(form,'date');
     form.elements.scope.addEventListener('change',()=>{form.querySelector('[data-note-subject]').hidden=form.elements.scope.value==='day';form.querySelector('[data-note-date]').hidden=form.elements.scope.value!=='day';});
@@ -475,9 +531,10 @@
       if(command==='attendance-edit'){await editAttendance();return;}
       if(command==='attendance-cell'){await editAttendance({person:button.dataset.person,lesson:button.dataset.lesson||'',date:button.dataset.date});return;}
       if(command==='audit'){await openAudit();return;}
+      if(command==='grade-subject'){navigate('grades',{subjectId:button.dataset.subject});return;}
       if(command==='grade-add'||command==='grade-edit'){await editGrade(button.dataset.id);return;}
       if(command==='grade-delete'){confirmAction('Удалить оценку?','Эта запись исчезнет из личного списка и расчёта среднего балла.',()=>api('/grades?id='+encodeURIComponent(button.dataset.id),{method:'DELETE'}));return;}
-      if(command==='note-add'||command==='note-edit'){await editNote(button.dataset.id);return;}
+      if(command==='note-add'||command==='note-edit'){await editNote(button.dataset.id,{},button);return;}
       if(command==='note-delete'){confirmAction('Удалить заметку?','Заметка будет удалена из вашего кабинета.',()=>api('/notes?id='+encodeURIComponent(button.dataset.id),{method:'DELETE'}));return;}
       if(command==='exam-group'){openChoice('Учебная группа',(me?.groups||['4501','4502','4503']).map(g=>({value:g,label:'Группа '+g})),{selected:selectedGroup(),onPick:g=>{contextGroup=g;contextPerson='';draw();}});return;}
       if(command==='question-materials'||command==='question-note'){
@@ -499,7 +556,7 @@
     }
     container.querySelector('.cab-claims-hint')?.remove();
     if(!container.querySelector('.cab-study-note')){
-      const button=document.createElement('button');button.type='button';button.className='cab-study-note';button.innerHTML=icons.note+'Моя заметка к предмету';button.onclick=()=>editNote('',{scope:'subject',subjectId:match.subject.id});container.append(button);
+      const button=document.createElement('button');button.type='button';button.className='cab-study-note';button.innerHTML=icons.note+'Моя заметка к предмету';button.onclick=()=>editNote('',{scope:'subject',subjectId:match.subject.id},button);container.append(button);
     }
     if(!match?.lesson?.date||!['seminar','practice','practical'].includes(match.kind||match.lesson.type))return;
     const lesson=match.lesson,group=lesson.group||schedule().getGroup?.()||selectedGroup();

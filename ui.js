@@ -165,6 +165,10 @@
     cancelJob(panel); clearSheetStyle(panel);
     if (reduced() || typeof panel.animate !== 'function') return;
     const bottomSheet = mobile();
+    if(panel.hasAttribute('data-cab-steady')){
+      settleSheet(panel,[{transform:bottomSheet?'translateY(12px)':'translateY(5px)',easing:'ease-out'},{transform:rest}],165);
+      return;
+    }
     settleSheet(panel, [
       { opacity: 0, transform: bottomSheet ? 'translateY(36px) scale(.99)' : 'translateY(12px) scale(.98)', easing: 'cubic-bezier(.19,.82,.23,1)' },
       { opacity: 1, transform: bottomSheet ? 'translateY(-3px) scale(1)' : 'translateY(-2px) scale(1.004)', offset: .72, easing: 'ease-out' },
@@ -184,7 +188,7 @@
     cancelJob(panel);
     panel.setAttribute('data-sheet-closing', '');
     const target = bottomSheet ? Math.max(distance, panel.offsetHeight) : distance;
-    const duration = bottomSheet ? 270 : 175;
+    const duration = panel.hasAttribute('data-cab-steady') ? 130 : bottomSheet ? 270 : 175;
     let done = false, job;
     const finish = () => {
       if (done || jobs.get(panel) !== job) return; done = true;
