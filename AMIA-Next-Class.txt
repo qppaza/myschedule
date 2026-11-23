@@ -5,7 +5,7 @@ const colors = {
   lecture: ["Лекция", "#85adff", "#235ca6"], seminar: ["Семинар", "#c2a0ff", "#6841a0"],
   practice: ["Практическое", "#6cdbc2", "#087253"], info: ["Инфчас.", "#ed9cc5", "#a13461"],
   curator: ["Куратчас.", "#ed9cc5", "#a13461"], combined: ["Инфчас. / Куратчас.", "#ed9cc5", "#a13461"],
-  credit: ["Зачёт", "#efb77d", "#a64b15"], diff_credit: ["Дифзачёт", "#e9cf72", "#7f6100"],
+  credit: ["Зачет", "#efb77d", "#a64b15"], diff_credit: ["Дифзачет", "#e9cf72", "#7f6100"],
   exam: ["Экзамен", "#c2a0e5", "#81388f"], consultation: ["Консультация", "#8cb9e5", "#096a90"],
   other: ["Занятие", "#b0bed8", "#47566b"]
 };
@@ -64,18 +64,23 @@ const date = minsk.toISOString().slice(0,10);
 const minute = minsk.getUTCHours()*60+minsk.getUTCMinutes();
 const { lessons, fetchAfter } = await timetable();
 const today = (lessons || []).filter(item => item.date === date);
-const current = today.find(item => item.start <= minute && item.end != null && minute < item.end);
-const started = today.find(item => item.start <= minute && item.end == null);
-const next = today.find(item => item.start > minute);
+let current, lastStarted, next, previous;
+for (const item of today) {
+  if (item.start > minute) { next=item; break; }
+  lastStarted=item;
+  if (item.end > minute) current=item;
+  else if (item.end != null) previous=item;
+}
+const started = lastStarted && lastStarted.end == null ? lastStarted : null;
 const lesson = current || started || next || (lessons || []).find(item => item.date > date);
-const previous = next && [...today].reverse().find(item => item.end != null && item.end <= minute);
 const type = colors[lesson?.type] || colors.other;
 const time = value => String(Math.floor(value/60)).padStart(2,"0")+":"+String(value%60).padStart(2,"0");
 const tomorrow = new Date(minsk.getTime()+86400000).toISOString().slice(0,10);
 const dateLabel = day => day === date ? "Сегодня" : day === tomorrow ? "Завтра" : day.slice(8,10)+"."+day.slice(5,7);
 const tone = (dark,light,alpha=1) => Color.dynamic(new Color(light,alpha),new Color(dark,alpha));
-const ink = tone("#f3f5fa","#172436"), muted = tone("#bfc7d4","#43546a");
+const ink = tone("#f5f6fa","#19212d"), muted = tone("#cad0da","#445163");
 const typeInk = tone(type[1],type[2]);
+const rule = tone("#ffffff","#32425b",.14);
 
 function clock(begin,end,accent) {
   const art = new DrawContext();
@@ -115,54 +120,161 @@ function clock(begin,end,accent) {
 function text(row,value,size,color=ink,bold=false) {
   const label=row.addText(value);
   label.font=bold?Font.boldSystemFont(size):Font.systemFont(size);
-  label.textColor=color;label.minimumScaleFactor=.7;
+  label.textColor=color;label.minimumScaleFactor=.75;
   return label;
 }
-const widget = new ListWidget();
-const glass=new LinearGradient();
-glass.colors=[tone("#535e72","#ffffff",.76),tone("#222831","#edf3f9",.69),tone("#43596b","#deeaf4",.74)];
-glass.locations=[0,.54,1];
-glass.startPoint=new Point(0,0);glass.endPoint=new Point(1,1);
-widget.backgroundGradient=glass;
-widget.setPadding(13,14,13,14);
-widget.url=site+"?group="+group;
-const small = config.widgetFamily === "small";
-const header = current?"СЕЙЧАС ИДЁТ":started?"ЗАНЯТИЕ НАЧАЛОСЬ":previous&&lesson===next?
-  (previous.end===770&&next.start===860?"БОЛЬШОЙ ПЕРЕРЫВ":"СЕЙЧАС ПЕРЕРЫВ"):
-  next?"СЛЕДУЮЩЕЕ ЗАНЯТИЕ":lesson?(today.length?"ДЕНЬ ЗАВЕРШЁН":"БЛИЖАЙШЕЕ ЗАНЯТИЕ"):"РАСПИСАНИЕ";
-text(widget,header,9,muted,true).lineLimit=1;
-widget.addSpacer(5);
-if(lesson) {
+
+function pill(row, value, color=muted, accent=false) {
+  const face=row.addStack();
+  face.cornerRadius=8;
+  face.backgroundColor=accent?tone(type[1],type[2],.13):tone("#ffffff","#ffffff",.12);
+  face.borderColor=rule;
+  face.borderWidth=.5;
+  face.setPadding(3,7,3,7);
+  text(face,value,10,color,true).lineLimit=1;
+}
+
+function divider(widget) {
+  const line=widget.addStack();
+  line.size=new Size(0,1);
+  line.backgroundColor=rule;
+  line.addSpacer();
+}
+
+function addClock(row, size) {
+  const breakActive=previous && lesson===next;
+  const accent=breakActive?tone("#c5d884","#5c6a20"):typeInk;
+  const dial=row.addImage(clock(breakActive?previous.end:lesson.start,breakActive?lesson.start:lesson.end,accent));
+  dial.imageSize=new Size(size,size);
+}
+
+function addFollowing(widget, following) {
+  if (!following.length) return;
+  widget.addSpacer(13);
+  text(widget,"ДАЛЬШЕ",10,muted,true);
+  widget.addSpacer(7);
+  for (const item of following) {
+    const category=colors[item.type]||colors.other;
+    const row=widget.addStack();
+    row.centerAlignContent();
+    row.cornerRadius=12;
+    row.borderWidth=.5;
+    row.borderColor=rule;
+    row.backgroundColor=tone("#ffffff","#ffffff",.08);
+    row.setPadding(6,9,6,9);
+    const timing=row.addStack();
+    timing.layoutVertically();
+    timing.size=new Size(51,0);
+    text(timing,time(item.start),13,ink,true).lineLimit=1;
+    if (item.date!==lesson.date) text(timing,dateLabel(item.date),9,muted).lineLimit=1;
+    const subject=row.addStack();
+    subject.layoutVertically();
+    text(subject,item.subject,12,ink,true).lineLimit=1;
+    text(subject,category[0],10,tone(category[1],category[2])).lineLimit=1;
+    row.addSpacer();
+    widget.addSpacer(5);
+  }
+}
+
+function makeWidget(family) {
+  const small=family==="small";
+  const large=family==="large" || family==="extraLarge";
+  const widget=new ListWidget();
+  const glass=new LinearGradient();
+  glass.colors=[tone("#566176","#ffffff",.68),tone("#272b34","#f0f2f6",.66),tone("#3c4855","#dfe6ef",.64)];
+  glass.locations=[0,.52,1];
+  glass.startPoint=new Point(0,0);glass.endPoint=new Point(1,1);
+  widget.backgroundGradient=glass;
+  const padding=small?11:large?16:13;
+  widget.setPadding(padding,padding+1,padding,padding+1);
+  widget.url=site+"?group="+group;
+  const header=current?"СЕЙЧАС ИДЁТ":started?"ПАРА НАЧАЛАСЬ":previous&&lesson===next?"СЕЙЧАС ПЕРЕРЫВ":"БЛИЖАЙШАЯ ПАРА";
+  const top=widget.addStack();
+  top.centerAlignContent();
+  text(top,lesson?header:"РАСПИСАНИЕ",small?9:10,muted,true).lineLimit=1;
+  top.addSpacer();
+  if (large) pill(top,group);
+  widget.addSpacer(small?4:7);
+
+  if (!lesson) {
+    text(widget,lessons?"Следующих занятий нет":"Расписание недоступно",15,ink,true);
+    widget.addSpacer();
+    widget.refreshAfterDate=new Date(Math.max(now.getTime()+minuteMs,fetchAfter));
+    return widget;
+  }
+
   const row=widget.addStack();
   row.centerAlignContent();
-  const details=row.addStack();details.layoutVertically();
-  text(details,time(lesson.start),small?25:29,ink,true);
-  text(details,lesson.subject,small?13:16,ink,true).lineLimit=2;
-  text(details,type[0],11,typeInk,true).lineLimit=1;
-  row.addSpacer(small?3:10);
-  const dial=row.addStack();dial.layoutVertically();dial.centerAlignContent();
-  const breakActive=previous&&lesson===next;
-  const accent=breakActive?tone("#c5d884","#5c6a20"):typeInk;
-  const picture=dial.addImage(clock(breakActive?previous.end:lesson.start,breakActive?lesson.start:lesson.end,accent));
-  picture.imageSize=new Size(small?39:74,small?39:74);
-  if(!small)text(dial,time(lesson.start)+(lesson.end==null?"":"–"+time(lesson.end)),9,muted).centerAlignText();
-  widget.addSpacer(6);
-  const midnight=new Date(lesson.date+"T00:00:00+03:00").getTime();
-  const boundary=midnight+(current?lesson.end:lesson.start)*60000;
-  const delay=boundary-now.getTime();
-  const footer=widget.addStack();
-  text(footer,dateLabel(lesson.date)+(small?"":" · "+group),10,muted);
-  if(!small && delay>0){
-    const mins=Math.ceil(delay/60000),remaining=(mins>=60?Math.floor(mins/60)+" ч ":"")+mins%60+" мин";
-    footer.addSpacer();text(footer,(current?"До конца · ":"До начала · ")+remaining,10,muted,true);
+  const detail=row.addStack();
+  detail.layoutVertically();
+  const start=detail.addStack();
+  start.centerAlignContent();
+  text(start,time(lesson.start),small?29:large?43:32,ink,true).lineLimit=1;
+  if (small) text(detail,dateLabel(lesson.date),10,muted).lineLimit=1;
+  else {
+    start.addSpacer(7);
+    pill(start,dateLabel(lesson.date));
   }
-  const interval = lesson.date !== date ? 240 : current || (delay > 0 && delay <= 90 * minuteMs) ? 20 : 60;
-  const minskMidnight = new Date(tomorrow+"T00:00:00+03:00").getTime();
-  const nextRefresh = Math.min(now.getTime()+interval*minuteMs, delay>0?boundary:Infinity, minskMidnight, fetchAfter);
-  widget.refreshAfterDate=new Date(Math.max(now.getTime()+minuteMs,nextRefresh));
-} else {
-  text(widget,lessons?"Следующих занятий нет":"Не удалось загрузить расписание",15,ink,true);
-  widget.refreshAfterDate=new Date(Math.max(now.getTime()+minuteMs,fetchAfter));
+  const content=small?widget:detail;
+  if (!small) {
+    detail.addSpacer(3);
+    text(content,lesson.subject,large?20:15,ink,true).lineLimit=2;
+    detail.addSpacer(5);
+  }
+  row.addSpacer();
+  addClock(row,small?44:large?91:68);
+  if (small) {
+    content.addSpacer(4);
+    text(content,lesson.subject,13,ink,true).lineLimit=2;
+    content.addSpacer(3);
+  }
+
+  const info=content.addStack();
+  info.centerAlignContent();
+  if (small) text(info,type[0],10,typeInk,true).lineLimit=1;
+  else pill(info,type[0],typeInk,true);
+  if (lesson.end!=null) {
+    info.addSpacer(small?4:7);
+    text(info,"до "+time(lesson.end),small?9:10,muted).lineLimit=1;
+  }
+
+  const boundaryAt = (item, minutes) => Date.parse(item.date+"T00:00:00+03:00") + minutes*minuteMs;
+  const boundary = boundaryAt(lesson,current?lesson.end:lesson.start);
+  const delay = boundary-now.getTime();
+  if (!small) {
+    const mins=Math.ceil(delay/minuteMs);
+    const remaining=(mins>=60?Math.floor(mins/60)+" ч ":"")+mins%60+" мин";
+    widget.addSpacer(large?12:7);
+    divider(widget);
+    widget.addSpacer(large?9:5);
+    const footer=widget.addStack();
+    text(footer,delay>0?(current?"До конца":"До начала"):"Время начала",11,muted);
+    footer.addSpacer();
+    text(footer,delay>0?remaining:time(lesson.start),11,ink,true);
+  }
+  if (large) {
+    const index=lessons.indexOf(lesson)+1;
+    addFollowing(widget,lessons.slice(index,index+2));
+  }
+  widget.addSpacer();
+
+  const interval = lesson.date!==date?240:current || (delay>0 && delay<=90*minuteMs)?20:60;
+  const midnight = Date.parse(tomorrow+"T00:00:00+03:00");
+  const nextBoundary = delay>0?boundary:next?boundaryAt(next,next.start):Infinity;
+  widget.refreshAfterDate=new Date(Math.max(now.getTime()+minuteMs,Math.min(now.getTime()+interval*minuteMs,nextBoundary,midnight,fetchAfter)));
+  return widget;
 }
-if(config.runsInWidget)Script.setWidget(widget);else await widget.presentMedium();
+
+if (config.runsInWidget) {
+  Script.setWidget(makeWidget(config.widgetFamily));
+} else if (config.runsInApp) {
+  const preview=new Alert();
+  preview.title="Ближайшая пара";
+  preview.addAction("Маленький");
+  preview.addAction("Большой");
+  preview.addCancelAction("Закрыть");
+  const selection=await preview.presentAlert();
+  if (selection===0) await makeWidget("small").presentSmall();
+  if (selection===1) await makeWidget("large").presentLarge();
+}
 Script.complete();

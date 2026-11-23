@@ -1,12 +1,15 @@
 /* Study materials share the existing pearl / lavender liquid-glass surfaces. */
 .study-library-entry{display:flex;align-items:center;width:100%;gap:12px;text-align:left;margin:16px 0 0;padding:13px 17px;border:1px solid var(--liquid-edge);border-radius:22px;background:var(--liquid-fill);box-shadow:var(--liquid-shadow);color:var(--text);backdrop-filter:var(--liquid-filter);-webkit-backdrop-filter:var(--liquid-filter)}
 .study-library-entry>svg{width:22px;height:22px;flex:none;color:var(--control-ink)}
-.study-library-entry>svg:last-child{width:16px;height:16px;margin-left:auto;opacity:.6}
+.study-library-entry>svg:last-of-type{width:16px;height:16px;margin-left:auto;opacity:.6}
 .study-library-entry strong{display:block;font-size:14px;font-weight:600;letter-spacing:-.15px}
 .study-library-entry small{display:block;color:var(--muted);font-size:12px;line-height:1.5;margin-top:3px}
-.study-lesson-action{display:flex;align-items:center;gap:8px;width:100%;min-height:48px;margin:12px 0 1px;padding:11px 0 3px;border-top:1px solid var(--liquid-edge);border-radius:0;background:transparent;text-align:left;color:var(--control-ink);font-size:13px;font-weight:550}
-.study-lesson-action>svg{width:18px;height:18px;flex:none;opacity:.85}
-.study-lesson-action>svg:last-child{width:15px;height:15px;margin-left:auto;opacity:.55}
+.study-inline-action{display:grid;grid-template-columns:minmax(0,1fr) 16px;align-items:center;gap:12px;width:100%;min-height:44px;padding:6px 11px;border:0;border-radius:13px;background:transparent;color:var(--control-ink);text-align:left}
+.study-inline-action>svg{width:16px;height:16px;justify-self:end;opacity:.62;pointer-events:none}
+.study-action-label{display:flex;min-width:0;align-items:center;gap:8px}
+.study-action-label>svg{width:18px;height:18px;flex:none;opacity:.85}
+.study-action-label .study-count{flex:none}
+.study-lesson-action{margin:8px 0 0;font-weight:550}
 .study-count{display:inline-grid;place-items:center;min-width:23px;height:23px;padding:0 6px;border-radius:9px;color:var(--muted);background:var(--liquid-fill);border:1px solid var(--liquid-edge);font-size:11px;font-weight:500;font-variant-numeric:tabular-nums}
 .past .study-lesson-action{color:var(--control-ink)}
 .study-dialog{width:min(730px,calc(100% - 36px));max-width:730px;height:min(820px,90dvh);max-height:90dvh;margin:auto;padding:0;border:1px solid var(--liquid-selected-edge);border-radius:32px;background:linear-gradient(135deg,#39313ef5,#27232df7 60%,#293330f5);color:var(--text);box-shadow:var(--liquid-shadow),0 30px 100px #0005;backdrop-filter:blur(36px) saturate(125%);-webkit-backdrop-filter:blur(36px) saturate(125%);overflow:hidden;overscroll-behavior:contain}
@@ -97,8 +100,7 @@
 .study-question-copy:focus-visible{outline-offset:0}
 .study-question-copy:active{transform:none}
 .study-question-copy:active .study-question-copy-face{transform:scale(.92)}
-.study-other-topics{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin-top:23px;min-height:47px;padding:0 2px;border-top:1px solid var(--liquid-edge);border-radius:0;background:transparent;color:var(--control-ink);font-size:13px;text-align:left}
-.study-other-topics svg{width:16px;height:16px}
+.study-other-topics{margin-top:16px}
 .study-missing{text-align:center;padding:28px 10px}
 .study-missing .study-subject-icon{margin:0 auto 20px}
 .study-missing h3{font-size:19px;line-height:1.4}

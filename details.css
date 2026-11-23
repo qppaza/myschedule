@@ -106,7 +106,7 @@
  color:var(--text);text-align:left;font-size:var(--app-control-size,14px);line-height:1.4;
 }
 .cab-attendance-summary svg{width:19px;height:19px;opacity:.82}
-.cab-attendance-summary svg:last-child{width:16px;height:16px;justify-self:end;opacity:.55}
+.cab-attendance-summary svg:last-of-type{width:16px;height:16px;justify-self:end;opacity:.55}
 /* Roster cards keep the participant and their marks visually attached. */
 .cab-attendance-roster{
  display:grid;gap:10px;margin:0;padding:0;list-style:none;min-width:0;
@@ -200,8 +200,8 @@
 :root[data-schedule-widget] .ambient-wash{animation:none!important}
 
 /* Shared mouse feedback without changing the glass material or status color. */
-:root{--control-hover:#ffffff19}
-:root[data-theme=light]{--control-hover:#21212916}
+:root{--control-hover:#ffffff10}
+:root[data-theme=light]{--control-hover:#2121290f}
 @media(hover:hover) and (pointer:fine){
  :root[data-theme] :is(button,a[href],summary,[role=button],[role=option],[role=link]):hover:not(:disabled,[aria-disabled=true],[data-sheet-grab],:focus-visible,[data-ui-pressed=true]):not([inert] *){
   background-color:var(--control-hover);

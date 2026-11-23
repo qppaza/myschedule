@@ -136,23 +136,23 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  --border:#dbe7f424;
  --control-ink:#eff3fb;
  --control-focus:#a4c6ff;
- --glass-face:radial-gradient(ellipse 96% 118% at 12% -58%,#fff9,transparent 82%),linear-gradient(162deg,#ffffff18,#ffffff08 49%,#ffffff17);
- --glass-line:#e4edfa37;
- --glass-depth:inset 0 1px 1px #ffffff41,inset 0 -1px 1px #ffffff19,0 3px 10px #08090c28;
- --glass-panel:radial-gradient(ellipse 112% 88% at 10% -37%,#ffffff41,transparent 77%),radial-gradient(ellipse 94% 91% at 94% 161%,#ffffff22,transparent 76%),linear-gradient(150deg,#ffffff13,#ffffff06 54%,#ffffff11);
+ --glass-face:radial-gradient(ellipse 96% 118% at 12% -58%,#ffffff70,transparent 82%),linear-gradient(162deg,#ffffff13,#ffffff06 49%,#ffffff13);
+ --glass-line:#e4edfa30;
+ --glass-depth:inset 0 1px 1px #ffffff2f,inset 0 -1px 1px #ffffff12,0 3px 10px #08090c28;
+ --glass-panel:radial-gradient(ellipse 112% 88% at 10% -37%,#ffffff31,transparent 77%),radial-gradient(ellipse 94% 91% at 94% 161%,#ffffff1d,transparent 76%),linear-gradient(150deg,#ffffff10,#ffffff05 54%,#ffffff0f);
  --glass-panel-line:#e7eff833;
- --glass-panel-depth:inset 0 1px 1px #ffffff49,inset 0 -2px 3px #ffffff14,0 5px 16px #090a0f24;
- --glass-sheet:radial-gradient(ellipse 113% 62% at 6% -19%,#ffffff3a,transparent 72%),radial-gradient(ellipse 86% 61% at 103% 123%,#ffffff24,transparent 80%),linear-gradient(150deg,#34353caf,#1b1d22c2 56%,#26292fb2);
- --glass-row:linear-gradient(168deg,#ffffff16,#ffffff06 52%,#ffffff11);
- --glass-row-depth:inset 0 1px 0 #ffffff29,inset 0 -1px 1px #ffffff0c,0 2px 6px #08090c1a;
+ --glass-panel-depth:inset 0 1px 1px #ffffff35,inset 0 -2px 3px #ffffff10,0 5px 16px #090a0f24;
+ --glass-sheet:radial-gradient(ellipse 113% 62% at 6% -19%,#ffffff2b,transparent 72%),radial-gradient(ellipse 86% 61% at 103% 123%,#ffffff1d,transparent 80%),linear-gradient(150deg,#34353c9f,#1b1d22b6 56%,#26292fa6);
+ --glass-row:linear-gradient(168deg,#ffffff13,#ffffff05 52%,#ffffff0f);
+ --glass-row-depth:inset 0 1px 0 #ffffff20,inset 0 -1px 1px #ffffff09,0 2px 6px #08090c1a;
  --glass-steady-scrim:#17191d8c;
  --glass-sheet-solid:#282c33;
  --glass-tray:#0c101733;
- --glass-lens-face:radial-gradient(ellipse 98% 96% at 11% -31%,#ffffff74,transparent 73%),radial-gradient(ellipse 88% 132% at 90% 160%,#ffffff67,transparent 72%),linear-gradient(167deg,#ffffff27,#ffffff0e 51%,#292a3019 69%,#ffffff27);
- --glass-lens-line:#edf4ff66;
- --glass-lens-depth:inset 0 1px 1px #ffffff70,inset 0 -1px 2px #ffffff31,0 4px 13px #08090d3a;
- --glass-lens-glint:radial-gradient(ellipse at 16% -22%,#ffffffaf,transparent 66%),radial-gradient(ellipse at 76% 128%,#ffffff8e,transparent 62%);
- --glass-live-face:linear-gradient(160deg,#fff3,transparent 35% 77%,#deefff27);
+ --glass-lens-face:radial-gradient(ellipse 98% 96% at 11% -31%,#ffffff60,transparent 73%),radial-gradient(ellipse 88% 132% at 90% 160%,#ffffff54,transparent 72%),linear-gradient(167deg,#ffffff21,#ffffff0b 51%,#292a3014 69%,#ffffff20);
+ --glass-lens-line:#edf4ff57;
+ --glass-lens-depth:inset 0 1px 1px #ffffff55,inset 0 -1px 2px #ffffff25,0 4px 13px #08090d3a;
+ --glass-lens-glint:radial-gradient(ellipse at 16% -22%,#ffffff87,transparent 66%),radial-gradient(ellipse at 76% 128%,#ffffff69,transparent 62%);
+ --glass-live-face:linear-gradient(160deg,#ffffff27,transparent 35% 77%,#deefff20);
  --ambient-bloom:radial-gradient(ellipse at 34% 32%,#3d547536,transparent 59%),radial-gradient(ellipse at 83% 80%,#303d512d,transparent 54%);
  --control-glass:var(--glass-face);
  --control-edge:var(--glass-line);
@@ -171,23 +171,23 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 :root[data-theme=light]{
  --bg:#edf1f6;--text:#202a37;--muted:#4e5d70;--blue:#2f5f8d;--border:#4d658035;
  --control-ink:#294561;--control-focus:#4c7aa9;
- --glass-face:radial-gradient(ellipse 87% 68% at 14% -24%,#fff,transparent 78%),linear-gradient(155deg,#ffffffcf,#ffffff56 50%,#ededf198);
+ --glass-face:radial-gradient(ellipse 87% 68% at 14% -24%,#ffffffdd,transparent 78%),linear-gradient(155deg,#ffffffbf,#ffffff4d 50%,#ededf18c);
  --glass-line:#5a74924f;
- --glass-depth:inset 0 1px 0 #fff,inset 0 -1px 0 #fff9,0 2px 6px #3049611c;
- --glass-panel:radial-gradient(ellipse 82% 86% at 4% -40%,#ffffffb5,transparent 91%),radial-gradient(ellipse 100% 120% at 96% 172%,#ffffffce,transparent 78%),linear-gradient(141deg,#ffffffb8,#f7f7f954 52%,#eeeeef85);
+ --glass-depth:inset 0 1px 0 #ffffffda,inset 0 -1px 0 #ffffff78,0 2px 6px #3049611c;
+ --glass-panel:radial-gradient(ellipse 82% 86% at 4% -40%,#ffffffa1,transparent 91%),radial-gradient(ellipse 100% 120% at 96% 172%,#ffffffac,transparent 78%),linear-gradient(141deg,#ffffffad,#f7f7f94b 52%,#eeeeef78);
  --glass-panel-line:#73737f47;
- --glass-panel-depth:inset 0 1px 0 #fffffff2,inset 0 -1px 0 #ffffff80,0 4px 12px #26262e16;
- --glass-sheet:radial-gradient(ellipse 114% 73% at 3% -31%,#fffffff2,transparent 75%),radial-gradient(ellipse 84% 70% at 99% 127%,#ffffffed,transparent 77%),linear-gradient(146deg,#fbfbfcdf,#e9e9edcd 58%,#f6f6f9d4);
- --glass-row:linear-gradient(162deg,#ffffffcc,#ffffff53 54%,#ffffff99);
- --glass-row-depth:inset 0 1px 0 #fffffff0,inset 0 -1px 0 #ffffffa0,0 2px 6px #25252812;
+ --glass-panel-depth:inset 0 1px 0 #ffffffd9,inset 0 -1px 0 #ffffff72,0 4px 12px #26262e16;
+ --glass-sheet:radial-gradient(ellipse 114% 73% at 3% -31%,#ffffffd7,transparent 75%),radial-gradient(ellipse 84% 70% at 99% 127%,#ffffffd0,transparent 77%),linear-gradient(146deg,#fbfbfcd4,#e9e9edc2 58%,#f6f6f9c8);
+ --glass-row:linear-gradient(162deg,#ffffffba,#ffffff49 54%,#ffffff85);
+ --glass-row-depth:inset 0 1px 0 #ffffffd9,inset 0 -1px 0 #ffffff8a,0 2px 6px #25252812;
  --glass-steady-scrim:#f7f7fbd9;
  --glass-sheet-solid:#f4f7fb;
  --glass-tray:#60799525;
- --glass-lens-face:radial-gradient(ellipse 91% 97% at 12% -20%,#ffffff,transparent 72%),radial-gradient(ellipse 100% 136% at 88% 163%,#ffffff,transparent 73%),linear-gradient(158deg,#ffffffb8,#9696a73f 47%,#bfc0cd65 66%,#ffffffeb);
+ --glass-lens-face:radial-gradient(ellipse 91% 97% at 12% -20%,#ffffffdb,transparent 72%),radial-gradient(ellipse 100% 136% at 88% 163%,#ffffffd5,transparent 73%),linear-gradient(158deg,#ffffffa7,#9696a73a 47%,#bfc0cd58 66%,#ffffffd3);
  --glass-lens-line:#5c7b9a81;
- --glass-lens-depth:inset 0 1px 1px #fff,inset 0 -2px 2px #fffc,0 5px 11px #39567335;
- --glass-lens-glint:radial-gradient(ellipse at 16% -19%,#fff,transparent 67%),radial-gradient(ellipse at 77% 126%,#fffef9,transparent 61%);
- --glass-live-face:linear-gradient(160deg,#fff8,transparent 33% 78%,#fff5);
+ --glass-lens-depth:inset 0 1px 1px #ffffffdc,inset 0 -2px 2px #ffffffa3,0 5px 11px #39567335;
+ --glass-lens-glint:radial-gradient(ellipse at 16% -19%,#ffffffcc,transparent 67%),radial-gradient(ellipse at 77% 126%,#fffef9c2,transparent 61%);
+ --glass-live-face:linear-gradient(160deg,#ffffff6c,transparent 33% 78%,#ffffff46);
  --ambient-bloom:radial-gradient(ellipse at 26% 47%,#a1bfd96b,transparent 52%),radial-gradient(ellipse at 77% 62%,#9fc8c16b,transparent 54%),radial-gradient(ellipse at 50% 8%,#f2dfc569,transparent 45%);
 }
 
@@ -279,8 +279,8 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
  background:radial-gradient(ellipse 135px 83px at var(--beam-x) var(--beam-y),var(--contact-glow),transparent 90%);
 }
-:root[data-theme]{--contact-glow:#ffffff28}
-:root[data-theme=light]{--contact-glow:#ffffffb0}
+:root[data-theme]{--contact-glow:#ffffff20}
+:root[data-theme=light]{--contact-glow:#ffffff8f}
 .rail-optics-defs{position:absolute;pointer-events:none}
 :root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics]{z-index:4;pointer-events:none;isolation:auto}
 :root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics]::before{background:var(--glass-live-face);transform:none}
