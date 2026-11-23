@@ -1,6 +1,7 @@
 /* Animated diary visual. The canvas repaints only on entry and interaction. */
 /* Neutral glass for the diary and attendance visualizations. */
 .cab-grade-visual{
+ --chart-low:var(--cab-danger-ink,#ffa0a8);
  --chart-ink:#f7f7f8;--chart-muted:#bebec3;--chart-grid:#ffffff23;
  --chart-main:#e5e5e7;--chart-tip:#ffffff;--chart-other:#b9b9be;
  --chart-shade:#ffffff48;--chart-floor:#ffffff06;
@@ -94,9 +95,9 @@
 [data-cabinet-page=attendance]>.cab-date-nav{gap:10px;margin-block-end:14px}
 [data-cabinet-page=attendance]>.cab-date-nav>.study-round{width:44px;height:44px;flex:0 0 44px}
 [data-cabinet-page=attendance]>.cab-segments{
- display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;margin-block:0 14px;
+ grid-template-columns:repeat(2,minmax(0,1fr));width:min(100%,414px);margin-block:0 14px;border-radius:999px;
 }
-[data-cabinet-page=attendance]>.cab-segments>button{min-height:42px}
+[data-cabinet-page=attendance]>.cab-segments>button{min-height:42px;border-radius:999px}
 .cab-attendance-actions{display:flex;gap:10px;flex-wrap:wrap;margin-block-end:14px}
 .cab-attendance-actions .cab-action{min-height:44px}
 .cab-attendance-summary{
@@ -123,9 +124,9 @@
  display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;gap:9px;min-width:0;
 }
 .cab-attendance-number{
- display:grid;place-items:center;min-height:32px;border:1px solid var(--glass-line);
- border-radius:50%;background:var(--glass-row);color:var(--muted);font-size:11px;
- font-weight:550;font-variant-numeric:tabular-nums;
+ display:grid;place-items:center;box-sizing:border-box;inline-size:100%;aspect-ratio:1;border:1px solid var(--glass-line);
+ border-radius:50%;background:var(--glass-row);color:var(--muted);font-size:var(--app-caption-size,12px);
+ font-weight:550;font-variant-numeric:tabular-nums;line-height:1;
 }
 .cab-attendance-name{display:grid;align-content:center;min-width:0;overflow-wrap:anywhere}
 .cab-attendance-name :is(strong,.cab-person-link){font-size:var(--app-control-size,14px);line-height:1.35;font-weight:620}
@@ -140,20 +141,49 @@
  display:flex;justify-content:flex-end;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;
 }
 .cab-attendance-chip{
- flex:0 0 auto;min-width:46px;min-height:54px;padding:4px 6px;
- display:grid;justify-items:center;align-content:center;gap:1px;border:1px solid var(--glass-line);
+ flex:0 0 auto;min-width:48px;min-height:58px;padding:5px 7px;
+ display:grid;justify-items:center;align-content:center;gap:2px;border:1px solid var(--glass-line);
  border-radius:12px;background:var(--glass-row);box-shadow:var(--glass-row-depth);color:var(--text);
  font-variant-numeric:tabular-nums;line-height:1.18;white-space:nowrap;
 }
 .cab-attendance-chip:disabled{opacity:1;cursor:default}
-.cab-attendance-chip-date{font-size:11px;font-weight:650}
-.cab-attendance-chip-detail{font-size:10px;color:var(--muted)}
-.cab-attendance-chip strong{font-size:12px;font-weight:650}
-.cab-attendance-chip[data-mark=empty] strong{color:var(--muted);opacity:.73}
+.cab-attendance-chip-date{font-size:var(--app-caption-size,12px);font-weight:650}
+.cab-attendance-chip-detail{font-size:var(--app-caption-size,12px);color:var(--muted)}
+.cab-attendance-value{display:flex;min-height:1.18em;align-items:center;gap:5px;font-size:var(--app-caption-size,12px);font-weight:650}
+.cab-attendance-chip[data-mark=empty] .cab-attendance-value{color:var(--muted);opacity:.73}
 .cab-attendance-chip[data-mark=recorded]{background:var(--glass-face)}
-.cab-attendance-chip[data-mark=unexcused] strong{color:#efb77d}
-:root[data-theme=light] .cab-attendance-chip[data-mark=unexcused] strong{color:#875121}
 .cab-attendance-chip[aria-current=date]{border-color:var(--glass-lens-line)}
+.cab-attendance-lesson-key{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,166px),1fr));gap:8px;
+ margin:0 0 14px;padding:0;list-style:none;
+}
+.cab-attendance-lesson-key li{
+ display:grid;grid-template-columns:27px minmax(0,1fr);align-items:start;gap:8px;
+ padding:9px 10px;border:1px solid var(--glass-panel-line);border-radius:14px;background:var(--glass-row);
+ font-size:var(--app-caption-size,12px);line-height:1.35;overflow-wrap:anywhere;
+}
+.cab-attendance-lesson-key b{
+ display:grid;place-items:center;block-size:24px;border-radius:7px;font-variant-numeric:tabular-nums;line-height:1;
+ background:color-mix(in srgb,var(--category-ink,var(--attendance-lesson-ink)) 13%,transparent);
+}
+.cab-attendance-lesson-key small{display:block;margin-block-start:2px;color:var(--muted);font-size:var(--app-caption-size,12px);font-variant-numeric:tabular-nums}
+:is(.cab-attendance-chip-date,.cab-attendance-lesson-key li,.cab-pick-option[data-lesson-kind]>span){
+ color:var(--category-ink,var(--attendance-lesson-ink,var(--text)));
+}
+[data-attendance-code="ПН"]{--attendance-mark-dark:var(--cab-danger-ink);--attendance-mark-light:var(--cab-danger-ink)}
+[data-attendance-code="Б"] {--attendance-mark-dark:#a3ccff;--attendance-mark-light:#235b9a}
+[data-attendance-code="УП"]{--attendance-mark-dark:#efcc91;--attendance-mark-light:#775018}
+[data-attendance-code="СБ"]{--attendance-mark-dark:#8edeae;--attendance-mark-light:#28613f}
+[data-attendance-code="ОМ"]{--attendance-mark-dark:#d8b9ff;--attendance-mark-light:#71388d}
+[data-attendance-code="Ц"] {--attendance-mark-dark:#8bdae6;--attendance-mark-light:#14606a}
+[data-attendance-code="ПР"]{--attendance-mark-dark:#b8c7d9;--attendance-mark-light:#4b5870}
+.cab-attendance-value>[data-attendance-code],.cab-attendance-legend b[data-attendance-code],
+.cab-absence-list b[data-attendance-code],.cab-absence-summary [data-attendance-code]>strong,.cab-pick-option[data-attendance-code]>span{
+ color:var(--attendance-mark-dark,var(--control-ink));
+}
+:root[data-theme=light] :is(.cab-attendance-value>[data-attendance-code],.cab-attendance-legend b[data-attendance-code],.cab-absence-list b[data-attendance-code],.cab-absence-summary [data-attendance-code]>strong,.cab-pick-option[data-attendance-code]>span){
+ color:var(--attendance-mark-light,var(--control-ink));
+}
 .cab-attendance-roster[data-mode=month] .cab-attendance-person{
  align-items:center;grid-template-columns:minmax(126px,1fr) minmax(0,2.2fr);
 }
@@ -169,10 +199,13 @@
  .cab-attendance-roster[data-mode=day][data-many-slots=true] .cab-attendance-person{grid-template-columns:minmax(0,1fr);gap:8px}
  .cab-attendance-roster[data-mode=day][data-many-slots=true] .cab-attendance-marks{justify-content:flex-start}
 }
+@media(max-width:430px){
+ .cab-attendance-roster[data-mode=day] .cab-attendance-person:has(.cab-attendance-chip:nth-child(3)){grid-template-columns:minmax(0,1fr);gap:8px}
+ .cab-attendance-roster[data-mode=day] .cab-attendance-marks:has(.cab-attendance-chip:nth-child(3)){justify-content:flex-start}
+}
 @media(max-width:360px){
  .cab-attendance-person{gap:8px;padding:9px}
  .cab-attendance-identity{grid-template-columns:28px minmax(0,1fr);gap:7px}
- .cab-attendance-number{min-height:28px}
 }
 @media(max-width:350px){
  [data-cabinet-page=attendance]>.cab-date-nav{gap:7px}

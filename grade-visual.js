@@ -35,10 +35,12 @@
     const samples=JSON.parse(panel.dataset.samples),series=JSON.parse(panel.dataset.series);
     const counts=series.map(item=>item[2]),[minimum,maximum]=JSON.parse(panel.dataset.range);
     const unit=panel.dataset.unit,selection=panel.dataset.selection;
+    const passingMark=Number(panel.dataset.passingMark)||0;
+    const isLowMark=mark=>Number(mark)>0&&Number(mark)<passingMark;
     const axis=panel.querySelector('.cab-chart-axis'),value=panel.querySelector('output');
     const key=panel.querySelector('.cab-chart-meter small'),tabs=panel.querySelectorAll('[data-graph-tab]');
     const motion=matchMedia('(prefers-reduced-motion: reduce)');
-    const palette=['ink','muted','grid','main','tip','shade','floor','other'];
+    const palette=['ink','muted','grid','main','tip','shade','floor','other','low'];
     let mode='timeline',selected=samples.length-1,previous=null,frame=0,visible=false;
     let width=0,height=0,colors,touch=null;
     const modeValues=()=>mode==='timeline'?samples:counts;
@@ -71,6 +73,7 @@
       const amount=numberFormat.format(timeline?sample[1]:sample[2])+unit;
       const text=timeline?selection+' '+amount+' · '+caption(sample[0]):sample[1]+' · '+amount;
       value.textContent=amount;
+      value.toggleAttribute('data-low-grade',timeline&&isLowMark(sample[1]));
       key.textContent=timeline?caption(sample[0]):sample[1];
       canvas.setAttribute('aria-valuemin','1');
       canvas.setAttribute('aria-valuemax',String(modeValues().length));
@@ -93,11 +96,11 @@
       }
       context.restore();
     }
-    function focusPoint(x,y,bottom){
-      context.strokeStyle=colors.main;context.setLineDash([3,4]);context.globalAlpha*=.62;
+    function focusPoint(x,y,bottom,low){
+      context.strokeStyle=low?colors.low:colors.main;context.setLineDash([3,4]);context.globalAlpha*=.62;
       context.beginPath();context.moveTo(x,y);context.lineTo(x,bottom);context.stroke();
-      context.setLineDash([]);context.globalAlpha/=.62;context.fillStyle=colors.tip;
-      context.shadowColor=colors.main;context.shadowBlur=3;
+      context.setLineDash([]);context.globalAlpha/=.62;context.fillStyle=low?colors.low:colors.tip;
+      context.shadowColor=low?colors.low:colors.main;context.shadowBlur=3;
       context.beginPath();context.arc(x,y,3.5,0,Math.PI*2);context.fill();
     }
     function drawTimeline(amount,alpha,focus){
@@ -122,11 +125,13 @@
         context.beginPath();curve(context,points);context.stroke();
       }
       const every=Math.max(1,Math.ceil(points.length/16));
-      for(let i=0;i<points.length;i+=every){
+      for(let i=0;i<points.length;i++){
+        const low=isLowMark(samples[i][1]);
+        if(!low&&i%every!==0)continue;
         const point=points[i];
-        context.fillStyle=colors.main;context.beginPath();context.arc(point.x,point.y,1.9,0,Math.PI*2);context.fill();
+        context.fillStyle=low?colors.low:colors.main;context.beginPath();context.arc(point.x,point.y,low?2.6:1.9,0,Math.PI*2);context.fill();
       }
-      if(focus!==null)focusPoint(points[focus].x,points[focus].y,bottom);
+      if(focus!==null)focusPoint(points[focus].x,points[focus].y,bottom,isLowMark(samples[focus][1]));
       context.restore();
     }
 
@@ -146,6 +151,7 @@
       series.forEach(([label,,count],index)=>{
         const middle=top+step*(index+.5),y=middle-trackHeight/2;
         const active=index===focus;
+        const low=isLowMark(label);
         if(active){
           rounded(context,1,middle-step/2+1,width-2,step-2,7);
           context.fillStyle=colors.floor;
@@ -157,15 +163,15 @@
         const fillWidth=trackWidth*(count/largest)*amount;
         if(fillWidth>.4){
           const sheen=context.createLinearGradient(left,y,left,y+trackHeight);
-          sheen.addColorStop(0,active?colors.tip:colors.main);
-          sheen.addColorStop(.32,colors.main);
+          sheen.addColorStop(0,low?colors.low:active?colors.tip:colors.main);
+          sheen.addColorStop(.32,low?colors.low:colors.main);
           sheen.addColorStop(1,colors.shade);
           rounded(context,left,y,fillWidth,trackHeight,trackHeight/2);
           context.fillStyle=sheen;
           context.fill();
         }
         context.font=(active?'600 ':'500 ')+fontSize+'px system-ui';
-        context.fillStyle=active?colors.ink:colors.muted;
+        context.fillStyle=low?colors.low:active?colors.ink:colors.muted;
         context.textAlign='left';
         context.fillText(label,7,middle);
         context.textAlign='right';
