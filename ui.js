@@ -417,11 +417,16 @@
 
   // All ordinary controls use one press/release response; rails keep stable geometry.
   let pressed = null;
-  const pressTarget = target => target?.closest?.('button:not(:disabled),a[href],[role="button"]');
+  const actionSelector='button,a[href],summary,[role="button"],[role="option"],[role="link"]';
+  function actionTarget(target){
+    const element=target?.closest?.(actionSelector);
+    if(!element||element.closest(':disabled,[aria-disabled="true"],[inert],[data-sheet-grab]'))return null;
+    return element;
+  }
   const clearPress = () => { pressed?.element.removeAttribute('data-ui-pressed'); pressed?.rail?.classList.remove('is-touching'); pressed = null; };
   document.addEventListener('pointerdown', event => {
     if (event.isPrimary === false || event.button !== 0) return;
-    clearPress(); const element = pressTarget(event.target); if (!element) return;
+    clearPress(); const element = actionTarget(event.target); if (!element) return;
     const rail = element.closest('.days,.segmented,.glass-segmented,#dateGrid,.cab-date-grid');
     pressed = { element, rail, id: event.pointerId, x: event.clientX, y: event.clientY }; element.setAttribute('data-ui-pressed', 'true'); rail?.classList.add('is-touching');
   }, { capture: true, passive: true });
@@ -431,7 +436,7 @@
   for (const name of ['pointerup', 'pointercancel']) document.addEventListener(name, clearPress, { capture: true, passive: true });
   document.addEventListener('keydown', event => {
     if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
-      const element = pressTarget(event.target); if (element) { clearPress(); const rail = element.closest('.days,.segmented,.glass-segmented,#dateGrid,.cab-date-grid'); pressed = { element, rail }; element.setAttribute('data-ui-pressed', 'true'); rail?.classList.add('is-touching'); }
+      const element = actionTarget(event.target); if (element) { clearPress(); const rail = element.closest('.days,.segmented,.glass-segmented,#dateGrid,.cab-date-grid'); pressed = { element, rail }; element.setAttribute('data-ui-pressed', 'true'); rail?.classList.add('is-touching'); }
     }
   }, true);
   document.addEventListener('keyup', clearPress, true);
@@ -512,7 +517,7 @@
   }
 
   function initialize() { setupGroupSheet(); setupAcademyLink(); }
-  window.GlassUI = { toast, hideToast, openSheet, closeSheet, mountSheet, mountSegmented, panelOpened, panelClosed, navigationStep, navigationStepClosed };
+  window.GlassUI = { toast, hideToast, openSheet, closeSheet, mountSheet, mountSegmented, actionTarget, panelOpened, panelClosed, navigationStep, navigationStepClosed };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
   else initialize();
 })();

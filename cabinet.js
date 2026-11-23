@@ -26,7 +26,10 @@
   };
   const pageNames = {home:'Личный кабинет',login:'Вход через Telegram',questions:'Мои вопросы',attendance:'Посещаемость',grades:'Дневник',notes:'Личные заметки',exams:'Зачёты и экзамены',preferences:'Напоминания'};
   const roles = {student:'Студент',starosta:'Староста',deputy:'Заместитель старосты',owner:'Владелец'};
-  const reasonNames = {'Б':'Болезнь','УП':'По заявлению','ПН':'Причина неизвестна','СБ':'Сборы и соревнования','ОМ':'Общественные мероприятия','Ц':'ЦКВР','ПР':'Присутствовал без участия','Н':'Неуважительная причина','ОП':'Опоздание','':'Снять отметку'};
+  const reasonNames = {'Б':'Болезнь','УП':'По заявлению','ПН':'Неуважительный пропуск','СБ':'Сборы и соревнования','ОМ':'Общественные мероприятия','Ц':'ЦКВР','ПР':'Присутствовал без участия','':'Снять отметку'};
+  const attendanceCode = code => code==='Н'?'ПН':code==='ОП'?'':code||'';
+  const absenceLimit = 72;
+  const absenceReasons = ['ПН','Б','УП','СБ','ОМ','Ц'];
   const today = () => {try{const values={};new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Minsk',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).forEach(p=>{values[p.type]=p.value;});return `${values.year}-${values.month}-${values.day}`;}catch{return new Date(Date.now()+10800000).toISOString().slice(0,10);}};
   const dateLabel = (date, options={day:'numeric',month:'long'}) => {
     try { return new Intl.DateTimeFormat('ru-RU',{...options,timeZone:'UTC'}).format(new Date(date+'T12:00:00Z')); } catch { return String(date||'Дата не указана'); }
@@ -123,7 +126,7 @@
       rail?.destroy?.();rail=null;
       const weekday=(new Date(month+'T12:00:00Z').getUTCDay()+6)%7,count=new Date(Date.UTC(+month.slice(0,4),+month.slice(5,7),0)).getUTCDate(),label=dateLabel(month,{month:'long',year:'numeric'});
       const offday=date=>window.offdayLabel?.(date)||(new Date(date+'T12:00:00Z').getUTCDay()===0?'Воскресенье — выходной':'');
-      picker.body.innerHTML=`<div class="date-month-nav cab-calendar-month"><button type="button" class="study-round" data-month="-1" aria-label="Предыдущий месяц">${icons.back}</button><h3>${escape(label.charAt(0).toUpperCase()+label.slice(1))}</h3><button type="button" class="study-round" data-month="1" aria-label="Следующий месяц">${icons.next}</button></div><div class="date-weekdays" aria-hidden="true">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(day=>`<span>${day}</span>`).join('')}</div><div class="cab-date-grid date-grid">${'<span aria-hidden="true"></span>'.repeat(weekday)}${Array.from({length:count},(_,i)=>{const date=month.slice(0,8)+String(i+1).padStart(2,'0'),holiday=offday(date);return`<button type="button" data-date="${date}" aria-label="${escape(dateLabel(date,{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}${holiday?', '+escape(holiday):''}" aria-pressed="${date===current}" data-offday="${!!holiday}" data-today="${date===today()}" ${date===today()?'aria-current="date"':''}>${i+1}</button>`;}).join('')}</div><p class="date-calendar-note"><span>Розовым</span> — воскресенья и нерабочие праздники</p><div class="cab-actions cab-calendar-footer">${action('Сегодня','today')}${action('Закрыть','cancel')}</div>`;
+      picker.body.innerHTML=`<div class="date-month-nav cab-calendar-month"><button type="button" class="study-round" data-month="-1" aria-label="Предыдущий месяц">${icons.back}</button><h3>${escape(label.charAt(0).toUpperCase()+label.slice(1))}</h3><button type="button" class="study-round" data-month="1" aria-label="Следующий месяц">${icons.next}</button></div><div class="date-weekdays" aria-hidden="true">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(day=>`<span>${day}</span>`).join('')}</div><div class="cab-date-grid date-grid">${'<span aria-hidden="true"></span>'.repeat(weekday)}${Array.from({length:count},(_,i)=>{const date=month.slice(0,8)+String(i+1).padStart(2,'0'),holiday=offday(date),session=schedule().assessmentDate?.(date,selectedGroup());return`<button type="button" data-date="${date}" aria-label="${escape(dateLabel(date,{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}${[holiday,session?.label].filter(Boolean).map(text=>', '+escape(text)).join('')}" aria-pressed="${date===current}" data-offday="${!!holiday}" data-today="${date===today()}" ${date===today()?'aria-current="date"':''}><span class="calendar-date-number"${session?.numeral||''}>${i+1}</span>${session?.markers||''}</button>`;}).join('')}</div><p class="date-calendar-note"><span>Розовым</span> — воскресенья и нерабочие праздники</p>${schedule().assessmentLegend?.()||''}<div class="cab-actions cab-calendar-footer">${action('Сегодня','today')}${action('Закрыть','cancel')}</div>`;
       const grid=picker.body.querySelector('.cab-date-grid');
       if(window.mountDragRail){grid.classList.add('has-date-rail');rail=window.mountDragRail(grid,{thumbSelector:'.date-thumb',thumbClass:'date-thumb',axis:'both',keyboard:false,commit:button=>choose(button.dataset.date)});}
       if(focusDate)grid.querySelector(`[data-date="${focusDate}"]`)?.focus({preventScroll:true});
@@ -221,7 +224,7 @@
   function open(page='home',extra={}){
     if(main){navigate(page,extra);return;}
     view={page,...extra};frames=[];
-    main=makeSheet(pageNames[page]||pageNames.home,'<div class="cab-loading">Открываем раздел</div>',{large:true,onClose:()=>{main=null;frames=[];renderEpoch++;stopLogin();clearInterval(refreshTimer);refreshTimer=0;}});
+    main=makeSheet(pageNames[page]||pageNames.home,'<div class="cab-loading">Открываем раздел</div>',{large:true,onClose:()=>{stopGradeVisual?.();main=null;frames=[];renderEpoch++;stopLogin();clearInterval(refreshTimer);refreshTimer=0;}});
     main.dialog.querySelector('.cab-back').onclick=back;
     main.body.onclick=handleClick;main.body.oninput=updateGradeForecast;draw();
     refreshTimer=setInterval(()=>{if(main&&!document.hidden&&['attendance','questions','exams'].includes(view.page))draw({quiet:true});},30000);
@@ -247,22 +250,32 @@
     }
     body.innerHTML=html;
   }
+  let stopGradeVisual;
   async function draw({quiet=false}={}){
     if(!main)return;const epoch=++renderEpoch,page=view.page;
     const retained=main.body.dataset.cabinetPage===page?main.body.querySelector(':scope > .cab-segments'):null;
     main.heading.textContent=pageNames[page]||pageNames.home;
     main.dialog.querySelector('.cab-back').hidden=!frames.length;
-    if(!quiet&&!retained)main.body.innerHTML='<div class="cab-loading" role="status">Открываем раздел</div>';
+    if(!quiet&&!retained){stopGradeVisual?.();main.body.innerHTML='<div class="cab-loading" role="status">Открываем раздел</div>';}
     try{
       let html;
       if(!me&&!['home','login','exams'].includes(page))html=guestPage();
       else if(page==='grades')html=await gradesPage(epoch);
       else html=await ({home:homePage,login:loginPage,questions:questionsPage,attendance:attendancePage,notes:notesPage,exams:examsPage,preferences:preferencesPage}[page]||homePage)();
       if(epoch!==renderEpoch||!main)return;
+      if(quiet&&main.renderedHtml===html&&main.body.dataset.cabinetPage===page)return;
       const scroll=quiet||retained?main.body.scrollTop:0;
-      replaceCabinetBody(main.body,html,retained);main.body.dataset.cabinetPage=page;
+      const tracks=quiet&&page==='attendance'
+        ?new Map([...main.body.querySelectorAll('[data-attendance-track]')].map(track=>[track.dataset.attendanceTrack,track.scrollLeft]))
+        :null;
+      stopGradeVisual?.();
+      replaceCabinetBody(main.body,html,retained);main.renderedHtml=html;main.body.dataset.cabinetPage=page;
+      stopGradeVisual=page==='grades'?window.AmiaGradeVisual?.mount(main.body):undefined;
       if(page==='grades'&&view.gradeSubject)main.heading.textContent=view.gradeSubject;
       main.body.scrollTop=scroll;mountSegments(main.body);
+      if(tracks)for(const track of main.body.querySelectorAll('[data-attendance-track]')){
+        track.scrollLeft=tracks.get(track.dataset.attendanceTrack)||0;
+      }
       if(page==='home')paintAvatar();
       if(page==='preferences')bindPreferences();
       if(page==='login')bindLoginPage();
@@ -272,12 +285,12 @@
     }
   }
 
-  function guestPage(){return`<div class="cab-welcome"><span class="cab-avatar">${icons.user}</span><h3>Учёба под рукой</h3><p>Войдите через Telegram, чтобы видеть свои вопросы, оценки, заметки и посещаемость. Расписание и учебные материалы открыты и в режиме гостя.</p><div class="cab-actions cab-stack">${action('Войти через Telegram','login',icons.telegram,'primary')}${action('Продолжить как гость','guest','','subtle')}</div></div>${section('Без входа')}<div class="cab-grid"><button type="button" class="cab-tile" data-cab-action="guest">${icons.calendar}<strong>Расписание</strong><small>Все группы и материалы занятий</small></button><button type="button" class="cab-tile" data-cab-action="exams">${icons.exam}<strong>Зачёты и экзамены</strong><small>Ближайшие даты вашей группы</small></button></div>${note('Привязка выполняется по подтверждённому аккаунту Telegram. Вводить свой номер журнала вручную не нужно.')}`;}
+  function guestPage(){return`<div class="cab-welcome"><span class="cab-avatar">${icons.user}</span><h3>Учёба под рукой</h3><p>Войдите через Telegram, чтобы видеть свои вопросы, оценки, заметки и посещаемость. Расписание и учебные материалы открыты и в режиме гостя.</p><div class="cab-actions cab-stack">${action('Войти через Telegram','login',icons.telegram,'primary')}${action('Продолжить как гость','guest','','subtle')}</div></div>${section('Без входа')}<div class="cab-grid"><button type="button" class="cab-tile" data-cab-action="guest">${icons.calendar}<strong>Расписание</strong><small>Все группы и материалы занятий</small></button><button type="button" class="cab-tile" data-cab-action="exams">${icons.exam}<strong>Зачёты и экзамены</strong></button></div>${note('Привязка выполняется по подтверждённому аккаунту Telegram. Вводить свой номер журнала вручную не нужно.')}`;}
   async function homePage(){
     if(!me)return guestPage();
     const person=me.person,initials=person.name.split(/\s+/).slice(0,2).map(n=>n[0]).join('');
-    const tiles=[['questions','Мои вопросы','Взятые вопросы и история подготовки','book'],['attendance','Посещаемость',manages()?'Общий табель и правки группы':'Табель и мои пропуски','calendar'],['grades','Дневник','Отметки и средний балл','grades'],['notes','Личные заметки','К предмету или учебному дню','note'],['exams','Зачёты и экзамены','Ближайшие контрольные даты','exam'],['preferences','Напоминания','Вопросы, зачёты и пропуски','bell']];
-    return`<div class="cab-profile"><span class="cab-avatar">${escape(initials)}</span><div class="cab-profile-copy"><h3>${escape(person.name)}</h3><p>Группа ${escape(person.group)} · № ${person.number} в журнале</p><span class="cab-role">${escape(roles[person.role]||'Студент')}</span></div></div><div class="cab-grid">${tiles.map(([id,title,description,icon])=>`<button type="button" class="cab-tile" data-cab-action="${id}">${icons[icon]}<strong>${escape(title)}</strong><small>${escape(description)}</small></button>`).join('')}</div>${note(me.owner?'Вам доступно управление всеми группами и кабинетами. Группу и участника можно выбрать внутри раздела.':'Личные записи сохраняются за вашим аккаунтом и доступны вам и владельцу системы. Табель группы видят участники; правки доступны старосте и заместителю.')}<div class="cab-actions" style="margin-top:18px">${action('Вернуться к расписанию','guest',icons.calendar,'subtle')}${action('Выйти','logout','','subtle')}</div>`;
+    const tiles=[['questions','Мои вопросы','Взятые вопросы и история подготовки','book'],['attendance','Посещаемость',manages()?'Общий табель и правки группы':'Табель и мои пропуски','calendar'],['grades','Дневник','Отметки и средний балл','grades'],['notes','Личные заметки','К предмету или учебному дню','note'],['exams','Зачёты и экзамены','','exam'],['preferences','Напоминания','Вопросы, зачёты и пропуски','bell']];
+    return`<div class="cab-profile"><span class="cab-avatar">${escape(initials)}</span><div class="cab-profile-copy"><h3>${escape(person.name)}</h3><p>Группа ${escape(person.group)} · № ${person.number} в журнале</p><span class="cab-role">${escape(roles[person.role]||'Студент')}</span></div></div><div class="cab-grid">${tiles.map(([id,title,description,icon])=>`<button type="button" class="cab-tile" data-cab-action="${id}">${icons[icon]}<strong>${escape(title)}</strong>${description?`<small>${escape(description)}</small>`:''}</button>`).join('')}</div>${note(me.owner?'Вам доступно управление всеми группами и кабинетами. Группу и участника можно выбрать внутри раздела.':'Личные записи сохраняются за вашим аккаунтом и доступны вам и владельцу системы. Табель группы видят участники; правки доступны старосте и заместителю.')}<div class="cab-actions" style="margin-top:18px">${action('Вернуться к расписанию','guest',icons.calendar,'subtle')}${action('Выйти','logout','','subtle')}</div>`;
   }
   function loginPage(){return`<div class="cab-welcome"><span class="cab-avatar">${icons.telegram}</span><h3>Ваш профиль Telegram</h3><p>Подтвердите вход в Qdropbot. Бот покажет проверочный код — он должен совпасть с кодом на этой странице.</p><div id="cabLoginState"><div class="cab-actions cab-stack">${action('Продолжить в Telegram','begin-login',icons.telegram,'primary')}${action('Режим гостя','guest','','subtle')}</div></div></div>${note('Вход сохраняется на этом устройстве. На общем устройстве после работы нажмите «Выйти». Смена имени или фотографии Telegram не меняет привязку к группе.')}`;}
   function bindLoginPage(){}
@@ -325,50 +338,146 @@
   async function attendancePage(){
     const group=await groupData(),date=view.date||today(),month=date.slice(0,7),data=await api('/attendance?group='+encodeURIComponent(selectedGroup())+'&month='+month);view.attendance=data;
     const people=list(group,'people'),allLessons=list(data,'lessons'),entries=list(data),dayLessons=allLessons.filter(l=>l.date===date),map=new Map(entries.map(e=>[e.personId+'|'+e.lessonKey,e]));
-    const totals=list(data,'totals'),ownTotal=totals.find(t=>t.personId===personId()),monthMode=view.segment==='month',editable=!!data.canEdit;
+    const monthMode=view.segment==='month',editable=!!data.canEdit;
+    const own=people.find(person=>person.id===me?.person?.id);
+    const participant=person=>{
+      const label=escape(shortName(person)),canView=editable||person.id===own?.id;
+      const name=canView?`<button type="button" class="cab-person-link" data-cab-action="attendance-summary" data-person="${escape(person.id)}" aria-label="Пропуски: ${label}">${label}</button>`:`<strong>${label}</strong>`;
+      const role=person.role==='student'?'':roles[person.role];
+      return `<div class="cab-attendance-identity"><span class="cab-attendance-number" aria-label="Номер в журнале ${escape(person.number)}">${escape(person.number)}</span><div class="cab-attendance-name">${name}${role?`<small>${escape(role)}</small>`:''}</div></div>`;
+    };
     let html=controls(group)+`<div class="cab-date-nav"><button type="button" class="study-round" data-cab-action="attendance-prev" aria-label="Предыдущий день">${icons.back}</button><button type="button" class="cab-picker-trigger" data-cab-action="attendance-date"><span>${escape(dateLabel(date,{weekday:'short',day:'numeric',month:'long'}))}</span>${icons.down}</button><button type="button" class="study-round" data-cab-action="attendance-next" aria-label="Следующий день">${icons.next}</button></div>`;
-    if(ownTotal)html+=`<div class="cab-summary"><div class="cab-stat"><strong>${number(ownTotal.hours)}</strong><span>часов пропущено</span></div><div class="cab-stat warning"><strong>${number(ownTotal.unexcusedHours)}</strong><span>неуважительных часов</span></div><div class="cab-stat"><strong>72</strong><span>контрольный порог</span></div></div>`;
-    html+=`<div class="cab-toolbar">${segments([['day','День'],['month','Месяц']],monthMode?'month':'day','Вид табеля')}${editable?action('Внести отметку','attendance-edit',icons.plus,'primary',dayLessons.length?'':'disabled'):''}${editable?action('Правки','audit',icons.clock):''}</div>`;
-    if(!allLessons.length)return html+empty('На этот месяц нет занятий','Выберите другой месяц. Пустая ячейка не означает отсутствие.',icons.calendar);
-    if(monthMode){
-      const dates=[...new Set(allLessons.map(l=>l.date))].sort();
-      html+=`<div class="cab-attendance-wrap"><table class="cab-attendance"><thead><tr><th>Участник</th>${dates.map(d=>`<th>${+d.slice(8)}<br>${escape(dateLabel(d,{weekday:'short'}))}</th>`).join('')}</tr></thead><tbody>${people.map(p=>`<tr><td><span class="cab-person-number">${p.number}</span>${escape(shortName(p))}${p.role!=='student'?`<span class="cab-person-role">${escape(roles[p.role]||'')}</span>`:''}</td>${dates.map(d=>{const found=allLessons.filter(l=>l.date===d).map(l=>map.get(p.id+'|'+l.key)).filter(e=>e?.code),codes=[...new Set(found.map(e=>e.code))];return`<td><button type="button" ${editable?'':'disabled'} data-cab-action="attendance-cell" data-person="${escape(p.id)}" data-date="${d}" class="${!codes.length?'cab-cell-empty':found.some(e=>e.unexcused)?'cab-cell-unexcused':''}" aria-label="${escape(shortName(p)+', '+dateLabel(d)+': '+(codes.join(', ')||'нет отметок'))}">${escape(codes.join(' / ')||'—')}</button></td>`;}).join('')}</tr>`).join('')}</tbody></table></div>`;
-    }else if(dayLessons.length){
-      html+=`<div class="cab-attendance-wrap"><table class="cab-attendance"><thead><tr><th>Участник</th>${dayLessons.map(l=>`<th title="${escape(l.subject)}">${l.num}-я<br>${escape(timeLabel(l.start))}</th>`).join('')}</tr></thead><tbody>${people.map(p=>`<tr><td><span class="cab-person-number">${p.number}</span>${escape(shortName(p))}${p.role!=='student'?`<span class="cab-person-role">${escape(roles[p.role]||'')}</span>`:''}</td>${dayLessons.map(l=>{const entry=map.get(p.id+'|'+l.key);return`<td><button type="button" ${editable?'':'disabled'} data-cab-action="attendance-cell" data-person="${escape(p.id)}" data-lesson="${escape(l.key)}" data-date="${date}" class="${!entry?.code?'cab-cell-empty':entry.unexcused?'cab-cell-unexcused':''}" aria-label="${escape(shortName(p)+', '+l.num+'-я пара: '+(entry?.code?reasonNames[entry.code]||entry.code:'нет отметки'))}">${escape(entry?.code||'—')}${entry?.code&&entry?.lateMinutes?`<br><small>${entry.lateMinutes} мин</small>`:''}</button></td>`;}).join('')}</tr>`).join('')}</tbody></table></div>${note(dayLessons.map(l=>`${l.num}-я · ${escape(l.subject)}`).join('<br>'))}`;
-    }else html+=empty('В этот день занятий нет','Выберите учебный день в календаре.',icons.calendar);
-    return html+`<div class="cab-attendance-legend">${Object.entries(reasonNames).filter(([code])=>code).map(([code,title])=>`<span><b>${escape(code)}</b> — ${escape(title)}</span>`).join('')}</div>`+note(editable?'Табель общий для старосты и заместителя. Все изменения сохраняются с автором и временем. ПР применяется только к физкультуре.':'Табель доступен для просмотра. Причины пропусков вносят староста и заместитель.')+note('ПН означает неизвестную причину и не становится неуважительным пропуском автоматически. Учёт ведётся в учебных часах; контрольный порог служит предупреждением.');
+    html+=segments([['day','День'],['month','Месяц']],monthMode?'month':'day','Вид табеля');
+    if(editable)html+=`<div class="cab-attendance-actions" role="group" aria-label="Действия с табелем">${action('Внести отметку','attendance-edit',icons.plus,'primary',dayLessons.length?'':'disabled')}${action('Правки','audit',icons.clock)}</div>`;
+    if(own)html+=`<button type="button" class="cab-attendance-summary" data-cab-action="attendance-summary" data-person="${escape(own.id)}">${icons.calendar}<span>Мои пропуски за семестр</span>${icons.next}</button>`;
+    if(!allLessons.length)return html+empty('На этот месяц нет занятий','Выберите другой месяц.',icons.calendar);
+    if(!monthMode&&!dayLessons.length){
+      html+=empty('В этот день занятий нет','Выберите учебный день в календаре.',icons.calendar);
+    }else{
+      const groupedLessons=new Map();
+      for(const lesson of allLessons){
+        if(!groupedLessons.has(lesson.date))groupedLessons.set(lesson.date,[]);
+        groupedLessons.get(lesson.date).push(lesson);
+      }
+      const slots=monthMode?[...groupedLessons].sort(([first],[second])=>first.localeCompare(second)).map(([day,lessons])=>({
+        date:day,lessons,label:dateLabel(day,{day:'numeric',month:'short'}).replace(/\.$/,''),
+        detail:dateLabel(day,{weekday:'short'}),description:dateLabel(day,{day:'numeric',month:'long'})
+      })):dayLessons.map(lesson=>({
+        date,lessons:[lesson],lesson:lesson.key,label:lesson.num+'-я',
+        detail:timeLabel(lesson.start),description:lesson.num+'-я пара, '+lesson.subject
+      }));
+      const mark=(person,slot)=>{
+        const codes=[...new Set(slot.lessons.map(lesson=>attendanceCode(map.get(person.id+'|'+lesson.key)?.code)).filter(Boolean))];
+        const description=codes.map(code=>reasonNames[code]||code).join(', ')||'нет отметок';
+        const label=shortName(person)+', '+slot.description+': '+description;
+        return `<button type="button" class="cab-attendance-chip" data-cab-action="attendance-cell" data-person="${escape(person.id)}" data-date="${escape(slot.date)}" ${slot.lesson?`data-lesson="${escape(slot.lesson)}"`:''} ${editable?'':'disabled'} aria-label="${escape(label)}" title="${escape(slot.description)}" data-mark="${codes.includes('ПН')?'unexcused':codes.length?'recorded':'empty'}"${monthMode&&slot.date===date?' aria-current="date"':''}><span class="cab-attendance-chip-date">${escape(slot.label)}</span><span class="cab-attendance-chip-detail">${escape(slot.detail)}</span><strong>${escape(codes.join(' / ')||'—')}</strong></button>`;
+      };
+      const hint=monthMode&&slots.length>3?'<p class="cab-attendance-hint">Листайте даты в карточке участника.</p>':'';
+      html+=hint+`<ul class="cab-attendance-roster" role="list" aria-label="Участники группы" data-mode="${monthMode?'month':'day'}" data-many-slots="${slots.length>3}">${people.map(person=>`<li class="cab-attendance-person">${participant(person)}<div class="cab-attendance-marks" role="group" aria-label="${escape((monthMode?'Даты':'Пары')+' · '+shortName(person))}" ${monthMode&&slots.length>3?`tabindex="0" data-attendance-track="${escape(person.id)}"`:''}>${slots.map(slot=>mark(person,slot)).join('')}</div></li>`).join('')}</ul>`;
+      if(!monthMode)html+=note(dayLessons.map(lesson=>`${lesson.num}-я · ${escape(lesson.subject)}`).join('<br>'));
+    }
+    return html+`<div class="cab-attendance-legend">${Object.entries(reasonNames).filter(([code])=>code).map(([code,title])=>`<span><b>${escape(code)}</b> — ${escape(title)}</span>`).join('')}</div>`+note(editable?'Табель общий для старосты и заместителя. Все изменения сохраняются с автором и временем. ПР применяется только к физкультуре.':'Табель доступен для просмотра. Причины пропусков вносят староста и заместитель.')+note('ПН учитывается как неуважительный пропуск. Часы считаются после окончания занятия.');
   }
   async function editAttendance({person='',lesson='',date=view.date||today()}={}){
     const group=await groupData(),data=date.slice(0,7)===(view.date||today()).slice(0,7)?view.attendance:await api('/attendance?group='+selectedGroup()+'&month='+date.slice(0,7));
     if(!data?.canEdit)return toast('Правки доступны старосте и заместителю');
     const people=list(group,'people'),lessons=list(data,'lessons').filter(l=>l.date===date),entry=person&&lesson?list(data).find(e=>e.personId===person&&e.lessonKey===lesson):null;
     if(!lessons.length)return toast('В выбранный день нет занятий');
-    const personIds=person?[person]:[],lessonKeys=lesson?[lesson]:lessons.map(l=>l.key),initialCode=entry?entry.code:'Б';
-    const picker=makeSheet('Отметка посещаемости',`<form class="cab-form">${note(escape(dateLabel(date,{weekday:'long',day:'numeric',month:'long'})))}${pickerField('people','Участники',JSON.stringify(personIds),person?people.find(p=>p.id===person)?.name:'Выбрать участников')}${pickerField('lessons','Занятия',JSON.stringify(lessonKeys),lesson?lessons.find(l=>l.key===lesson)?.num+'-я пара':'Все пары этого дня')}${pickerField('code','Причина',initialCode,reasonNames[initialCode])}<div class="cab-form-grid">${field('lateMinutes','Опоздание, минут',entry?.lateMinutes||'','Например, 15',{type:'number',min:0,max:600})}${field('comment','Комментарий',entry?.comment||'','Необязательно',{maxLength:500})}</div><div class="cab-switch-row"><span>Неуважительный пропуск<small>Учитывать выбранные часы в контрольном пороге</small></span><button type="button" class="cab-switch" aria-label="Неуважительный пропуск" aria-pressed="${!!entry?.unexcused}" data-form-toggle="unexcused"></button><input type="hidden" name="unexcused" value="${entry?.unexcused?'1':'0'}"></div><p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить отметку</button></form>`);
+    const personIds=person?[person]:[],lessonKeys=lesson?[lesson]:lessons.map(l=>l.key),initialCode=entry?attendanceCode(entry.code):'Б';
+    const picker=makeSheet('Отметка посещаемости',`<form class="cab-form">${note(escape(dateLabel(date,{weekday:'long',day:'numeric',month:'long'})))}${pickerField('people','Участники',JSON.stringify(personIds),person?people.find(p=>p.id===person)?.name:'Выбрать участников')}${pickerField('lessons','Занятия',JSON.stringify(lessonKeys),lesson?lessons.find(l=>l.key===lesson)?.num+'-я пара':'Все пары этого дня')}${pickerField('code','Причина',initialCode,reasonNames[initialCode])}${field('comment','Комментарий',entry?.comment||'','Необязательно',{maxLength:500})}<p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить отметку</button></form>`);
     const form=submitForm(picker,async form=>{
       const persons=JSON.parse(form.elements.people.value),keys=JSON.parse(form.elements.lessons.value);if(!persons.length||!keys.length)throw apiError('Выберите участников и занятия.');
       const versions={};for(const p of persons)for(const key of keys)versions[p+'|'+key]=list(data).find(e=>e.personId===p&&e.lessonKey===key)?.version||0;
-      await api('/attendance',{method:'POST',body:{group:selectedGroup(),personIds:persons,lessonKeys:keys,code:form.elements.code.value,lateMinutes:Number(form.elements.lateMinutes.value)||0,comment:form.elements.comment.value,unexcused:form.elements.unexcused.value==='1',versions}});toast('Табель обновлён');
+      await api('/attendance',{method:'POST',body:{group:selectedGroup(),personIds:persons,lessonKeys:keys,code:form.elements.code.value,comment:form.elements.comment.value,unexcused:form.elements.code.value==='ПН',versions}});toast('Табель обновлён');
     });
     attachChoice(form,'people','Кого отметить',people.map(p=>({value:p.id,label:p.name,detail:'№ '+p.number})),{multiple:true});
     attachChoice(form,'lessons','На каких парах',lessons.map(l=>({value:l.key,label:l.num+'-я · '+l.subject,detail:timeLabel(l.start)+'–'+timeLabel(l.end)})),{multiple:true});
     attachChoice(form,'code','Причина',()=>Object.entries(reasonNames).map(([code,label])=>({value:code,label:code?code+' · '+label:label,detail:code==='ПР'?'Только физкультура':code==='УП'?'По заявлению · факультет права':'',disabled:code==='ПР'&&JSON.parse(form.elements.lessons.value).some(key=>!/физкультур|физическ/i.test(lessons.find(l=>l.key===key)?.subject||''))})));
-    form.elements.code.addEventListener('change',()=>{const yes=form.elements.code.value==='Н';form.elements.unexcused.value=yes?'1':'0';form.querySelector('[data-form-toggle]').setAttribute('aria-pressed',String(yes));});
-    form.querySelector('[data-form-toggle]').onclick=e=>{const b=e.currentTarget,value=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(value));form.elements.unexcused.value=value?'1':'0';};
   }
+
+  async function attendanceSummary(person,group,month){
+    const route='/attendance?group='+encodeURIComponent(group)+'&month=';
+    const data=await api(route+month+'&summaryPerson='+encodeURIComponent(person));
+    if(data.attendanceSummary)return list(data.attendanceSummary);
+    // The current cloud endpoint also supports the monthly ledger.
+    const asOf=new Date(data.asOf||Date.now()),last=today(),period=data.period;
+    const start=period?.start||month+'-01',end=period?.end||last;
+    const months=[];
+    for(let date=start.slice(0,7)+'-01';date<=end&&date<=last&&months.length<12;){
+      months.push(date.slice(0,7));
+      const next=new Date(date+'T12:00:00Z');next.setUTCMonth(next.getUTCMonth()+1);date=next.toISOString().slice(0,10);
+    }
+    const responses=await Promise.all(months.map(item=>item===month?data:api(route+item)));
+    const entries=[];
+    for(const response of responses){
+      const lessons=new Map(list(response,'lessons').map(lesson=>[lesson.key,lesson]));
+      for(const entry of list(response)){
+        const code=attendanceCode(entry.code);
+        if(entry.personId!==person||!absenceReasons.includes(code)||entry.date<start||entry.date>end||entry.date>last)continue;
+        const lesson=lessons.get(entry.lessonKey);
+        const finish=lesson&&Number.isFinite(lesson.end)?Date.parse(entry.date+'T00:00:00+03:00')+lesson.end*60000:Infinity;
+        if(entry.date===last&&finish>asOf)continue;
+        entries.push({date:entry.date,code,hours:entry.hours,subject:lesson?.subject});
+      }
+    }
+    return entries;
+  }
+
+  async function openAttendanceSummary(personId){
+    const group=selectedGroup(),month=(view.date||today()).slice(0,7);
+    const member=list(await groupData(group),'people').find(person=>person.id===personId);
+    if(!member||group!==selectedGroup())return;
+    let stopGraph,closed=false;
+    const sheet=makeSheet('Пропуски за семестр',note(escape(member.name))+'<div class="cab-loading" role="status">Загружаем табель</div>',{onClose:()=>{closed=true;stopGraph?.();}});
+    try{
+      const entries=(await attendanceSummary(personId,group,month)).sort((a,b)=>a.date.localeCompare(b.date));
+      if(closed)return;
+      const counts=new Map(absenceReasons.map(code=>[code,0])),days=new Map();
+      for(const entry of entries){
+        counts.set(entry.code,(counts.get(entry.code)||0)+Number(entry.hours));
+        if(!days.has(entry.date))days.set(entry.date,0);
+        if(entry.code==='ПН')days.set(entry.date,days.get(entry.date)+Number(entry.hours));
+      }
+      const unexcused=counts.get('ПН'),total=[...counts.values()].reduce((sum,hours)=>sum+hours,0);
+      const stats=[[total,'Всего пропущено'],[total-unexcused,'Уважительные'],[unexcused,'Неуважительные · ПН'],[Math.max(0,absenceLimit-unexcused),'До порога '+absenceLimit+' ч']];
+      const statsMarkup='<div class="cab-summary cab-absence-summary">'+stats.map(([value,label],i)=>`<div class="cab-stat${i===2?' warning':''}"><strong>${number(value)} ч</strong><span>${label}</span></div>`).join('')+'</div>';
+      let running=0;
+      const samples=[...days].map(([date,hours])=>[date,running+=hours]);
+      const series=absenceReasons.map(code=>[code,reasonNames[code],counts.get(code)]);
+      const chart=samples.length?chartMarkup({title:'Динамика пропусков',hint:'Накопленные часы ПН и распределение по причинам',samples,series,min:0,max:Math.max(absenceLimit,unexcused),unit:' ч',selection:'Часы ПН'}):'';
+      const reasons=series.filter(item=>item[2]>0).map(([code,label,hours])=>`<div><span>${code} · ${escape(label)}</span><strong>${number(hours)} ч</strong></div>`).join('');
+      const history=entries.slice().reverse().map(entry=>`<div><span>${escape(dateLabel(entry.date))} · ${escape(entry.subject||'Занятие') }</span><strong>${escape(entry.code)} · ${number(entry.hours)} ч</strong></div>`).join('');
+      sheet.body.innerHTML=note(escape(member.name))+statsMarkup+chart+(reasons?section('По причинам')+'<div class="cab-card cab-absence-list">'+reasons+'</div>'+section('Записи табеля')+'<div class="cab-card cab-absence-list">'+history+'</div>':empty('Пропусков пока нет','Здесь появятся часы по завершённым занятиям.',icons.calendar));
+      stopGraph=window.AmiaGradeVisual?.mount(sheet.body);
+    }catch(error){
+      if(!closed)sheet.body.innerHTML='<p class="cab-inline-error" role="alert">'+escape(error.message)+'</p>';
+    }
+  }
+
   async function openAudit(){
     const data=await api('/audit?group='+selectedGroup()),changes=list(data,'changes');
     const picker=makeSheet('История правок',changes.length?`<div class="cab-list">${changes.slice(0,50).map((change,index)=>`<article class="cab-card"><small>${escape(change.actorName||'Участник')} · ${escape(new Date(change.at).toLocaleString('ru-RU',{timeZone:'Europe/Minsk',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))}</small><h3>${escape(change.personName||'Участник')} · ${escape(dateLabel(change.date))}</h3><p>${escape(change.before?.code||'Нет отметки')} → ${escape(change.after?.code||'Нет отметки')}</p><div class="cab-card-actions">${action('Отменить эту правку','undo',icons.back,'',`data-index="${index}"`)}</div></article>`).join('')}</div>`:empty('Правок пока нет','Здесь будут видны авторы и время изменений табеля.',icons.clock));
     picker.body.onclick=async e=>{const button=e.target.closest('[data-cab-action=undo]');if(!button)return;const change=changes[+button.dataset.index];button.disabled=true;try{await api('/attendance/undo',{method:'POST',body:{changeId:change.id}});toast('Правка отменена');picker.close();draw();}catch(error){toast(error.status===409?'Запись уже изменена. Обновите историю.':error.message);button.disabled=false;}};
   }
 
+
+  function chartMarkup({title,hint,samples,series,min,max,unit='',selection='Отметка'}){
+    const last=samples.at(-1);
+    return `<section class="cab-grade-visual" data-grade-visual data-graph-mode="timeline" data-samples="${escape(JSON.stringify(samples))}" data-series="${escape(JSON.stringify(series))}" data-range="${escape(JSON.stringify([min,max]))}" data-unit="${escape(unit)}" data-selection="${escape(selection)}">
+      <div class="cab-chart-head"><div><h3>${escape(title)}</h3><small>${escape(hint)}</small></div><div class="cab-chart-meter"><output>${escape(last[1]+unit)}</output><small>${escape(dateLabel(last[0]))}</small></div></div>
+      <div class="cab-chart-tabs" role="group" aria-label="Вид диаграммы"><button type="button" data-graph-tab="timeline" aria-pressed="true">По датам</button><button type="button" data-graph-tab="distribution" aria-pressed="false">Распределение</button></div>
+      <canvas class="cab-chart-canvas" role="slider" tabindex="0" aria-label="Выбрать точку на диаграмме" aria-valuemin="1" aria-valuemax="${samples.length}" aria-valuenow="${samples.length}"></canvas>
+      <div class="cab-chart-axis" aria-hidden="true"></div>
+      <div class="sr-only cab-grade-chart" role="list" aria-label="Распределение ${unit?'часов':'отметок'}">${series.map(([_,label,count])=>`<div role="listitem" aria-label="${escape(label)}, ${unit?'':'количество '}${count}${unit}"></div>`).join('')}</div>
+    </section>`;
+  }
   function gradeDistribution(entries){
     if(!entries.length)return'';
     const counts=Array.from({length:10},()=>0);
     for(const {value} of entries)if(Number.isInteger(value)&&value>=1&&value<=10)counts[value-1]++;
-    const max=Math.max(1,...counts);
-    return section('Распределение отметок')+`<div class="cab-card cab-grade-chart" role="list">${counts.map((count,index)=>
-      `<div class="cab-grade-column" role="listitem" aria-label="Отметка ${index+1}, количество ${count}"><span aria-hidden="true">${count||''}</span><div aria-hidden="true" class="cab-grade-bar" style="--grade-height:${count/max*100}%"><i></i></div><small aria-hidden="true">${index+1}</small></div>`).join('')}</div>`;
+    const samples=entries.slice(-36).map(({date,value})=>[date,value]);
+    const hint=samples.length<entries.length?'Последние '+samples.length+' отметок':'За текущий семестр';
+    return chartMarkup({title:'Динамика отметок',hint,samples,series:counts.map((n,i)=>[String(i+1),'Отметка '+(i+1),n]),min:1,max:10});
   }
   function gradeForecast(entries,sum){
     if(!entries.length)return'';
@@ -528,6 +637,7 @@
       if(command==='segment'){navigate(view.page,{segment:button.dataset.segment,...(view.page==='attendance'?{date:view.date||today()}:{})});return;}
       if(command==='attendance-date'){chooseDate(view.date||today(),date=>navigate('attendance',{date,segment:view.segment||'day'}));return;}
       if(command==='attendance-prev'||command==='attendance-next'){navigate('attendance',{date:shiftDay(view.date||today(),command.endsWith('prev')?-1:1),segment:view.segment||'day'});return;}
+      if(command==='attendance-summary'){await openAttendanceSummary(button.dataset.person);return;}
       if(command==='attendance-edit'){await editAttendance();return;}
       if(command==='attendance-cell'){await editAttendance({person:button.dataset.person,lesson:button.dataset.lesson||'',date:button.dataset.date});return;}
       if(command==='audit'){await openAudit();return;}

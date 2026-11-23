@@ -1,0 +1,219 @@
+/* Animated diary visual. The canvas repaints only on entry and interaction. */
+/* Neutral glass for the diary and attendance visualizations. */
+.cab-grade-visual{
+ --chart-ink:#f7f7f8;--chart-muted:#bebec3;--chart-grid:#ffffff23;
+ --chart-main:#e5e5e7;--chart-tip:#ffffff;--chart-other:#b9b9be;
+ --chart-shade:#ffffff48;--chart-floor:#ffffff06;
+ display:grid;gap:14px;margin-block:22px 14px;padding:clamp(14px,4vw,22px);
+ border:1px solid var(--glass-panel-line);border-radius:24px;isolation:isolate;overflow:hidden;
+ color:var(--chart-ink);background:var(--glass-panel);box-shadow:var(--glass-panel-depth);
+}
+:root[data-theme=light] .cab-grade-visual{
+ --chart-ink:#262629;--chart-muted:#5b5b60;--chart-grid:#27272b29;
+ --chart-main:#65656d;--chart-tip:#393940;--chart-other:#9b9ba2;
+ --chart-shade:#ffffffed;--chart-floor:#adadb81b;
+}
+.cab-chart-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+.cab-chart-head h3{margin:0;font-size:17px;font-weight:650;letter-spacing:-.2px}
+.cab-chart-head small,.cab-chart-meter small,.cab-chart-axis{font-size:var(--app-caption-size,12px);color:var(--chart-muted)}
+.cab-chart-head small{display:block;margin-top:4px}
+.cab-chart-meter{display:grid;justify-items:end;text-align:end;gap:0;min-width:74px}
+.cab-chart-meter output{
+ color:var(--chart-ink);font-size:clamp(25px,6vw,36px);line-height:1.06;font-weight:620;font-variant-numeric:tabular-nums;
+}
+.cab-chart-tabs{display:grid;grid-template-columns:1fr 1fr;position:relative;border:1px solid var(--glass-panel-line);border-radius:14px;padding:3px;isolation:isolate}
+.cab-chart-tabs:before{
+ content:'';position:absolute;inset:3px auto 3px 3px;width:calc(50% - 3px);border-radius:10px;z-index:-1;
+ background:var(--glass-face);
+ box-shadow:var(--glass-depth);transition:translate .3s var(--ui-spring);
+}
+.cab-grade-visual[data-graph-mode=distribution] .cab-chart-tabs:before{translate:100% 0}
+.cab-chart-tabs button{min-height:42px;padding:6px 7px;border:0;border-radius:10px;background:transparent;color:var(--chart-muted);font-size:.85rem}
+.cab-chart-tabs button[aria-pressed=true]{color:var(--chart-ink);font-weight:650}
+.cab-chart-canvas{display:block;width:100%;height:202px;min-width:0;touch-action:pan-y;cursor:crosshair}
+.cab-chart-axis{display:flex;margin-inline:29px 14px;justify-content:space-between;min-height:18px;gap:5px;line-height:1.25;font-variant-numeric:tabular-nums}
+.cab-grade-visual[data-graph-mode=distribution] .cab-chart-axis{visibility:hidden}
+@media(prefers-reduced-motion:reduce){
+ .cab-chart-tabs:before{transition:none}
+}
+
+.cab-chart-meter small{max-width:145px}
+/* Session colors mark the numeral. Extra dots are reserved for overlapping categories. */
+.session-date-markers,.session-date-legend{display:flex;align-items:center;justify-content:center;gap:4px}
+[data-session-date]{--session-ink-visible:var(--session-ink)}
+:root[data-theme=light] [data-session-date]{--session-ink-visible:var(--category-ink,var(--session-ink))}
+:root #days .day .date[data-session-date],.calendar-date-number[data-session-date],.session-date-legend [data-session-date]{color:var(--session-ink-visible)}
+.session-date-markers i{width:4px;height:4px;border-radius:50%;background:var(--session-ink-visible);flex:none}
+.session-date-legend{gap:6px 14px;flex-wrap:wrap;margin:8px auto 14px;font-size:11px;line-height:1.45;font-weight:550}
+.date-grid button>.session-date-markers{position:absolute;bottom:3px;left:0;right:0;height:7px;pointer-events:none}
+.date-grid button:has(>.session-date-markers)::after{display:none}
+:root #days .dot.has-session{width:auto;height:5px;background:none;box-shadow:none;border-radius:0;transform:none}
+#days .dot.has-session .session-date-markers{gap:3px;pointer-events:none}
+#weekCalendar #days{
+ padding:4px;border-radius:19px;background:var(--glass-tray);
+}
+#weekCalendar .week-caption{margin-block-end:10px}
+:root #weekCalendar .day{border-radius:15px}
+:root #weekCalendar .day .date{font-variant-numeric:tabular-nums}
+:root[data-theme] :is(#dateGrid,.cab-date-grid){
+ padding:4px;border-radius:18px;background:var(--glass-tray);
+}
+:root :is(#datePopover,.cab-calendar-picker) .date-weekdays{padding-inline:4px}
+:root :is(#datePopover,.cab-calendar-picker) .date-month-nav h3{
+ text-align:center;font-variant-numeric:tabular-nums;
+}
+:root :is(#dateGrid,.cab-date-grid) button{font-variant-numeric:tabular-nums}
+:root :is(#dateGrid,.cab-date-grid) .date-thumb{border-radius:13px}
+/* One readable accent per category across light theme labels and calendars. */
+#typeLegend i{background:var(--legend-ink)}
+:root[data-theme=light]{--offday:#a13461;--break-color:#5c6a20}
+:root[data-theme=light] :is([data-lesson-kind=lecture],.study-kind-labels [data-kind=lecture]){--category-ink:#235ca6}
+:root[data-theme=light] :is([data-lesson-kind=seminar],.study-kind-labels [data-kind=seminar]){--category-ink:#6841a0}
+:root[data-theme=light] :is([data-lesson-kind=practice],.study-kind-labels [data-kind=practical]){--category-ink:#087253}
+:root[data-theme=light] :is([data-lesson-kind=info],[data-lesson-kind=curator],[data-lesson-kind=combined]){--category-ink:#a13461}
+:root[data-theme=light] :is([data-lesson-kind=exam],[data-session-date=exam]){--category-ink:#81388f}
+:root[data-theme=light] :is([data-lesson-kind=credit],[data-session-date=credit]){--category-ink:#a64b15}
+:root[data-theme=light] :is([data-lesson-kind=diff_credit],[data-session-date=diff_credit]){--category-ink:#7f6100}
+:root[data-theme=light] :is([data-lesson-kind=consultation],[data-session-date=consultation]){--category-ink:#096a90}
+:root[data-theme=light] [data-lesson-kind=other]{--category-ink:#47566b}
+:root[data-theme=light] [data-lesson-kind=break]{--category-ink:var(--break-color)}
+:root[data-theme=light] .lesson[data-lesson-kind]{--color:var(--category-ink,#47566b)!important}
+:root[data-theme=light] :is(.lesson,.summary)[data-lesson-kind] .type,
+:root[data-theme=light] .study-kind-labels span[data-kind]{
+ color:var(--category-ink,#47566b);
+ background:color-mix(in srgb,var(--category-ink,#47566b) 13%,#fff);
+ box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--category-ink,#47566b) 24%,transparent);
+}
+:root[data-theme=light] .lesson[data-lesson-kind]::after{background:var(--category-ink,#47566b)}
+:root[data-theme=light] .lesson.current[data-lesson-kind] :is(.status,.live){color:var(--category-ink,#47566b)}
+:root[data-theme=light] #summary .summary-clock[data-lesson-kind]{--clock-target:var(--category-ink,#47566b)!important}
+:root[data-theme=light] #summary .summary-clock[data-lesson-kind]>span{color:var(--category-ink,#47566b)}
+:root[data-theme=light] #typeLegend [data-lesson-kind]{color:var(--category-ink,#47566b)}
+:root[data-theme=light] #typeLegend [data-lesson-kind] i{background:var(--category-ink,#47566b)}
+/* The tablist is a direct sibling so it keeps focus through day/month refreshes. */
+[data-cabinet-page=attendance]>.cab-date-nav{gap:10px;margin-block-end:14px}
+[data-cabinet-page=attendance]>.cab-date-nav>.study-round{width:44px;height:44px;flex:0 0 44px}
+[data-cabinet-page=attendance]>.cab-segments{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;margin-block:0 14px;
+}
+[data-cabinet-page=attendance]>.cab-segments>button{min-height:42px}
+.cab-attendance-actions{display:flex;gap:10px;flex-wrap:wrap;margin-block-end:14px}
+.cab-attendance-actions .cab-action{min-height:44px}
+.cab-attendance-summary{
+ display:grid;grid-template-columns:21px minmax(0,1fr) 17px;align-items:center;gap:10px;
+ width:100%;min-height:48px;margin-block:0 20px;padding:10px 14px;border:1px solid var(--glass-panel-line);
+ border-radius:17px;background:var(--glass-panel);box-shadow:var(--glass-panel-depth);
+ color:var(--text);text-align:left;font-size:var(--app-control-size,14px);line-height:1.4;
+}
+.cab-attendance-summary svg{width:19px;height:19px;opacity:.82}
+.cab-attendance-summary svg:last-child{width:16px;height:16px;justify-self:end;opacity:.55}
+/* Roster cards keep the participant and their marks visually attached. */
+.cab-attendance-roster{
+ display:grid;gap:10px;margin:0;padding:0;list-style:none;min-width:0;
+}
+.cab-attendance-hint{
+ margin:0 1px 10px;color:var(--muted);font-size:var(--app-caption-size,12px);
+}
+.cab-attendance-person{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto);align-items:center;
+ gap:12px;min-width:0;padding:10px 11px;border:1px solid var(--glass-panel-line);
+ border-radius:19px;background:var(--glass-panel);box-shadow:var(--glass-panel-depth);
+}
+.cab-attendance-identity{
+ display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;gap:9px;min-width:0;
+}
+.cab-attendance-number{
+ display:grid;place-items:center;min-height:32px;border:1px solid var(--glass-line);
+ border-radius:50%;background:var(--glass-row);color:var(--muted);font-size:11px;
+ font-weight:550;font-variant-numeric:tabular-nums;
+}
+.cab-attendance-name{display:grid;align-content:center;min-width:0;overflow-wrap:anywhere}
+.cab-attendance-name :is(strong,.cab-person-link){font-size:var(--app-control-size,14px);line-height:1.35;font-weight:620}
+.cab-person-link{
+ justify-self:start;max-width:100%;min-height:44px;display:inline-flex;align-items:center;
+ padding:0 4px;margin-inline-start:-4px;border:0;border-radius:8px;background:none;color:var(--text);text-align:left;
+ text-decoration:underline;text-decoration-color:var(--glass-line);text-underline-offset:3px;
+}
+.cab-attendance-name:has(>small) .cab-person-link{min-height:28px}
+.cab-attendance-name small{color:var(--muted);font-size:var(--app-caption-size,12px);line-height:1.25;margin-block-end:3px}
+.cab-attendance-marks{
+ display:flex;justify-content:flex-end;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;
+}
+.cab-attendance-chip{
+ flex:0 0 auto;min-width:46px;min-height:54px;padding:4px 6px;
+ display:grid;justify-items:center;align-content:center;gap:1px;border:1px solid var(--glass-line);
+ border-radius:12px;background:var(--glass-row);box-shadow:var(--glass-row-depth);color:var(--text);
+ font-variant-numeric:tabular-nums;line-height:1.18;white-space:nowrap;
+}
+.cab-attendance-chip:disabled{opacity:1;cursor:default}
+.cab-attendance-chip-date{font-size:11px;font-weight:650}
+.cab-attendance-chip-detail{font-size:10px;color:var(--muted)}
+.cab-attendance-chip strong{font-size:12px;font-weight:650}
+.cab-attendance-chip[data-mark=empty] strong{color:var(--muted);opacity:.73}
+.cab-attendance-chip[data-mark=recorded]{background:var(--glass-face)}
+.cab-attendance-chip[data-mark=unexcused] strong{color:#efb77d}
+:root[data-theme=light] .cab-attendance-chip[data-mark=unexcused] strong{color:#875121}
+.cab-attendance-chip[aria-current=date]{border-color:var(--glass-lens-line)}
+.cab-attendance-roster[data-mode=month] .cab-attendance-person{
+ align-items:center;grid-template-columns:minmax(126px,1fr) minmax(0,2.2fr);
+}
+.cab-attendance-roster[data-mode=month] .cab-attendance-marks{
+ justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;
+ scrollbar-width:thin;scrollbar-color:var(--sheet-scrollmark) transparent;
+ padding:1px 2px 4px;scroll-padding-inline:2px;
+}
+.cab-attendance-roster[data-mode=month] .cab-attendance-chip{min-width:57px}
+.cab-attendance-chip:focus-visible{outline-offset:-3px}
+@media(max-width:590px){
+ .cab-attendance-roster[data-mode=month] .cab-attendance-person,
+ .cab-attendance-roster[data-mode=day][data-many-slots=true] .cab-attendance-person{grid-template-columns:minmax(0,1fr);gap:8px}
+ .cab-attendance-roster[data-mode=day][data-many-slots=true] .cab-attendance-marks{justify-content:flex-start}
+}
+@media(max-width:360px){
+ .cab-attendance-person{gap:8px;padding:9px}
+ .cab-attendance-identity{grid-template-columns:28px minmax(0,1fr);gap:7px}
+ .cab-attendance-number{min-height:28px}
+}
+@media(max-width:350px){
+ [data-cabinet-page=attendance]>.cab-date-nav{gap:7px}
+ .cab-attendance-actions{gap:8px}
+ .cab-attendance-actions .cab-action{padding-inline:11px}
+}
+
+.cab-absence-summary.cab-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cab-absence-list{display:grid;padding-block:2px}
+.cab-absence-list>div{display:flex;justify-content:space-between;gap:12px;padding:10px 0}
+.cab-absence-list>div+div{border-top:1px solid var(--glass-line)}
+.cab-absence-list strong{white-space:nowrap}
+@media(forced-colors:active){[data-session-date]{color:LinkText!important}}
+
+:root[data-schedule-widget] body{min-height:100dvh;background:none}
+:root[data-schedule-widget] .shell{width:min(100%,410px);margin:0 auto;padding:16px;display:block}
+:root[data-schedule-widget] .shell .workspace{display:block}
+:root[data-schedule-widget] .shell header,:root[data-schedule-widget] .shell main,
+:root[data-schedule-widget] #summary~*,
+:root[data-schedule-widget] .intro,
+:root[data-schedule-widget] .legend,:root[data-schedule-widget] .source-note{display:none!important}
+:root[data-schedule-widget] #summary{display:block;margin:0;cursor:pointer}
+
+:root[data-schedule-widget] :is(.clock-second,.ambient-bloom){display:none}
+:root[data-schedule-widget] .ambient-wash{animation:none!important}
+
+/* Shared mouse feedback without changing the glass material or status color. */
+:root{--control-hover:#ffffff19}
+:root[data-theme=light]{--control-hover:#21212916}
+@media(hover:hover) and (pointer:fine){
+ :root[data-theme] :is(button,a[href],summary,[role=button],[role=option],[role=link]):hover:not(:disabled,[aria-disabled=true],[data-sheet-grab],:focus-visible,[data-ui-pressed=true]):not([inert] *){
+  background-color:var(--control-hover);
+ }
+ :root[data-theme] .study-question-copy:hover:not(:disabled,:focus-visible,[data-ui-pressed=true]){
+  background-color:transparent;
+ }
+ :root[data-theme] .study-question-copy:hover:not(:disabled,:focus-visible,[data-ui-pressed=true]) .study-question-copy-face{
+  background-color:var(--control-hover);
+ }
+}
+@media(prefers-reduced-transparency:reduce){
+ :root{--control-hover:#44454b}
+ :root[data-theme=light]{--control-hover:#e0e0e5}
+}

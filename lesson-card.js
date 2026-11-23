@@ -44,7 +44,7 @@
     const teachers = values(lesson.teachers ?? lesson.teacher);
     const rooms = values(lesson.rooms ?? lesson.room);
 
-    return `<article class="lesson${assessment ? ' assessment-card' : ''}${cabinet ? ' cab-exam-card' : ''}${state ? ' ' + escape(state) : ''}"${attributes} style="--color:${ink};--i:${Number.isFinite(index) ? index : 0}">
+    return `<article class="lesson${assessment ? ' assessment-card' : ''}${cabinet ? ' cab-exam-card' : ''}${state ? ' ' + escape(state) : ''}"${attributes} data-lesson-kind="${escape(type||'other')}" style="--color:${ink};--i:${Number.isFinite(index) ? index : 0}">
       <div class="lesson-heading"><div class="time"><strong>${interval(lesson.time ?? lesson.start, lesson.endTime ?? lesson.end)}</strong>${pairLabel ? `<small>${pairLabel}</small>` : ''}</div><span class="type">${escape(label)}</span></div>
       <h3>${escape(subject)}</h3>
       ${teachers ? `<div class="teacher">${teachers}</div>` : ''}

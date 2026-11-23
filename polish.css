@@ -32,8 +32,8 @@
 :root[data-theme=light] .group-overlay{background:var(--sheet-backdrop)}
 
 /* A common spring for taps; draggable controls retain exact hit geometry. */
-:root :is(button,a[href],[role=button]){transition:transform .34s var(--ui-spring),background-color .2s ease,box-shadow .24s ease}
-:root :is(button,a[href],[role=button]):not(:disabled):is(:active,[data-ui-pressed=true]){transform:scale(.965)}
+:root :is(button,a[href],summary,[role=button],[role=option],[role=link]){transition:transform .34s var(--ui-spring),background-color .2s ease,box-shadow .24s ease}
+:root :is(button,a[href],summary,[role=button],[role=option],[role=link]):not(:disabled):is(:active,[data-ui-pressed=true]){transform:scale(.965)}
 :root :is(.days,.segmented,.glass-segmented,#dateGrid,.cab-date-grid)>button:is(:active,[data-ui-pressed=true]),:root [data-sheet-grab]:is(:active,[data-ui-pressed=true]){transform:none!important}
 :root .study-question-copy:active .study-question-copy-face{transform:none}
 :root .study-question-copy-face{transition:background .2s ease,color .2s ease,box-shadow .24s ease}
@@ -70,7 +70,7 @@
 :root[data-theme=light] .glass-toast{box-shadow:inset 0 1px 0 #fff,0 10px 32px #4d34592b}
 .study-status{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 @supports not (backdrop-filter:blur(1px)){.glass-toast{background:var(--liquid-solid)}}
-@media(prefers-reduced-motion:reduce){:root :is(button,a[href],[role=button],.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){transition:none!important}:root :is(button,a[href],[role=button]):is(:active,[data-ui-pressed=true]){transform:none!important;filter:none!important}:root :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1!important}}
+@media(prefers-reduced-motion:reduce){:root :is(button,a[href],[role=button],.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){transition:none!important}:root :is(button,a[href],summary,[role=button],[role=option],[role=link]):is(:active,[data-ui-pressed=true]){transform:none!important;filter:none!important}:root :is(.is-dragging,.has-preview)>:is(.day-thumb,#segThumb,.date-thumb,.glass-choice-thumb){scale:1!important}}
 
 /* Small translucent surfaces use their painted gradients. Repeated backdrop roots
    in a scrolling list caused raster tiles to flash on mobile WebViews. */
@@ -126,10 +126,6 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 :root :is(.teacher,.meta,.academy-dialog p,.study-question-text,.study-dialog input,.study-dialog textarea){font-size:var(--app-text-size)}
 :root :is(.group,.today-btn span,.segmented button,.study-kind-switch button,.study-copy-primary,.study-copy-secondary,.study-subject-option,.study-search,.install-action,.academy-actions button,.academy-actions a){font-size:var(--app-control-size)}
 :root :is(.type,.time small,.study-topic-row small,.study-subject-row small,.study-count,.study-note,.study-notice,.install-dialog-note){font-size:var(--app-caption-size)}
-:root[data-theme=light] .assessment-card[data-assessment=exam]{--color:#84619f!important}
-:root[data-theme=light] .assessment-card[data-assessment=credit]{--color:#9a5a36!important}
-:root[data-theme=light] .assessment-card[data-assessment=diff_credit]{--color:#786510!important}
-:root[data-theme=light] .assessment-card[data-assessment=consultation]{--color:#537ca0!important}
 
 /* Shared material. Layout and typography stay in the component stylesheets. */
 :root[data-theme]{
@@ -140,19 +136,22 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  --border:#dbe7f424;
  --control-ink:#eff3fb;
  --control-focus:#a4c6ff;
- --glass-face:radial-gradient(ellipse 92% 88% at 13% -24%,#f1f6ff38,transparent 87%),linear-gradient(147deg,#dbe6f517,#c9daee0a 54%,#c0d1e914);
+ --glass-face:radial-gradient(ellipse 96% 118% at 12% -58%,#fff9,transparent 82%),linear-gradient(162deg,#ffffff18,#ffffff08 49%,#ffffff17);
  --glass-line:#e4edfa37;
- --glass-depth:inset 0 1px 0 #fff3,inset 0 -1px 1px #e1edff17,0 3px 12px #080d1528;
- --glass-panel:radial-gradient(ellipse 75% 100% at 0% -44%,#e7efff1f,transparent 86%),linear-gradient(145deg,#e4edf514,#d8e4f10b 51%,#bfcde012);
+ --glass-depth:inset 0 1px 1px #ffffff41,inset 0 -1px 1px #ffffff19,0 3px 10px #08090c28;
+ --glass-panel:radial-gradient(ellipse 112% 88% at 10% -37%,#ffffff41,transparent 77%),radial-gradient(ellipse 94% 91% at 94% 161%,#ffffff22,transparent 76%),linear-gradient(150deg,#ffffff13,#ffffff06 54%,#ffffff11);
  --glass-panel-line:#e7eff833;
- --glass-panel-depth:inset 0 1px 0 #ffffff35,inset 0 -1px 0 #e5edfa13,0 4px 12px #100e1917;
- --glass-sheet:radial-gradient(ellipse 79% 40% at 6% -15%,#edf4ff1c,transparent 92%),linear-gradient(141deg,#343942f4,#242830f7 60%,#22262df7);
+ --glass-panel-depth:inset 0 1px 1px #ffffff49,inset 0 -2px 3px #ffffff14,0 5px 16px #090a0f24;
+ --glass-sheet:radial-gradient(ellipse 113% 62% at 6% -19%,#ffffff3a,transparent 72%),radial-gradient(ellipse 86% 61% at 103% 123%,#ffffff24,transparent 80%),linear-gradient(150deg,#34353caf,#1b1d22c2 56%,#26292fb2);
+ --glass-row:linear-gradient(168deg,#ffffff16,#ffffff06 52%,#ffffff11);
+ --glass-row-depth:inset 0 1px 0 #ffffff29,inset 0 -1px 1px #ffffff0c,0 2px 6px #08090c1a;
+ --glass-steady-scrim:#17191d8c;
  --glass-sheet-solid:#282c33;
  --glass-tray:#0c101733;
- --glass-lens-face:radial-gradient(ellipse 73% 59% at 18% 0%,#f5faff55,transparent 79%),linear-gradient(166deg,#e5eef825,#cadbea1c 48%,#1e283821 72%,#c3dbfd3a);
+ --glass-lens-face:radial-gradient(ellipse 98% 96% at 11% -31%,#ffffff74,transparent 73%),radial-gradient(ellipse 88% 132% at 90% 160%,#ffffff67,transparent 72%),linear-gradient(167deg,#ffffff27,#ffffff0e 51%,#292a3019 69%,#ffffff27);
  --glass-lens-line:#edf4ff66;
- --glass-lens-depth:inset 0 1px 1px #fff5,inset 0 -2px 3px #d5e8ff36,0 5px 12px #080d1651;
- --glass-lens-glint:radial-gradient(ellipse at 16% -22%,#f7faffb5,transparent 64%),radial-gradient(ellipse at 76% 128%,#d5e8feb9,transparent 61%);
+ --glass-lens-depth:inset 0 1px 1px #ffffff70,inset 0 -1px 2px #ffffff31,0 4px 13px #08090d3a;
+ --glass-lens-glint:radial-gradient(ellipse at 16% -22%,#ffffffaf,transparent 66%),radial-gradient(ellipse at 76% 128%,#ffffff8e,transparent 62%);
  --glass-live-face:linear-gradient(160deg,#fff3,transparent 35% 77%,#deefff27);
  --ambient-bloom:radial-gradient(ellipse at 34% 32%,#3d547536,transparent 59%),radial-gradient(ellipse at 83% 80%,#303d512d,transparent 54%);
  --control-glass:var(--glass-face);
@@ -172,16 +171,19 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 :root[data-theme=light]{
  --bg:#edf1f6;--text:#202a37;--muted:#4e5d70;--blue:#2f5f8d;--border:#4d658035;
  --control-ink:#294561;--control-focus:#4c7aa9;
- --glass-face:radial-gradient(ellipse 87% 68% at 14% -24%,#fff,transparent 78%),linear-gradient(155deg,#ffffffb8,#f8fbff64 50%,#e6eef796);
+ --glass-face:radial-gradient(ellipse 87% 68% at 14% -24%,#fff,transparent 78%),linear-gradient(155deg,#ffffffcf,#ffffff56 50%,#ededf198);
  --glass-line:#5a74924f;
  --glass-depth:inset 0 1px 0 #fff,inset 0 -1px 0 #fff9,0 2px 6px #3049611c;
- --glass-panel:radial-gradient(ellipse 82% 86% at 4% -40%,#ffffffb5,transparent 91%),linear-gradient(141deg,#ffffffbe,#f6faff84 52%,#edf3f9a8);
- --glass-panel-line:#5d75913e;
- --glass-panel-depth:inset 0 1px 0 #fffffff0,inset 0 -1px 0 #e7f8f980,0 4px 12px #344a6516;
- --glass-sheet:radial-gradient(ellipse 83% 40% at 7% -17%,#fff9,transparent 96%),linear-gradient(145deg,#fcfdfffa,#f2f6faf6 63%,#eaf0f6f7);
+ --glass-panel:radial-gradient(ellipse 82% 86% at 4% -40%,#ffffffb5,transparent 91%),radial-gradient(ellipse 100% 120% at 96% 172%,#ffffffce,transparent 78%),linear-gradient(141deg,#ffffffb8,#f7f7f954 52%,#eeeeef85);
+ --glass-panel-line:#73737f47;
+ --glass-panel-depth:inset 0 1px 0 #fffffff2,inset 0 -1px 0 #ffffff80,0 4px 12px #26262e16;
+ --glass-sheet:radial-gradient(ellipse 114% 73% at 3% -31%,#fffffff2,transparent 75%),radial-gradient(ellipse 84% 70% at 99% 127%,#ffffffed,transparent 77%),linear-gradient(146deg,#fbfbfcdf,#e9e9edcd 58%,#f6f6f9d4);
+ --glass-row:linear-gradient(162deg,#ffffffcc,#ffffff53 54%,#ffffff99);
+ --glass-row-depth:inset 0 1px 0 #fffffff0,inset 0 -1px 0 #ffffffa0,0 2px 6px #25252812;
+ --glass-steady-scrim:#f7f7fbd9;
  --glass-sheet-solid:#f4f7fb;
  --glass-tray:#60799525;
- --glass-lens-face:radial-gradient(ellipse 70% 58% at 15% -4%,#ffffffe7,transparent 78%),linear-gradient(157deg,#ffffffc9,#9ab5da54 42%,#c4d9f2ab 72%,#fbfdfff2);
+ --glass-lens-face:radial-gradient(ellipse 91% 97% at 12% -20%,#ffffff,transparent 72%),radial-gradient(ellipse 100% 136% at 88% 163%,#ffffff,transparent 73%),linear-gradient(158deg,#ffffffb8,#9696a73f 47%,#bfc0cd65 66%,#ffffffeb);
  --glass-lens-line:#5c7b9a81;
  --glass-lens-depth:inset 0 1px 1px #fff,inset 0 -2px 2px #fffc,0 5px 11px #39567335;
  --glass-lens-glint:radial-gradient(ellipse at 16% -19%,#fff,transparent 67%),radial-gradient(ellipse at 77% 126%,#fffef9,transparent 61%);
@@ -276,10 +278,9 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 .glass-contact{
  position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
  background:radial-gradient(ellipse 135px 83px at var(--beam-x) var(--beam-y),var(--contact-glow),transparent 90%);
- box-shadow:inset 0 1px 0 var(--contact-rim);
 }
-:root[data-theme]{--contact-glow:#ecf5ff2a;--contact-rim:#ffffff45}
-:root[data-theme=light]{--contact-glow:#ffffff93;--contact-rim:#ffffffce}
+:root[data-theme]{--contact-glow:#ffffff28}
+:root[data-theme=light]{--contact-glow:#ffffffb0}
 .rail-optics-defs{position:absolute;pointer-events:none}
 :root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics]{z-index:4;pointer-events:none;isolation:auto}
 :root[data-theme] :is(#segThumb,.glass-choice-thumb,.date-thumb,.day-thumb)[data-optics]::before{background:var(--glass-live-face);transform:none}
@@ -291,7 +292,6 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  overflow:hidden;
  transform:none;
 }
-:root[data-theme=light] #summary .summary-clock>span{color:color-mix(in srgb,var(--clock-target) 36%,#382c42)}
 
 @media(prefers-reduced-motion:reduce){
  :root[data-theme] .ambient-wash,.ambient-bloom{animation:none!important}
@@ -306,6 +306,8 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
   --glass-face:var(--glass-sheet-solid);
   --glass-panel:var(--glass-sheet-solid);
   --glass-sheet:var(--glass-sheet-solid);
+  --glass-row:var(--glass-sheet-solid);
+  --glass-steady-scrim:var(--glass-sheet-solid);
   --glass-lens-face:var(--glass-sheet-solid);
   --glass-lens-glint:none;
  }
@@ -316,7 +318,7 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 
 :root[data-theme] .study-subject-menu{
  display:grid;padding:8px;
- background:var(--glass-sheet),var(--glass-sheet-solid);
+ background:var(--glass-sheet);
  border-color:var(--glass-panel-line);
  backdrop-filter:none;-webkit-backdrop-filter:none;
  box-shadow:var(--glass-panel-depth),0 9px 24px #0002;
@@ -325,7 +327,7 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  backdrop-filter:none;-webkit-backdrop-filter:none;
 }
 :root[data-theme] :is(#datePopover.date-popover,#themeOptions){
- background:var(--glass-sheet),var(--glass-sheet-solid);
+ background:var(--glass-sheet);
  backdrop-filter:none;-webkit-backdrop-filter:none;
 }
 :root[data-theme=dark] :is(.group-dialog p,.teacher){color:var(--muted)}
@@ -378,7 +380,8 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
  line-height:1.35;
 }
 :root[data-theme] :is(.cab-pick-option,.study-subject-option,#groupOverlay #groups button,#themeOptions button):not([aria-selected=true],[aria-pressed=true]) {
- background:var(--glass-panel);
+ background:var(--glass-row);
+ box-shadow:var(--glass-row-depth);
  border-color:var(--glass-panel-line);
  box-shadow:none;
 }
@@ -392,3 +395,5 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 :root .cab-pick-option small {
  margin-block-start:3px;
 }
+
+#studyOpen svg{pointer-events:none}
