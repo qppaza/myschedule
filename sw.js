@@ -1,10 +1,10 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v72';
+const VERSION = 'myschedule-offline-v73';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const REQUIRED = ['ui.js?v=72','lesson-card.js?v=68','lens.js?v=68','polish.css?v=69','glass-motion.css?v=68','curriculum.js?v=52','study.js?v=69','study.css?v=70','install.js?v=52','install.css?v=68','cabinet.js?v=71','cabinet.css?v=71','details.css?v=70','grade-visual.js?v=70'].map(path => new URL(path, BASE).href);
+const REQUIRED = ['ui.js?v=73','lesson-card.js?v=68','lens.js?v=68','polish.css?v=73','glass-motion.css?v=68','curriculum.js?v=52','study.js?v=69','study.css?v=70','install.js?v=52','install.css?v=68','cabinet.js?v=71','cabinet.css?v=71','details.css?v=70','grade-visual.js?v=70'].map(path => new URL(path, BASE).href);
 const ASSETS = [...REQUIRED, ...['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href)];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

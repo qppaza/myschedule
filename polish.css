@@ -397,3 +397,16 @@ body,button,input,textarea,select{font-family:var(--app-font-family);font-optica
 }
 
 #studyOpen svg{pointer-events:none}
+
+/* Touch-opened sheets can receive focus without a preceding pointer event. */
+:root[data-input-method=touch] :is(:focus,.study-search:focus-within){
+ outline:none;
+}
+@media(any-pointer:coarse){
+ :root[data-theme]{--control-focus:#dedede;-webkit-tap-highlight-color:transparent}
+ :root[data-theme=light]{--control-focus:#565656}
+ :root :focus-visible{outline-color:var(--control-focus)}
+ :root:not([data-input-method=keyboard]) :is(:focus,.study-search:focus-within){
+  outline:none;
+ }
+}
