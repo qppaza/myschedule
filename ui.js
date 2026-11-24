@@ -424,8 +424,11 @@
     return element;
   }
   const clearPress = () => { pressed?.element.removeAttribute('data-ui-pressed'); pressed?.rail?.classList.remove('is-touching'); pressed = null; };
+  const root = document.documentElement;
   document.addEventListener('pointerdown', event => {
     if (event.isPrimary === false || event.button !== 0) return;
+    // A tap can move focus programmatically when it opens a panel.
+    root.toggleAttribute('data-touch-input', event.pointerType === 'touch');
     clearPress(); const element = actionTarget(event.target); if (!element) return;
     const rail = element.closest('.days,.segmented,.glass-segmented,#dateGrid,.cab-date-grid');
     pressed = { element, rail, id: event.pointerId, x: event.clientX, y: event.clientY }; element.setAttribute('data-ui-pressed', 'true'); rail?.classList.add('is-touching');
@@ -435,6 +438,7 @@
   }, { capture: true, passive: true });
   for (const name of ['pointerup', 'pointercancel']) document.addEventListener(name, clearPress, { capture: true, passive: true });
   document.addEventListener('keydown', event => {
+    root.removeAttribute('data-touch-input');
     if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
       const element = actionTarget(event.target); if (element) { clearPress(); const rail = element.closest('.days,.segmented,.glass-segmented,#dateGrid,.cab-date-grid'); pressed = { element, rail }; element.setAttribute('data-ui-pressed', 'true'); rail?.classList.add('is-touching'); }
     }
