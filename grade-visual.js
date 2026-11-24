@@ -5,6 +5,23 @@
   const mix = (from,to,amount) => from + (to-from)*amount;
   const clamp = value => Math.max(0,Math.min(1,value));
   const ease = value => 1-(1-clamp(value))**3;
+  const levels = Array.from({length:10},(_,i)=>i+1);
+  const remainingScore = (hours,limit) => 1+9*clamp((hours-2)/(limit-2));
+  function gradeInk(value) {
+    const score=Number(value);
+    if(!Number.isFinite(score)||score<1||score>10)return '';
+    const lower=Math.floor(score);
+    if(lower===score)return `var(--grade-${lower})`;
+    const weight=(100*(lower+1-score)).toFixed(2);
+    return `color-mix(in srgb,var(--grade-${lower}) ${weight}%,var(--grade-${lower+1}))`;
+  }
+  function setInk(element,ink) {
+    element.toggleAttribute('data-score-tone',Boolean(ink));
+    if(ink)element.style.setProperty('--score-ink',ink);
+    else element.style.removeProperty('--score-ink');
+  }
+  const setGradeTone = (element,value) => setInk(element,gradeInk(value));
+  const rgb = hex => [1,3,5].map(index=>parseInt(hex.slice(index,index+2),16));
 
   function curve(context,points,move=true) {
     if(move)context.moveTo(points[0].x,points[0].y);
@@ -35,12 +52,14 @@
     const samples=JSON.parse(panel.dataset.samples),series=JSON.parse(panel.dataset.series);
     const counts=series.map(item=>item[2]),[minimum,maximum]=JSON.parse(panel.dataset.range);
     const unit=panel.dataset.unit,selection=panel.dataset.selection;
-    const passingMark=Number(panel.dataset.passingMark)||0;
-    const isLowMark=mark=>Number(mark)>0&&Number(mark)<passingMark;
+    const absenceLimit=Number(panel.dataset.absenceLimit);
+    const sampleScore=mark=>absenceLimit?remainingScore(absenceLimit-mark,absenceLimit):Number(mark);
+    const categoryRows=[...panel.querySelectorAll('.cab-grade-chart [role=listitem]')];
     const axis=panel.querySelector('.cab-chart-axis'),value=panel.querySelector('output');
     const key=panel.querySelector('.cab-chart-meter small'),tabs=panel.querySelectorAll('[data-graph-tab]');
     const motion=matchMedia('(prefers-reduced-motion: reduce)');
-    const palette=['ink','muted','grid','main','tip','shade','floor','other','low'];
+    const palette=['ink','muted','grid','floor'];
+    let scoreColors,scoreRgb,categoryColors;
     let mode='timeline',selected=samples.length-1,previous=null,frame=0,visible=false;
     let width=0,height=0,colors,touch=null;
     const modeValues=()=>mode==='timeline'?samples:counts;
@@ -49,6 +68,19 @@
     function readPalette(){
       const computed=getComputedStyle(panel);
       colors=Object.fromEntries(palette.map(name=>[name,computed.getPropertyValue('--chart-'+name).trim()]));
+      scoreColors=levels.map(level=>computed.getPropertyValue('--grade-'+level).trim());
+      scoreRgb=scoreColors.map(rgb);
+      categoryColors=absenceLimit
+        ?categoryRows.map(row=>getComputedStyle(row).getPropertyValue('--attendance-mark-ink').trim()||colors.ink)
+        :series.map(([mark])=>gradeColor(Number(mark)));
+    }
+    function gradeColor(score){
+      const lower=Math.floor(score),upper=Math.ceil(score);
+      if(lower===upper)return scoreColors[lower-1]||colors.ink;
+      const from=scoreRgb[lower-1],to=scoreRgb[upper-1];
+      if(!from||!to)return colors.ink;
+      const channels=from.map((channel,index)=>Math.round(mix(channel,to[index],score-lower)));
+      return 'rgb('+channels.join(',')+')';
     }
     function dimensions(){
       const bounds=canvas.getBoundingClientRect();
@@ -73,7 +105,7 @@
       const amount=numberFormat.format(timeline?sample[1]:sample[2])+unit;
       const text=timeline?selection+' '+amount+' · '+caption(sample[0]):sample[1]+' · '+amount;
       value.textContent=amount;
-      value.toggleAttribute('data-low-grade',timeline&&isLowMark(sample[1]));
+      setInk(value,timeline?gradeInk(sampleScore(sample[1])):categoryColors[selected]);
       key.textContent=timeline?caption(sample[0]):sample[1];
       canvas.setAttribute('aria-valuemin','1');
       canvas.setAttribute('aria-valuemax',String(modeValues().length));
@@ -84,23 +116,25 @@
     function grid(kind,alpha){
       const {left,right,top,bottom}=geometry();
       if(kind!=='timeline')return;
-      const values=Array.from({length:4},(_,i)=>Math.round(mix(minimum,maximum,i/3)));
-      const max=values.at(-1),min=values[0];
+      const yFor=n=>mix(bottom,top,(n-minimum)/(maximum-minimum));
+      const values=Array.from({length:4},(_,i)=>Math.round(mix(minimum,maximum,i/3)))
+        .filter(n=>!absenceLimit||Math.abs(yFor(n)-yFor(absenceLimit))>=14);
+      if(absenceLimit)values.push(absenceLimit);
       context.save();context.globalAlpha=alpha;
       context.font='10px system-ui';context.textAlign='right';context.textBaseline='middle';
       for(const n of values){
-        const y=mix(bottom,top,(n-min)/(max-min));
-        context.fillStyle=colors.muted;context.fillText(n,left-7,y);
-        context.strokeStyle=colors.grid;context.setLineDash(n===min?[]:[3,5]);
+        const y=yFor(n),threshold=n===absenceLimit&&absenceLimit>0;
+        context.fillStyle=threshold?scoreColors[0]:colors.muted;context.fillText(n,left-7,y);
+        context.strokeStyle=threshold?scoreColors[0]:colors.grid;context.setLineDash(n===minimum?[]:[3,5]);
         context.beginPath();context.moveTo(left,y);context.lineTo(right,y);context.stroke();
       }
       context.restore();
     }
-    function focusPoint(x,y,bottom,low){
-      context.strokeStyle=low?colors.low:colors.main;context.setLineDash([3,4]);context.globalAlpha*=.62;
+    function focusPoint(x,y,bottom,color){
+      context.strokeStyle=color;context.setLineDash([3,4]);context.globalAlpha*=.62;
       context.beginPath();context.moveTo(x,y);context.lineTo(x,bottom);context.stroke();
-      context.setLineDash([]);context.globalAlpha/=.62;context.fillStyle=low?colors.low:colors.tip;
-      context.shadowColor=low?colors.low:colors.main;context.shadowBlur=3;
+      context.setLineDash([]);context.globalAlpha/=.62;context.fillStyle=color;
+      context.shadowColor=color;context.shadowBlur=3;
       context.beginPath();context.arc(x,y,3.5,0,Math.PI*2);context.fill();
     }
     function drawTimeline(amount,alpha,focus){
@@ -108,30 +142,22 @@
       const points=samples.map(([,mark],i)=>({
         x:samples.length===1?(left+right)/2:mix(left,right,i/(samples.length-1)),
         y:mix(bottom,mix(bottom,top,(mark-minimum)/(maximum-minimum)),amount),
+        color:gradeColor(sampleScore(mark)),
       }));
       const [first,last]=[points[0],points.at(-1)];
       context.save();context.globalAlpha=alpha;
       if(points.length>1){
-        const wash=context.createLinearGradient(0,top,0,bottom);
-        wash.addColorStop(0,colors.shade);wash.addColorStop(1,colors.floor);
-        context.beginPath();curve(context,points);context.lineTo(last.x,bottom);context.lineTo(first.x,bottom);
-        context.closePath();context.fillStyle=wash;context.fill();
-        const ribbon=points.map(({x,y})=>({x,y:Math.min(y+12*amount,bottom)}));
         const edge=context.createLinearGradient(left,0,right,0);
-        edge.addColorStop(0,colors.main);edge.addColorStop(.56,colors.tip);edge.addColorStop(1,colors.other);
-        context.beginPath();curve(context,points);curve(context,[...ribbon].reverse(),false);context.closePath();
-        context.fillStyle=edge;context.globalAlpha=alpha*.10;context.fill();
-        context.globalAlpha=alpha;context.strokeStyle=edge;context.lineWidth=1.75;
+        points.forEach((point,index)=>edge.addColorStop(index/(points.length-1),point.color));
+        context.beginPath();curve(context,points);context.lineTo(last.x,bottom);context.lineTo(first.x,bottom);
+        context.closePath();context.fillStyle=edge;context.globalAlpha=alpha*.12;context.fill();
+        context.globalAlpha=alpha;context.strokeStyle=edge;context.lineWidth=2.2;
         context.beginPath();curve(context,points);context.stroke();
       }
-      const every=Math.max(1,Math.ceil(points.length/16));
-      for(let i=0;i<points.length;i++){
-        const low=isLowMark(samples[i][1]);
-        if(!low&&i%every!==0)continue;
-        const point=points[i];
-        context.fillStyle=low?colors.low:colors.main;context.beginPath();context.arc(point.x,point.y,low?2.6:1.9,0,Math.PI*2);context.fill();
+      for(const point of points){
+        context.fillStyle=point.color;context.beginPath();context.arc(point.x,point.y,2,0,Math.PI*2);context.fill();
       }
-      if(focus!==null)focusPoint(points[focus].x,points[focus].y,bottom,isLowMark(samples[focus][1]));
+      if(focus!==null)focusPoint(points[focus].x,points[focus].y,bottom,points[focus].color);
       context.restore();
     }
 
@@ -151,7 +177,7 @@
       series.forEach(([label,,count],index)=>{
         const middle=top+step*(index+.5),y=middle-trackHeight/2;
         const active=index===focus;
-        const low=isLowMark(label);
+        const color=categoryColors[index];
         if(active){
           rounded(context,1,middle-step/2+1,width-2,step-2,7);
           context.fillStyle=colors.floor;
@@ -162,16 +188,14 @@
         context.fill();
         const fillWidth=trackWidth*(count/largest)*amount;
         if(fillWidth>.4){
-          const sheen=context.createLinearGradient(left,y,left,y+trackHeight);
-          sheen.addColorStop(0,low?colors.low:active?colors.tip:colors.main);
-          sheen.addColorStop(.32,low?colors.low:colors.main);
-          sheen.addColorStop(1,colors.shade);
           rounded(context,left,y,fillWidth,trackHeight,trackHeight/2);
-          context.fillStyle=sheen;
+          context.fillStyle=color;
+          context.globalAlpha=alpha*(active?1:.85);
           context.fill();
+          context.globalAlpha=alpha;
         }
         context.font=(active?'600 ':'500 ')+fontSize+'px system-ui';
-        context.fillStyle=low?colors.low:active?colors.ink:colors.muted;
+        context.fillStyle=color;
         context.textAlign='left';
         context.fillText(label,7,middle);
         context.textAlign='right';
@@ -242,7 +266,7 @@
     readPalette();updateLabels();
     if(dimensions())paint();
     const size=new ResizeObserver(()=>{if(dimensions()&&!frame)paint();});size.observe(canvas);
-    const theme=new MutationObserver(()=>{readPalette();if(!frame)paint();});theme.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+    const theme=new MutationObserver(()=>{readPalette();readSelection();if(!frame)paint();});theme.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
     const observer=new IntersectionObserver(rows=>{
       if(visible||!rows.some(row=>row.isIntersecting))return;
       visible=true;observer.disconnect();animate();
@@ -250,5 +274,5 @@
     observer.observe(canvas);
     return ()=>{cancelAnimationFrame(frame);size.disconnect();theme.disconnect();observer.disconnect();};
   }
-  window.AmiaGradeVisual=Object.freeze({mount});
+  window.AmiaGradeVisual=Object.freeze({mount,gradeInk,setGradeTone,remainingScore});
 })();

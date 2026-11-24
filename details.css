@@ -1,18 +1,15 @@
 /* Animated diary visual. The canvas repaints only on entry and interaction. */
 /* Neutral glass for the diary and attendance visualizations. */
 .cab-grade-visual{
- --chart-low:var(--cab-danger-ink,#ffa0a8);
  --chart-ink:#f7f7f8;--chart-muted:#bebec3;--chart-grid:#ffffff23;
- --chart-main:#e5e5e7;--chart-tip:#ffffff;--chart-other:#b9b9be;
- --chart-shade:#ffffff48;--chart-floor:#ffffff06;
+ --chart-floor:#ffffff12;
  display:grid;gap:14px;margin-block:22px 14px;padding:clamp(14px,4vw,22px);
  border:1px solid var(--glass-panel-line);border-radius:24px;isolation:isolate;overflow:hidden;
  color:var(--chart-ink);background:var(--glass-panel);box-shadow:var(--glass-panel-depth);
 }
 :root[data-theme=light] .cab-grade-visual{
  --chart-ink:#262629;--chart-muted:#5b5b60;--chart-grid:#27272b29;
- --chart-main:#65656d;--chart-tip:#393940;--chart-other:#9b9ba2;
- --chart-shade:#ffffffed;--chart-floor:#adadb81b;
+ --chart-floor:#adadb82b;
 }
 .cab-chart-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
 .cab-chart-head h3{margin:0;font-size:17px;font-weight:650;letter-spacing:-.2px}
@@ -43,7 +40,7 @@
 .session-date-markers,.session-date-legend{display:flex;align-items:center;justify-content:center;gap:4px}
 [data-session-date]{--session-ink-visible:var(--session-ink)}
 :root[data-theme=light] [data-session-date]{--session-ink-visible:var(--category-ink,var(--session-ink))}
-:root #days .day .date[data-session-date],.calendar-date-number[data-session-date],.session-date-legend [data-session-date]{color:var(--session-ink-visible)}
+:root #days .day .date[data-session-date],.calendar-date-number[data-session-date],.cab-attendance-chip-date[data-session-date],.session-date-legend [data-session-date]{color:var(--session-ink-visible)}
 .session-date-markers i{width:4px;height:4px;border-radius:50%;background:var(--session-ink-visible);flex:none}
 .session-date-legend{gap:6px 14px;flex-wrap:wrap;margin:8px auto 14px;font-size:11px;line-height:1.45;font-weight:550}
 .date-grid button>.session-date-markers{position:absolute;bottom:3px;left:0;right:0;height:7px;pointer-events:none}
@@ -170,19 +167,18 @@
 :is(.cab-attendance-chip-date,.cab-attendance-lesson-key li,.cab-pick-option[data-lesson-kind]>span){
  color:var(--category-ink,var(--attendance-lesson-ink,var(--text)));
 }
-[data-attendance-code="ПН"]{--attendance-mark-dark:var(--cab-danger-ink);--attendance-mark-light:var(--cab-danger-ink)}
+[data-attendance-code="ПН"]{--attendance-mark-dark:var(--grade-1);--attendance-mark-light:var(--grade-1)}
 [data-attendance-code="Б"] {--attendance-mark-dark:#a3ccff;--attendance-mark-light:#235b9a}
 [data-attendance-code="УП"]{--attendance-mark-dark:#efcc91;--attendance-mark-light:#775018}
 [data-attendance-code="СБ"]{--attendance-mark-dark:#8edeae;--attendance-mark-light:#28613f}
 [data-attendance-code="ОМ"]{--attendance-mark-dark:#d8b9ff;--attendance-mark-light:#71388d}
 [data-attendance-code="Ц"] {--attendance-mark-dark:#8bdae6;--attendance-mark-light:#14606a}
 [data-attendance-code="ПР"]{--attendance-mark-dark:#b8c7d9;--attendance-mark-light:#4b5870}
+[data-attendance-code]{--attendance-mark-ink:var(--attendance-mark-dark,var(--control-ink))}
+:root[data-theme=light] [data-attendance-code]{--attendance-mark-ink:var(--attendance-mark-light,var(--control-ink))}
 .cab-attendance-value>[data-attendance-code],.cab-attendance-legend b[data-attendance-code],
-.cab-absence-list b[data-attendance-code],.cab-absence-summary [data-attendance-code]>strong,.cab-pick-option[data-attendance-code]>span{
- color:var(--attendance-mark-dark,var(--control-ink));
-}
-:root[data-theme=light] :is(.cab-attendance-value>[data-attendance-code],.cab-attendance-legend b[data-attendance-code],.cab-absence-list b[data-attendance-code],.cab-absence-summary [data-attendance-code]>strong,.cab-pick-option[data-attendance-code]>span){
- color:var(--attendance-mark-light,var(--control-ink));
+.cab-absence-list [data-attendance-code],.cab-pick-option[data-attendance-code]>span,.cab-audit-mark[data-attendance-code]{
+ color:var(--attendance-mark-ink);
 }
 .cab-attendance-roster[data-mode=month] .cab-attendance-person{
  align-items:center;grid-template-columns:minmax(126px,1fr) minmax(0,2.2fr);
@@ -190,9 +186,23 @@
 .cab-attendance-roster[data-mode=month] .cab-attendance-marks{
  justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;
  scrollbar-width:thin;scrollbar-color:var(--sheet-scrollmark) transparent;
- padding:1px 2px 4px;scroll-padding-inline:2px;
+ padding:2px 2px 11px;scroll-padding-inline:2px;
+}
+@supports selector(::-webkit-scrollbar){
+ .cab-attendance-roster[data-mode=month] .cab-attendance-marks{scrollbar-width:auto;scrollbar-color:auto}
+ .cab-attendance-marks::-webkit-scrollbar{height:5px}
+ .cab-attendance-marks::-webkit-scrollbar-track{border-radius:10px;background:var(--glass-line)}
+ .cab-attendance-marks::-webkit-scrollbar-thumb{
+  border-radius:10px;background:linear-gradient(90deg,var(--sheet-scrollmark),var(--glass-lens-line));
+ }
+ .cab-attendance-marks::-webkit-scrollbar-thumb:hover{background:var(--control-edge)}
 }
 .cab-attendance-roster[data-mode=month] .cab-attendance-chip{min-width:57px}
+.cab-attendance-chip[data-offday=true] :is(.cab-attendance-chip-detail,.cab-attendance-chip-date:not([data-session-date])),
+.cab-attendance-calendar-legend .cab-attendance-offday{color:var(--offday)}
+.cab-attendance-chip .session-date-markers{margin-block:1px}
+.cab-attendance-calendar-legend .session-date-legend{justify-content:flex-start;margin-block:5px 8px}
+.cab-attendance-calendar-legend{font-size:var(--app-caption-size,12px);color:var(--muted)}
 .cab-attendance-chip:focus-visible{outline-offset:-3px}
 @media(max-width:590px){
  .cab-attendance-roster[data-mode=month] .cab-attendance-person,
@@ -214,6 +224,30 @@
 }
 
 .cab-absence-summary.cab-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cab-absence-threshold{color:var(--grade-1);font-weight:650}
+.cab-absence-summary .cab-stat[data-score-tone]{--absence-tint:var(--score-ink)}
+.cab-absence-summary .cab-absence-reason{--absence-tint:var(--attendance-mark-ink)}
+.cab-absence-summary :is([data-score-tone],.cab-absence-reason){
+ color:var(--absence-tint);border-color:color-mix(in srgb,var(--absence-tint) 33%,var(--liquid-edge));
+ background:linear-gradient(145deg,color-mix(in srgb,var(--absence-tint) 13%,transparent),transparent 85%),var(--liquid-fill);
+}
+.cab-absence-reason b{color:var(--absence-tint);font-weight:650}
+.cab-audit-toolbar{display:flex;gap:9px;margin-block-end:14px}
+.cab-audit-toolbar>.cab-action{flex:1;min-width:0}
+.cab-audit-entry h3{margin-block:6px}
+.cab-audit-meta{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:5px}
+.cab-audit-change{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-block-start:8px}
+.cab-audit-arrow{display:grid;place-items:center;color:var(--muted)}
+.cab-audit-arrow svg{width:14px;height:14px}
+.cab-audit-mark{
+ display:inline-flex;align-items:baseline;gap:5px;padding:6px 8px;border-radius:9px;
+ font-size:var(--app-caption-size,12px);color:var(--muted);background:var(--glass-row);
+ border:1px solid var(--glass-line);
+}
+.cab-audit-mark[data-attendance-code]{
+ background:color-mix(in srgb,var(--attendance-mark-ink) 13%,transparent);
+ border-color:color-mix(in srgb,var(--attendance-mark-ink) 32%,var(--glass-line));
+}
 .cab-absence-list{display:grid;padding-block:2px}
 .cab-absence-list>div{display:flex;justify-content:space-between;gap:12px;padding:10px 0}
 .cab-absence-list>div+div{border-top:1px solid var(--glass-line)}

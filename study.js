@@ -371,23 +371,27 @@
     back.hidden = false;
     back.setAttribute('aria-label', 'Все темы по предмету');
     const uniqueTopics = [...new Set(sets.map(set => set.topic))];
+    const scopeLabel = match.fallback
+      ? (uniqueTopics.length > 1 ? 'Часть планов показана целиком' : 'Полный план темы')
+      : '';
     const topic = match.topic || (uniqueTopics.length === 1 ? uniqueTopics[0] : null);
     const available = topic ? availableKinds(topic) : [];
     const retainedRail = available.length > 1 && materialRail?.subject === subject && materialRail.topic === topic && materialRail.element.parentNode === body ? materialRail : null;
-    copyText = `${subject.name}\n${kinds[kind].label}${match.requested ? ' · Тема ' + match.requested : ''}\n${match.fallback ? 'Показана тема целиком; точная привязка подпункта не подтверждена.\n' : ''}\n` + sets.map(set => {
+    copyText = `${subject.name}\n${kinds[kind].label}${match.requested ? ' · Тема ' + match.requested : ''}\n${scopeLabel ? scopeLabel + '\n' : ''}\n` + sets.map(set => {
       const heading = set.topic.number != null ? `${topicLabel(set.topic)}. ${set.topic.title}\n` : '';
       const code = set.displayCode || set.session.code;
       return heading + (code ? `Занятие ${code}\n` : '') + questionsFor(set).map((question, index) => `${index + 1}. ${question}`).join('\n');
     }).join('\n\n');
-    const heading = topic && (topic.number != null || match.requested) ? `<div class="study-topic-heading"><span>${escape(match.requested ? 'Тема ' + match.requested : topicLabel(topic))}</span>${topic.number != null ? `<h3>${escape(topic.title)}</h3>` : ''}</div>` : '';
+    const topicCaption = topic ? [match.requested ? 'Тема ' + match.requested : topicLabel(topic), scopeLabel].filter(Boolean).join(' · ') : '';
+    const heading = topicCaption ? `<div class="study-topic-heading"><span>${escape(topicCaption)}</span>${topic.number != null ? `<h3>${escape(topic.title)}</h3>` : ''}</div>` : '';
     const switches = available.length > 1 ? `<div class="study-kind-switch glass-segmented" role="group" aria-label="Вид занятия">${available.map(item => `<button type="button" data-study-switch="${item}" aria-pressed="${item === kind}" aria-label="${kinds[item].label}">${item === 'practical'?'<span class="study-kind-full">Практическое</span><span class="study-kind-short" aria-hidden="true">Практика</span>':kinds[item].label}</button>`).join('')}</div>` : '';
-    const notice = match.fallback ? '<p class="study-notice">Показана тема целиком: точная привязка подпункта пока не подтверждена.</p>' : '';
-    const missing = sets.length && match.missing.length ? `<p class="study-notice">Вопросы к теме ${escape(match.missing.join(', '))} пока не добавлены.</p>` : '';
+    const notice = scopeLabel && !heading ? `<p class="study-notice">${escape(scopeLabel)}</p>` : '';
+    const missing = sets.length && match.missing.length ? `<p class="study-notice">Нет вопросов к ${match.missing.length === 1 ? 'теме' : 'темам'} ${escape(match.missing.join(', '))}.</p>` : '';
     const questions = sets.length ? `<div class="study-copy-bar"><button type="button" class="study-copy-primary" data-study-copy="plain">${icons.copy}<span>Скопировать все</span></button><button type="button" class="study-copy-ai" data-study-copy="ai" title="Скопировать вопросы с запросом для подготовки">Для ИИ ${icons.copy}</button></div><div class="study-question-groups">${sets.map((set, groupIndex) => {
       const { topic: item, session, displayCode } = set;
       const groupTitle = !topic && item.number != null ? `${topicLabel(item)}. ${item.title}` : displayCode || session.code ? `Занятие ${displayCode || session.code}` : `${kinds[kind].label} ${session.numberWithinTopic || groupIndex + 1}`;
       return `<section class="study-question-group">${!topic || sets.length > 1 ? `<h3>${escape(groupTitle)}</h3>` : ''}<ol class="study-questions">${questionsFor(set).map((question, index) => `<li><span class="study-question-text">${escape(question)}</span><span class="study-question-actions"><button type="button" class="study-question-copy" data-study-question="${groupIndex}:${index}" aria-label="Скопировать вопрос ${index + 1}" title="Скопировать вопрос ${index + 1}"><span class="study-question-copy-face">${icons.copy}</span></button><a class="study-question-search" href="${escape(searchUrl(question, subject, item))}" target="_blank" rel="noopener noreferrer" aria-label="Найти вопрос ${index + 1} в Google — откроется новая вкладка" title="${escape(buildSearchQuery(question, subject, item))}"><span class="study-question-copy-face">${icons.search}</span></a></span></li>`).join('')}</ol></section>`;
-    }).join('')}</div>` : `<div class="study-missing"><span class="study-subject-icon">${icons.book}</span><h3>Материалов к этой теме пока нет</h3><p>${match.requested ? `В загруженной учебной программе не найдены вопросы к теме ${escape(match.requested)}. ` : ''}Выберите другую тему в каталоге или сверьте материалы с актуальной программой.</p></div>`;
+    }).join('')}</div>` : `<div class="study-missing"><span class="study-subject-icon">${icons.book}</span><h3>Материалов к этой теме пока нет</h3>${match.requested ? `<p>Тема ${escape(match.requested)}</p>` : ''}</div>`;
     const content = notice + missing + questions + `<button type="button" class="study-other-topics study-inline-action" data-study-browse="${escape(subject.id)}"><span>Все темы по предмету</span>${icons.chevron}</button>`;
     if (retainedRail) {
       // Keep the rail, thumb and focused button connected while replacing content.
@@ -481,7 +485,7 @@
       `Вид занятия: ${kinds[match.kind]?.label || 'Учебное занятие'}.`,
       topics.length ? 'Темы:\n' + topics.map(topic => '• ' + topic).join('\n') : 'Название темы отдельно не передано: используй только контекст приведённых вопросов, не придумывай его.',
       match.requested ? `Обозначение темы/занятия в расписании: ${clean(match.requested)}.` : '',
-      match.fallback ? 'Уточнение: переданы вопросы темы целиком; точная привязка к подпункту занятия не подтверждена. Не выдавай её за установленную.' : '',
+      match.fallback ? 'Передан полный план темы. Сохрани исходную группировку и номера занятий.' : '',
       match.missing?.length ? `Вопросы к обозначениям ${match.missing.map(clean).join(', ')} не переданы: не восстанавливай их по догадке.` : ''
     ].filter(Boolean).join('\n');
     const format = {

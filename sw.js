@@ -1,10 +1,10 @@
 'use strict';
 // Change VERSION when publishing a new offline bundle.
-const VERSION = 'myschedule-offline-v73';
+const VERSION = 'myschedule-offline-v76';
 const BASE = self.registration.scope;
 const CACHE = VERSION + ':' + BASE;
 const INDEX = new URL('index.html', BASE).href;
-const REQUIRED = ['ui.js?v=73','lesson-card.js?v=68','lens.js?v=68','polish.css?v=73','glass-motion.css?v=68','curriculum.js?v=52','study.js?v=69','study.css?v=70','install.js?v=52','install.css?v=68','cabinet.js?v=71','cabinet.css?v=71','details.css?v=70','grade-visual.js?v=70'].map(path => new URL(path, BASE).href);
+const REQUIRED = ['ui.js?v=73','lesson-card.js?v=68','lens.js?v=68','polish.css?v=74','glass-motion.css?v=68','curriculum.js?v=52','study.js?v=76','study.css?v=70','install.js?v=52','install.css?v=68','cabinet.js?v=75','cabinet.css?v=75','details.css?v=75','grade-visual.js?v=75'].map(path => new URL(path, BASE).href);
 const ASSETS = [...REQUIRED, ...['icon-light.png?v=23', 'manifest-light.webmanifest?v=30', 'manifest.webmanifest?v=30', 'icon-192.png?v=7', 'icon-512.png?v=7', 'apple-touch-icon.png?v=7'].map(path => new URL(path, BASE).href)];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
@@ -48,6 +48,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== new URL(BASE).origin || url.pathname.includes('/api/')) return;
   const isPage = request.mode === 'navigate' && (url.origin + url.pathname === BASE || url.origin + url.pathname === INDEX);
   if (isPage) {
+    const manualRefresh = url.searchParams.has('refresh-schedule');
     const cachePromise = caches.open(CACHE);
     // Prefer the latest page on a fast connection. A saved schedule can open
     // after 300 ms on a slow connection while its next copy updates in background.
@@ -55,7 +56,10 @@ self.addEventListener('fetch', event => {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 4500);
       try {
-        const response = await fetch(request, {signal: controller.signal});
+        const response = await fetch(request, {
+          signal: controller.signal,
+          cache: manualRefresh ? 'reload' : 'default'
+        });
         if (!response.ok) throw new Error('Page unavailable');
         try { await cache.put(INDEX, response.clone()); } catch (_) {}
         return response;
@@ -64,7 +68,7 @@ self.addEventListener('fetch', event => {
     event.waitUntil(network.then(() => {}, () => {}));
     event.respondWith((async () => {
       const cached = await (await cachePromise).match(INDEX);
-      if (cached) {
+      if (cached && !manualRefresh) {
         let timer;
         try {
           const fresh = await Promise.race([
@@ -76,6 +80,7 @@ self.addEventListener('fetch', event => {
       }
       try { return await network; }
       catch (_) {
+        if (cached) return cached;
         return new Response('Откройте расписание с интернетом, чтобы сохранить его на устройстве.', {status: 503, headers: {'Content-Type': 'text/plain; charset=utf-8'}});
       }
     })());

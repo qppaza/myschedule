@@ -28,6 +28,7 @@
 :root[data-theme=light] :is(.study-subject-option,.study-copy-primary,.install-action,.group.glass){color:var(--control-ink)}
 :root[data-theme=light] :is(.segmented,.glass-segmented)>button[aria-pressed=true]{color:var(--control-ink)}
 :root[data-theme=light] .day.selected :is(.dow,.date){color:var(--control-ink)}
+:root[data-theme=light] .day[data-offday=true] :is(.dow,.date){color:var(--offday)}
 :root :is(.study-dialog,.install-dialog)::backdrop{background:var(--sheet-backdrop);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
 :root[data-theme=light] .group-overlay{background:var(--sheet-backdrop)}
 
