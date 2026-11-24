@@ -134,7 +134,7 @@
   function chooseDate(value,onPick,{steady=false}={}){
     let current=/^\d{4}-\d{2}-\d{2}$/.test(value||'')?value:today(),month=current.slice(0,7)+'-01';
     let rail=null;
-    const picker=makeSheet('Выберите дату','',{className:'cab-calendar-picker',steady,compact:true,onClose:()=>rail?.destroy?.()});
+    const picker=makeSheet('Выберите дату',calendarMarkup(),{className:'cab-calendar-picker',steady,compact:true,onClose:()=>rail?.destroy?.()});
     const choose=date=>{const closed=picker.close();if(steady)closed.then(()=>onPick(date));else onPick(date);};
     function changeMonth(step,restoreFocus=false){
       const date=new Date(month+'T12:00:00Z');
@@ -143,8 +143,7 @@
       draw();
       if(restoreFocus)picker.body.querySelector(`[data-month="${step}"]`)?.focus({preventScroll:true});
     }
-    function draw(focusDate){
-      rail?.destroy?.();rail=null;
+    function calendarMarkup(){
       const weekday=(new Date(month+'T12:00:00Z').getUTCDay()+6)%7,count=new Date(Date.UTC(+month.slice(0,4),+month.slice(5,7),0)).getUTCDate(),label=dateLabel(month,{month:'long',year:'numeric'});
       const offday=date=>window.offdayLabel?.(date)||(new Date(date+'T12:00:00Z').getUTCDay()===0?'Воскресенье — выходной':'');
       const todayDate=today(),group=selectedGroup(),scheduleAPI=schedule();
@@ -155,15 +154,22 @@
         const label=dateLabel(date,{weekday:'long',day:'numeric',month:'long',year:'numeric'});
         return `<button type="button" data-date="${date}" title="${escape(description)}" aria-label="${escape([label,description].filter(Boolean).join(', '))}" aria-pressed="${date===current}" data-offday="${!!holiday}" data-today="${date===todayDate}" ${date===todayDate?'aria-current="date"':''}><span class="calendar-date-number"${session?.numeral||''}>${i+1}</span>${session?.markers||''}</button>`;
       });
-      picker.body.innerHTML=`<div class="date-month-nav"><button type="button" class="study-round" data-month="-1" aria-label="Предыдущий месяц">${icons.back}</button><h3>${escape(label.charAt(0).toUpperCase()+label.slice(1))}</h3><button type="button" class="study-round" data-month="1" aria-label="Следующий месяц">${icons.next}</button></div><div class="date-weekdays" aria-hidden="true">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(day=>`<span>${day}</span>`).join('')}</div><div class="cab-date-grid date-grid">${'<span aria-hidden="true"></span>'.repeat(weekday)}${days.join('')}</div><p class="date-calendar-note"><span>Розовым</span> — воскресенья и нерабочие праздники</p>${scheduleAPI.assessmentLegend?.()||''}<div class="date-popover-footer">${action('Сегодня','today')}${action('Закрыть','cancel')}</div>`;
+      return `<div class="date-month-nav"><button type="button" class="study-round" data-month="-1" aria-label="Предыдущий месяц">${icons.back}</button><h3>${escape(label.charAt(0).toUpperCase()+label.slice(1))}</h3><button type="button" class="study-round" data-month="1" aria-label="Следующий месяц">${icons.next}</button></div><div class="date-weekdays" aria-hidden="true">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(day=>`<span>${day}</span>`).join('')}</div><div class="cab-date-grid date-grid">${'<span aria-hidden="true"></span>'.repeat(weekday)}${days.join('')}</div><p class="date-calendar-note"><span>Розовым</span> — воскресенья и нерабочие праздники</p>${scheduleAPI.assessmentLegend?.()||''}<div class="date-popover-footer">${action('Сегодня','today')}${action('Закрыть','cancel')}</div>`;
+    }
+    function mountCalendar(focusDate){
       const grid=picker.body.querySelector('.cab-date-grid');
       if(window.mountDragRail){grid.classList.add('has-date-rail');rail=window.mountDragRail(grid,{thumbSelector:'.date-thumb',thumbClass:'date-thumb',axis:'both',keyboard:false,commit:button=>choose(button.dataset.date)});}
       window.swipeNavigation?.(picker.body.querySelector('.date-month-nav'),changeMonth);
       if(focusDate)grid.querySelector(`[data-date="${focusDate}"]`)?.focus({preventScroll:true});
     }
+    function draw(focusDate){
+      rail?.destroy?.();rail=null;
+      picker.body.innerHTML=calendarMarkup();
+      mountCalendar(focusDate);
+    }
     picker.body.onclick=e=>{const date=e.target.closest('[data-date]')?.dataset.date;if(date){choose(date);return;}const step=e.target.closest('[data-month]')?.dataset.month;if(step){changeMonth(Number(step),true);return;}const command=e.target.closest('[data-cab-action]')?.dataset.cabAction;if(command==='today')choose(today());if(command==='cancel')picker.close();};
     picker.body.addEventListener('keydown',e=>{const date=e.target.closest('[data-date]')?.dataset.date,delta={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[e.key];if(!date||delta===undefined)return;e.preventDefault();const next=shiftDay(date,delta);month=next.slice(0,7)+'-01';draw(next);});
-    draw(current);return picker;
+    mountCalendar(current);return picker;
   }
 
   function field(name,label,value='',placeholder='',{type='text',required=false,maxLength=200,min,max}={}){return`<label class="cab-field"><span>${escape(label)}</span><input name="${escape(name)}" type="${type}" value="${escape(value)}" placeholder="${escape(placeholder)}" ${required?'required':''} maxlength="${maxLength}" ${min!==undefined?`min="${min}"`:''} ${max!==undefined?`max="${max}"`:''} autocomplete="off"></label>`;}

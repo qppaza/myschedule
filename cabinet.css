@@ -50,10 +50,13 @@
 
 /* Date selection shares the public calendar's movable glass lens. */
 :root .cab-picker.cab-calendar-picker{
- width:min(384px,calc(100vw - 24px));height:fit-content;min-height:0;
- max-width:none;max-height:calc(100dvh - 24px);margin:auto;border-radius:28px;transform-origin:center;
+ width:min(384px,calc(100vw - 24px));height:max-content;min-height:0;max-width:none;
+ max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);
+ margin:auto;border-radius:28px;transform-origin:center;overflow:auto;
 }
-:root .cab-picker.cab-calendar-picker .study-body{padding:16px}
+/* Let the calendar size its modal directly, including on iOS. */
+:root .cab-picker.cab-calendar-picker[open]{display:block}
+:root .cab-picker.cab-calendar-picker .study-body{padding:16px;overflow:visible;mask-image:none;animation:none}
 .cab-date-grid>.date-thumb{position:absolute;left:0;top:0;z-index:0;min-height:0;pointer-events:none;border-radius:14px;background:var(--liquid-selected);border:1px solid var(--liquid-selected-edge);box-shadow:var(--liquid-selected-shadow);transition:transform .28s var(--ui-ease),width .2s,height .2s,opacity .2s}
 .cab-date-grid.is-dragging>.date-thumb{transition:none}
 @media(max-width:360px){
