@@ -92,6 +92,8 @@
 .cab-question-meta{align-items:center;flex-wrap:wrap;gap:7px 10px}
 .cab-question-meta>.cab-badge{margin-inline-start:auto}
 .cab-card small.cab-question-date{display:block;margin-block:8px 0}
+:root .cab-card p.cab-inline-error{font-size:var(--app-caption-size,12px);color:var(--offday,#eda6af)}
+.cab-card p.cab-inline-error:empty{display:none}
 
 
 /* Keep nested form sheets on one steady backdrop and prevent scroll masking. */
