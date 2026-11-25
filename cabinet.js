@@ -74,6 +74,7 @@
   const toast=message=>window.GlassUI?.toast?.(message,{duration:2000});
   const badge=(text,kind='')=>`<span class="cab-badge ${kind}">${escape(text)}</span>`;
   const action=(label,command,icon='',classes='',attrs='')=>`<button type="button" class="cab-action ${classes}" data-cab-action="${escape(command)}" ${attrs}>${icon}${escape(label)}</button>`;
+  const primaryRow=(label,command)=>`<div class="cab-toolbar cab-primary-row">${action(label,command,icons.plus,'primary')}</div>`;
   const empty=(title,text,icon=icons.book,button='')=>`<div class="cab-empty">${icon}<h3>${escape(title)}</h3><p>${escape(text)}</p>${button}</div>`;
   const section=(title,meta='')=>`<div class="cab-section-title"><h3>${escape(title)}</h3>${meta?`<span>${escape(meta)}</span>`:''}</div>`;
   const note=text=>`<p class="cab-note">${text}</p>`;
@@ -220,9 +221,30 @@
     });
     return form;
   }
-  function confirmAction(title,text,callback){
-    const picker=makeSheet(title,`${note(escape(text))}<div class="cab-actions">${action('Отмена','cancel')}${action('Подтвердить','confirm','', 'primary')}</div><p class="cab-inline-error" role="alert"></p>`);
-    picker.body.onclick=async e=>{const b=e.target.closest('[data-cab-action]');if(!b)return;if(b.dataset.cabAction==='cancel')picker.close();if(b.dataset.cabAction==='confirm'){b.disabled=true;try{await callback();picker.body.innerHTML=note('Готово')+action('Закрыть','cancel');await draw({quiet:true});}catch(error){picker.body.querySelector('.cab-inline-error').textContent=error.message;b.disabled=false;}}};
+  function confirmAction(title,text,callback,{confirmLabel='Подтвердить',successMessage=''}={}){
+    const picker=makeSheet(title,`${note(escape(text))}<div class="cab-actions">${action('Отмена','cancel')}${action(confirmLabel,'confirm','', 'primary')}</div><p class="cab-inline-error" role="alert"></p>`);
+    picker.body.onclick=async event=>{
+      const button=event.target.closest('[data-cab-action]');
+      if(!button||button.disabled)return;
+      if(button.dataset.cabAction==='cancel'){picker.close();return;}
+      if(button.dataset.cabAction!=='confirm')return;
+      button.disabled=true;
+      const errorRegion=picker.body.querySelector('.cab-inline-error');
+      errorRegion.textContent='';
+      try{
+        await callback();
+        if(successMessage){
+          await picker.close();
+          toast(successMessage);
+        }else{
+          picker.body.innerHTML=note('Готово')+action('Закрыть','cancel');
+        }
+        await draw({quiet:true});
+      }catch(error){
+        errorRegion.textContent=error.message;
+        button.disabled=false;
+      }
+    };
   }
   const mountedSegments=new WeakMap();
   function mountSegments(container){
@@ -348,6 +370,8 @@
       let html;
       if(!me&&!['home','login','exams'].includes(page))html=guestPage();
       else if(page==='grades')html=await gradesPage(epoch);
+      else if(page==='notes')html=await notesPage(epoch);
+      else if(page==='questions')html=await questionsPage(epoch);
       else if(page==='attendance'){
         const screen=view,groupId=selectedGroup(),date=screen.date||today();
         const route=attendanceRoute(groupId,date);
@@ -361,7 +385,7 @@
         const {group,data}=screen.attendance;
         html=attendancePage(groupId,group,date,data,screen.segment==='month');
       }
-      else html=await ({home:homePage,login:loginPage,questions:questionsPage,notes:notesPage,exams:examsPage,preferences:preferencesPage}[page]||homePage)();
+      else html=await ({home:homePage,login:loginPage,exams:examsPage,preferences:preferencesPage}[page]||homePage)();
       if(epoch!==renderEpoch||!main)return;
       if(quiet&&main.renderedHtml===html&&main.body.dataset.cabinetPage===page)return;
       const scroll=reuseAttendance?null:quiet||retained?main.body.scrollTop:0;
@@ -427,13 +451,27 @@
     const key=context?params.toString():group,cache=questionCache.get(key);if(cache&&!force&&Date.now()-cache.at<30000)return cache.data;
     const data=await api('/questions?'+params);questionCache.set(key,{at:Date.now(),data});return data;
   }
-  async function questionsPage(){
-    const group=await groupData();let html=controls(group,{person:true});
-    const data=await api('/questions?group='+encodeURIComponent(selectedGroup())+personalQuery());questionCache.set(selectedGroup(),{at:Date.now(),data});
-    const history=view.segment==='history',mine=list(data,'mine').filter(item=>history?item.date<today()||item.active===false:item.date>=today()&&item.active!==false).sort((a,b)=>history?b.date.localeCompare(a.date):a.date.localeCompare(b.date));view.questionItems=mine;
+  async function questionsPage(epoch){
+    const screen=view,groupId=selectedGroup(),group=await groupData(groupId);
+    if(epoch!==renderEpoch||screen!==view)return '';
+    let html=controls(group,{person:true});
+    const data=await api('/questions?group='+encodeURIComponent(groupId)+personalQuery());
+    if(epoch!==renderEpoch||screen!==view)return '';
+    questionCache.set(groupId,{at:Date.now(),data});
+    const history=screen.segment==='history',date=today();
+    const mine=list(data,'mine').filter(item=>history?item.date<date||item.active===false:item.date>=date&&item.active!==false)
+      .sort((a,b)=>history?b.date.localeCompare(a.date):a.date.localeCompare(b.date));
+    screen.questionItems=mine;
     html+=segments([['upcoming','Ближайшие'],['history','История']],history?'history':'upcoming','Мои вопросы');
-    if(!mine.length)return html+empty(history?'История ещё пуста':'Пока нет взятых вопросов',history?'Здесь сохранятся вопросы, которые вы выбирали к прошедшим занятиям.':'Выберите вопрос в неанонимном опросе Qdropbot — он появится здесь. Оценку после занятия вносить необязательно.');
-    return html+`<div class="cab-list">${mine.map((item,index)=>`<article class="cab-card"><div class="cab-card-top"><small>${escape(dateLabel(item.date,{weekday:'short',day:'numeric',month:'long'}))} · ${escape(item.subject)}</small>${badge(item.active===false?'Выбор снят':'Вопрос '+item.number,item.active===false?'muted':'')}</div><h3>${escape(item.text)}</h3><div class="cab-card-actions">${action('Материалы занятия','question-materials',icons.book,'',`data-index="${index}"`)}${action('Заметка','question-note',icons.note,'',`data-index="${index}"`)}</div></article>`).join('')}</div>${note('История показывает выбор вопросов, а не факт ответа на занятии. Отсутствие оценки не меняет эту запись.')}`;
+    if(!mine.length)return html+empty(history?'История еще пуста':'Пока нет взятых вопросов',history?'Здесь сохранятся вопросы, которые вы выбирали к прошедшим занятиям.':'Выберите вопрос в неанонимном опросе Qdropbot – он появится здесь. Оценку после занятия вносить необязательно.');
+    const subjects=new Map(list(group,'subjects').map(subject=>[String(subject.id),subject.name]));
+    const cards=mine.map((item,index)=>{
+      const subject=subjects.get(String(item.subjectId))||item.subject;
+      const date=dateLabel(item.date,{weekday:'short',day:'numeric',month:'long'});
+      const status=item.active===false?badge('Выбор снят','muted'):badge('Вопрос '+item.number);
+      return `<article class="cab-card"><div class="cab-card-top cab-question-meta">${subject?subjectTag(subject):''}${status}</div><small class="cab-question-date">${escape(date)}</small><h3>${escape(item.text)}</h3><div class="cab-card-actions">${action('Материалы занятия','question-materials',icons.book,'',`data-index="${index}"`)}${action('Заметка','question-note',icons.note,'',`data-index="${index}"`)}</div></article>`;
+    });
+    return html+`<div class="cab-list">${cards.join('')}</div>`+note('История показывает выбор вопросов, а не факт ответа на занятии. Отсутствие оценки не меняет эту запись.');
   }
 
   const attendanceRoute=(group,date)=>'/attendance?group='+encodeURIComponent(group)+'&month='+date.slice(0,7);
@@ -737,7 +775,7 @@
     for(const item of entries)if(!subjects.has(item.subjectId))subjects.set(item.subjectId,{id:item.subjectId,name:item.subject||item.subjectId});
     screen.grades=data;
     const subject=subjects.get(screen.subjectId);
-    const button=`<div class="cab-toolbar">${action('Добавить оценку','grade-add',icons.plus,'primary')}</div>`;
+    const button=primaryRow('Добавить оценку','grade-add');
     if(subject){
       screen.gradeSubject=subject.name;
       const records=entries.filter(item=>item.subjectId===subject.id);
@@ -799,10 +837,31 @@
     updateMarkTone();
   }
 
-  async function notesPage(){
-    const group=await groupData(),context=controls(group,{person:true}),data=await api('/notes?'+personalQuery().replace(/^&/,'')),items=list(data).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));view.notes=data;
-    const subjectMap=new Map(list(group,'subjects').map(s=>[s.id,s.name]));
-    return context+`<div class="cab-toolbar">${action('Новая заметка','note-add',icons.plus,'primary')}</div>`+(items.length?`<div class="cab-list">${items.map(item=>`<article class="cab-card"><div class="cab-card-top"><small>${item.scope==='day'?escape(dateLabel(item.date,{weekday:'short',day:'numeric',month:'long'})):escape(subjectMap.get(item.subjectId)||item.subject||'Учебная дисциплина')}</small>${badge(item.scope==='day'?'К дню':'К предмету','muted')}</div><p>${escape(item.text)}</p><div class="cab-card-actions">${action('Изменить','note-edit',icons.note,'',`data-id="${escape(item.id)}"`)}${action('Удалить','note-delete','','subtle',`data-id="${escape(item.id)}"`)}</div></article>`).join('')}</div>`:empty('Место для важных мелочей','Добавьте заметку к предмету или дню: что повторить, что принести и о чём спросить.',icons.note))+note('Заметки сохраняются за вашим аккаунтом и доступны на других устройствах после входа. Владелец системы имеет доступ к записям кабинетов.');
+  const subjectColors=['lecture','seminar','practice','credit','info','consultation','diff_credit','exam'];
+  function subjectTag(subject){
+    const name=String(subject).trim().replace(/\s+/g,' ');
+    let hash=2166136261;
+    for(const char of name.toLocaleLowerCase('ru'))hash=Math.imul(hash^char.codePointAt(0),16777619);
+    const accent=attendanceLessonAccent(subjectColors[(hash>>>0)%subjectColors.length]);
+    return `<span class="cab-subject-tag"${accent}>${escape(name)}</span>`;
+  }
+  async function notesPage(epoch){
+    const screen=view,group=await groupData();
+    if(epoch!==renderEpoch||screen!==view)return '';
+    const context=controls(group,{person:true}),data=await api('/notes?'+personalQuery().replace(/^&/,''));
+    if(epoch!==renderEpoch||screen!==view)return '';
+    screen.notes=data;
+    const items=[...list(data)].sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
+    const subjects=new Map(list(group,'subjects').map(s=>[String(s.id),s.name]));
+    const cards=items.map(item=>{
+      const subject=subjects.get(String(item.subjectId))||item.subject||'Учебная дисциплина';
+      const heading=item.scope==='day'
+        ? `<small>${escape(dateLabel(item.date,{weekday:'short',day:'numeric',month:'long'}))}</small>${badge('К дню','muted')}`
+        : subjectTag(subject);
+      const id=`data-id="${escape(item.id)}"`;
+      return `<article class="cab-card"><div class="cab-card-top">${heading}</div><p>${escape(item.text)}</p><div class="cab-card-actions">${action('Изменить','note-edit',icons.note,'',id)}${action('Удалить','note-delete','','subtle',id)}</div></article>`;
+    });
+    return context+primaryRow('Новая заметка','note-add')+(cards.length?`<div class="cab-list">${cards.join('')}</div>`:empty('Место для важных мелочей','Добавьте заметку к предмету или дню: что повторить, что принести и о чем спросить.',icons.note))+note('Заметки сохраняются за вашим аккаунтом и доступны на других устройствах после входа. Владелец системы имеет доступ к записям кабинетов.');
   }
   async function editNote(id='',preset={},caller=document.activeElement){
     if(!me){open('login');return;}
@@ -813,22 +872,53 @@
     finally{noteEditorPending=false;}
   }
   async function openNoteEditor(id,preset,caller,session){
-    const groupId=selectedGroup(),group=await groupData(groupId),subjects=list(group,'subjects'),entry=list(view.notes).find(e=>String(e.id)===String(id));
-    const draftKey='amia_note_draft_v1:'+JSON.stringify([me?.person?.id,personId(),groupId,id,preset.date,preset.subjectId,preset.text?.split('\n')[0]]);
-    const initial={scope:'subject',subjectId:subjects[0]?.id||'',date:schedule().getDate?.()||today(),text:'',...preset,...entry,...readSaved(draftKey)};
-    if(!caller?.isConnected||session!==token||document.querySelector('.cab-note-editor[open]'))return;
+    const screen=view,groupId=selectedGroup(),target=personId(),account=me?.person?.id;
+    const group=await groupData(groupId);
+    if(!caller?.isConnected||session!==token||screen!==view||groupId!==selectedGroup()||target!==personId()||document.querySelector('.cab-note-editor[open]'))return;
     const source=caller.closest('dialog');
     if(source&&(!source.open||source.hasAttribute('data-sheet-closing')))return;
-    const picker=makeSheet(entry?'Изменить заметку':'Новая заметка',`<form class="cab-form">${pickerField('scope','К чему относится заметка',initial.scope,initial.scope==='day'?'К учебному дню':'К предмету')}<div data-note-subject ${initial.scope==='day'?'hidden':''}>${pickerField('subjectId','Учебная дисциплина',initial.subjectId,subjects.find(s=>s.id===initial.subjectId)?.name)}</div><div data-note-date ${initial.scope!=='day'?'hidden':''}>${pickerField('date','Учебный день',initial.date,dateLabel(initial.date))}</div>${textField('text','Заметка',initial.text,'Запишите то, что важно не забыть')}<p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить заметку</button></form>`,{className:'cab-note-editor',steady:true});
+    const entry=list(screen.notes).find(e=>String(e.id)===String(id));
+    if(id&&!entry)return;
+    const subjects=[...list(group,'subjects')];
+    const findSubject=id=>subjects.find(subject=>String(subject.id)===String(id));
+    if(entry?.subjectId&&!findSubject(entry.subjectId))subjects.push({id:entry.subjectId,name:entry.subject||'Учебная дисциплина'});
+    const defaultsKey='amia_note_defaults_v1:'+JSON.stringify([account,groupId,target]);
+    const draftKey='amia_note_draft_v1:'+JSON.stringify([account,target,groupId,id,preset.date,preset.subjectId,preset.text?.split('\n')[0]]);
+    const defaultDate=schedule().getDate?.()||today();
+    const savedDraft=readSaved(draftKey);
+    const draft=entry||preset.scope||savedDraft.text?savedDraft:{};
+    const initial={scope:'subject',date:defaultDate,text:'',...(entry?{}:readSaved(defaultsKey)),...preset,...entry,...draft};
+    const subject=findSubject(initial.subjectId)||findSubject(entry?.subjectId)||subjects[0];
+    initial.date=validDate(initial.date)?initial.date:defaultDate;
+    const day=initial.scope==='day';
+    const scopeOptions=[{value:'subject',label:'К предмету'},{value:'day',label:'К учебному дню'}];
+    const picker=makeSheet(entry?'Изменить заметку':'Новая заметка',`<form class="cab-form">${pickerField('scope','К чему относится заметка',day?'day':'subject',scopeOptions[day?1:0].label)}<div data-note-subject ${day?'hidden':''}>${pickerField('subjectId','Учебная дисциплина',subject?.id||'',subject?.name)}</div><div data-note-date ${day?'':'hidden'}>${pickerField('date','Учебный день',initial.date,dateLabel(initial.date))}</div>${textField('text','Заметка',initial.text,'Запишите то, что важно не забыть')}<p class="cab-inline-error" role="alert"></p><button type="submit" class="cab-action primary">Сохранить заметку</button></form>`,{className:'cab-note-editor'});
+    const selection=form=>({scope:form.elements.scope.value,subjectId:form.elements.subjectId.value,date:form.elements.date.value});
     const form=submitForm(picker,async form=>{
-      const text=form.elements.text.value.trim();if(!text)throw apiError('Введите текст заметки.');
-      const scope=form.elements.scope.value;
-      await api('/notes',{method:'POST',body:{...(entry?{id:entry.id}:{}),personId:personId(),scope,...(scope==='day'?{date:form.elements.date.value}:{subjectId:form.elements.subjectId.value}),text}});
-      if(!entry)form.elements.text.value='';
+      const text=form.elements.text.value.trim();
+      if(!text)throw apiError('Введите текст заметки.');
+      const chosen=selection(form),{scope,subjectId,date}=chosen;
+      if(scope==='subject'&&!subjectId)throw apiError('Выберите учебную дисциплину.');
+      await api('/notes',{method:'POST',body:{...(entry?{id:entry.id}:{}),personId:target,scope,...(scope==='day'?{date}:{subjectId}),text}});
+      if(!entry){
+        safeWrite(defaultsKey,JSON.stringify(chosen));
+        form.elements.text.value='';
+      }
       toast('Заметка сохранена');
     },draftKey);
-    attachChoice(form,'scope','Заметка', [{value:'subject',label:'К учебной дисциплине'},{value:'day',label:'К учебному дню'}]);attachChoice(form,'subjectId','Учебная дисциплина',subjects.map(s=>({value:s.id,label:s.name})));attachDate(form,'date');
-    form.elements.scope.addEventListener('change',()=>{form.querySelector('[data-note-subject]').hidden=form.elements.scope.value==='day';form.querySelector('[data-note-date]').hidden=form.elements.scope.value!=='day';});
+    attachChoice(form,'scope','Заметка',scopeOptions);
+    attachChoice(form,'subjectId','Учебная дисциплина',subjects.map(s=>({value:s.id,label:s.name})));
+    attachDate(form,'date');
+    form.addEventListener('change',event=>{
+      const name=event.target.name;
+      if(!['scope','subjectId','date'].includes(name))return;
+      const chosen=selection(form);
+      if(name==='scope'){
+        form.querySelector('[data-note-subject]').hidden=chosen.scope==='day';
+        form.querySelector('[data-note-date]').hidden=chosen.scope!=='day';
+      }
+      if(!entry)safeWrite(defaultsKey,JSON.stringify(chosen));
+    });
   }
 
   const examKinds={credit:'Зачёт',diff_credit:'Дифзачёт',exam:'Экзамен',consultation:'Консультация'};
@@ -928,13 +1018,13 @@
       if(command==='grade-add'||command==='grade-edit'){await editGrade(button.dataset.id);return;}
       if(command==='grade-delete'){confirmAction('Удалить оценку?','Эта запись исчезнет из личного списка и расчёта среднего балла.',()=>api('/grades?id='+encodeURIComponent(button.dataset.id),{method:'DELETE'}));return;}
       if(command==='note-add'||command==='note-edit'){await editNote(button.dataset.id,{},button);return;}
-      if(command==='note-delete'){confirmAction('Удалить заметку?','Заметка будет удалена из вашего кабинета.',()=>api('/notes?id='+encodeURIComponent(button.dataset.id),{method:'DELETE'}));return;}
+      if(command==='note-delete'){confirmAction('Удалить заметку?','Заметка будет удалена из вашего кабинета.',()=>api('/notes?id='+encodeURIComponent(button.dataset.id),{method:'DELETE'}),{confirmLabel:'Удалить',successMessage:'Заметка удалена'});return;}
       if(command==='exam-group'){openChoice('Учебная группа',(me?.groups||['4501','4502','4503']).map(g=>({value:g,label:'Группа '+g})),{selected:selectedGroup(),onPick:g=>{contextGroup=g;contextPerson='';draw();}});return;}
       if(command==='question-materials'||command==='question-note'){
         const item=view.questionItems?.[+button.dataset.index];if(!item)return;const data=await api('/questions?group='+selectedGroup()+personalQuery());
         const lesson=list(data,'lessons').find(l=>l.key===item.lessonKey);
         if(command==='question-materials'&&lesson){window.StudyMaterials?.openLesson?.(lesson);return;}
-        const group=await groupData(),subject=list(group,'subjects').find(s=>s.name===item.subject);await editNote('',{scope:'day',date:item.date,text:`${item.subject} · Вопрос ${item.number}\n${item.text}\n\n`});return;
+        await editNote('',{scope:'day',date:item.date,text:`${item.subject} · Вопрос ${item.number}\n${item.text}\n\n`},button);return;
       }
     }catch(error){toast(error.message);}
   }
