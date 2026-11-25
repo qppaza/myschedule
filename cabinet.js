@@ -231,6 +231,16 @@
       if(api){rail.classList.add('has-glass-segments');mountedSegments.set(rail,api);}
     }});
   }
+  function selectSegment(rail,segment){
+    let changed=false;
+    for(const button of rail.querySelectorAll('[data-segment]')){
+      const pressed=String(button.dataset.segment===segment);
+      if(button.getAttribute('aria-pressed')===pressed)continue;
+      button.setAttribute('aria-pressed',pressed);
+      changed=true;
+    }
+    if(changed)mountedSegments.get(rail)?.reflow?.(true);
+  }
   const segments=(items,selected,name)=>`<div class="cab-segments glass-segmented" role="group" aria-label="${escape(name)}">${items.map(([id,label])=>`<button type="button" data-cab-action="segment" data-segment="${escape(id)}" aria-pressed="${id===selected}">${escape(label)}</button>`).join('')}</div>`;
 
   async function groupData(group=selectedGroup()){
@@ -319,16 +329,17 @@
           body.insertBefore(node,previousRail);
         }
         while(rail.nextSibling)body.append(rail.nextSibling);
-        buttons.forEach((button,i)=>button.setAttribute('aria-pressed',next[i].getAttribute('aria-pressed')));
-        mountedSegments.get(previousRail)?.reflow?.(true);
+        selectSegment(previousRail,next.find(button=>button.getAttribute('aria-pressed')==='true')?.dataset.segment);
         return;
       }
     }
     body.innerHTML=html;
   }
   let stopGradeVisual;
-  async function draw({quiet=false}={}){
-    if(!main)return;const epoch=++renderEpoch,page=view.page;
+  async function draw({quiet=false,reuseAttendance=false}={}){
+    if(!main)return;
+    // Changing only the display mode must not invalidate an in-flight ledger refresh.
+    const epoch=reuseAttendance?renderEpoch:++renderEpoch,page=view.page;
     const retained=main.body.dataset.cabinetPage===page?main.body.querySelector(':scope > .cab-segments'):null;
     main.heading.textContent=pageNames[page]||pageNames.home;
     main.dialog.querySelector('.cab-back').hidden=!frames.length;
@@ -337,18 +348,32 @@
       let html;
       if(!me&&!['home','login','exams'].includes(page))html=guestPage();
       else if(page==='grades')html=await gradesPage(epoch);
-      else html=await ({home:homePage,login:loginPage,questions:questionsPage,attendance:attendancePage,notes:notesPage,exams:examsPage,preferences:preferencesPage}[page]||homePage)();
+      else if(page==='attendance'){
+        const screen=view,groupId=selectedGroup(),date=screen.date||today();
+        const route=attendanceRoute(groupId,date);
+        if(reuseAttendance){
+          if(screen.attendance?.route!==route)return;
+        }else{
+          const [group,data]=await Promise.all([groupData(groupId),api(route)]);
+          if(epoch!==renderEpoch||screen!==view)return;
+          screen.attendance={route,group,data};
+        }
+        const {group,data}=screen.attendance;
+        html=attendancePage(groupId,group,date,data,screen.segment==='month');
+      }
+      else html=await ({home:homePage,login:loginPage,questions:questionsPage,notes:notesPage,exams:examsPage,preferences:preferencesPage}[page]||homePage)();
       if(epoch!==renderEpoch||!main)return;
       if(quiet&&main.renderedHtml===html&&main.body.dataset.cabinetPage===page)return;
-      const scroll=quiet||retained?main.body.scrollTop:0;
-      const tracks=quiet&&page==='attendance'
+      const scroll=reuseAttendance?null:quiet||retained?main.body.scrollTop:0;
+      const tracks=quiet&&!reuseAttendance&&page==='attendance'
         ?new Map([...main.body.querySelectorAll('[data-attendance-track]')].map(track=>[track.dataset.attendanceTrack,track.scrollLeft]))
         :null;
       stopGradeVisual?.();
       replaceCabinetBody(main.body,html,retained);main.renderedHtml=html;main.body.dataset.cabinetPage=page;
       stopGradeVisual=page==='grades'?window.AmiaGradeVisual?.mount(main.body):undefined;
       if(page==='grades'&&view.gradeSubject)main.heading.textContent=view.gradeSubject;
-      main.body.scrollTop=scroll;mountSegments(main.body);
+      if(scroll!==null)main.body.scrollTop=scroll;
+      mountSegments(main.body);
       if(tracks)for(const track of main.body.querySelectorAll('[data-attendance-track]')){
         track.scrollLeft=tracks.get(track.dataset.attendanceTrack)||0;
       }
@@ -411,10 +436,11 @@
     return html+`<div class="cab-list">${mine.map((item,index)=>`<article class="cab-card"><div class="cab-card-top"><small>${escape(dateLabel(item.date,{weekday:'short',day:'numeric',month:'long'}))} · ${escape(item.subject)}</small>${badge(item.active===false?'Выбор снят':'Вопрос '+item.number,item.active===false?'muted':'')}</div><h3>${escape(item.text)}</h3><div class="cab-card-actions">${action('Материалы занятия','question-materials',icons.book,'',`data-index="${index}"`)}${action('Заметка','question-note',icons.note,'',`data-index="${index}"`)}</div></article>`).join('')}</div>${note('История показывает выбор вопросов, а не факт ответа на занятии. Отсутствие оценки не меняет эту запись.')}`;
   }
 
-  async function attendancePage(){
-    const groupId=selectedGroup(),group=await groupData(groupId),date=view.date||today(),month=date.slice(0,7),data=await api('/attendance?group='+encodeURIComponent(groupId)+'&month='+month);view.attendance=data;
-    const people=list(group,'people'),allLessons=list(data,'lessons'),entries=list(data),dayLessons=allLessons.filter(l=>l.date===date),map=new Map(entries.map(e=>[e.personId+'|'+e.lessonKey,e]));
-    const monthMode=view.segment==='month',editable=!!data.canEdit;
+  const attendanceRoute=(group,date)=>'/attendance?group='+encodeURIComponent(group)+'&month='+date.slice(0,7);
+  function attendancePage(groupId,group,date,data,monthMode){
+    const month=date.slice(0,7),people=list(group,'people'),allLessons=list(data,'lessons'),entries=list(data);
+    const dayLessons=allLessons.filter(l=>l.date===date),map=new Map(entries.map(e=>[e.personId+'|'+e.lessonKey,e]));
+    const editable=!!data.canEdit;
     const own=people.find(person=>person.id===me?.person?.id);
     const participant=person=>{
       const label=escape(shortName(person)),canView=editable||person.id===own?.id;
@@ -456,24 +482,28 @@
   }
   function attendanceMonthSlots(month,group,groupedLessons){
     const slots=[],timetable=schedule(),assessmentType=window.AmiaLessonCard.assessmentType;
+    const shortDate=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',timeZone:'UTC'});
+    const longDate=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',timeZone:'UTC'});
+    const weekday=new Intl.DateTimeFormat('ru-RU',{weekday:'short',timeZone:'UTC'});
     for(let day=month+'-01';day.startsWith(month);day=shiftDay(day,1)){
       const lessons=groupedLessons.get(day)||[],holiday=window.offdayLabel?.(day)||'';
       const scheduled=timetable.assessmentDate?.(day,group);
       const types=(scheduled?.types||[]).concat(lessons.map(lesson=>assessmentType(lesson.type,lesson.subject)));
       const session=timetable.assessmentDate?.(day,group,types.map(type=>({type})));
       if(!lessons.length&&!holiday&&!session?.kind)continue;
+      const date=new Date(day+'T12:00:00Z');
       slots.push({date:day,lessons,holiday,session,
-        label:dateLabel(day,{day:'numeric',month:'short'}).replace(/\.$/,''),
-        detail:dateLabel(day,{weekday:'short'}),
-        description:[dateLabel(day,{day:'numeric',month:'long'}),holiday,session?.label].filter(Boolean).join(' · ')
+        label:shortDate.format(date).replace(/\.$/,''),
+        detail:weekday.format(date),
+        description:[longDate.format(date),holiday,session?.label].filter(Boolean).join(' · ')
       });
     }
     return slots;
   }
   async function editAttendance({person='',lesson='',date=view.date||today()}={}){
     const groupId=selectedGroup(),group=await groupData(groupId);
-    const month=date.slice(0,7),loadLedger=()=>api('/attendance?group='+encodeURIComponent(groupId)+'&month='+month);
-    let data=month===(view.date||today()).slice(0,7)?view.attendance:await loadLedger();
+    const route=attendanceRoute(groupId,date),loadLedger=()=>api(route);
+    let data=view.attendance?.route===route?view.attendance.data:await loadLedger();
     let refreshLedger=false;
     if(!data?.canEdit)return toast('Правки доступны старосте и заместителю');
     const people=list(group,'people'),lessons=list(data,'lessons').filter(l=>l.date===date),entry=person&&lesson?list(data).find(e=>e.personId===person&&e.lessonKey===lesson):null;
@@ -879,7 +909,15 @@
       if(command==='begin-login'){await beginLogin();return;}
       if(command==='cancel-login'){stopLogin();draw();return;}
       if(command==='logout'){await api('/auth/logout',{method:'POST',body:{}}).catch(()=>{});token='';me=null;contextGroup='';contextPerson='';groups.clear();questionCache.clear();safeWrite(TOKEN_KEY,null);updateEntry();frames.forEach(frame=>window.GlassUI?.navigationStepClosed?.(main.dialog,frame.key));frames=[];view={page:'home'};await draw();toast('Вы вышли из кабинета');return;}
-      if(command==='segment'){navigate(view.page,{segment:button.dataset.segment,...(view.page==='attendance'?{date:view.date||today()}:{})});return;}
+      if(command==='segment'){
+        const segment=button.dataset.segment;
+        if(view.page!=='attendance'){navigate(view.page,{segment});return;}
+        if((view.segment||'day')===segment)return;
+        view.segment=segment;
+        selectSegment(button.closest('.cab-segments'),segment);
+        await draw({quiet:true,reuseAttendance:true});
+        return;
+      }
       if(command==='attendance-date'){chooseDate(view.date||today(),date=>navigate('attendance',{date,segment:view.segment||'day'}));return;}
       if(command==='attendance-prev'||command==='attendance-next'){navigate('attendance',{date:shiftDay(view.date||today(),command.endsWith('prev')?-1:1),segment:view.segment||'day'});return;}
       if(command==='attendance-summary'){await openAttendanceSummary(button.dataset.person);return;}
